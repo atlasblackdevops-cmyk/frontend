@@ -58,6 +58,14 @@ export default function FarmGate({ children }: FarmGateProps) {
         farmId,
       });
 
+      // Store user data (name, email, profilePicture)
+      const { setUserData } = useAuth.getState();
+      setUserData({
+        name: payload?.name ?? null,
+        email: payload?.email ?? null,
+        profilePicture: payload?.profilePicture ?? null,
+      });
+
       // Refresh the page to ensure all components are updated
       router.refresh();
     } catch (err) {

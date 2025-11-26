@@ -46,34 +46,37 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px',
+          padding: '12px',
+          overflow: 'hidden',
         }}
       >
-        <Stack gap="xl" w="100%" maw={480} align="center">
-          {/* Farm Management Logo - Outside card */}
-          <Link
-            href="/"
-            style={{
-              textDecoration: 'none',
-              display: 'inline-block',
-              transition: 'opacity 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-            }}
+        <Stack gap={{ base: 'xs', sm: 'sm' }} w="100%" maw={480} align="center" style={{ maxHeight: '100%' }}>
+          {/* Welcome to Farm Management - One line */}
+          <Text
+            fw={700}
+            ta="center"
+            style={{ lineHeight: 1.2 }}
           >
-            <Text
-              fw={700}
-              c="lime.3"
-              ta="center"
-              style={{ fontSize: '32px', lineHeight: 1.2 }}
+            <span style={{ color: '#4caf50', fontSize: 'var(--mantine-font-size-md)' }}>Welcome to </span>
+            <Link
+              href="/"
+              style={{
+                textDecoration: 'none',
+                display: 'inline-block',
+                transition: 'opacity 0.2s',
+                color: 'var(--mantine-color-lime-3)',
+                fontSize: 'var(--mantine-font-size-xl)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.8';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
             >
               Farm Management
-            </Text>
-          </Link>
+            </Link>
+          </Text>
 
           {/* Form Card */}
           <Box w="100%">

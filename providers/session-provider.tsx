@@ -15,7 +15,7 @@ interface Props {
 function AuthSessionProvider({ children, session }: Props) {
   function SessionSync() {
     const router = useRouter();
-    const { setToken, setUserId, setRoleAndFarm } = useAuth();
+    const { setToken, setRefreshToken, setUserId, setRoleAndFarm, setUserData } = useAuth();
     const { token } = useAuth();
     const { data: nextAuthSession, status } = useSession();
 
@@ -46,11 +46,25 @@ function AuthSessionProvider({ children, session }: Props) {
                 data?.data?.jwt ??
                 data?.data?.access_token ??
                 null;
+
+              const backendRefreshToken =
+                data?.refreshToken ??
+                data?.refresh_token ??
+                data?.data?.refreshToken ??
+                data?.data?.refresh_token ??
+                null;
+
               if (backendToken) {
                 setToken(backendToken);
+                if (backendRefreshToken) {
+                  setRefreshToken(backendRefreshToken);
+                }
                 try {
                   if (typeof window !== "undefined") {
                     localStorage.setItem("accessToken", backendToken);
+                    if (backendRefreshToken) {
+                      localStorage.setItem("refreshToken", backendRefreshToken);
+                    }
                   }
                 } catch {
                   // ignore storage errors
@@ -99,6 +113,14 @@ function AuthSessionProvider({ children, session }: Props) {
                   hasFarm: typeof hasFarmVal === "boolean" ? hasFarmVal : null,
                   farmId,
                 });
+
+                // Store user data (name, email, profilePicture)
+                setUserData({
+                  name: payload?.name ?? null,
+                  email: payload?.email ?? null,
+                  profilePicture: payload?.profilePicture ?? null,
+                });
+
                 // Navigate to dashboard; FarmGate will show modal if owner without farm
                 router.push("/dashboard");
               } catch {
@@ -156,8 +178,15 @@ function AuthSessionProvider({ children, session }: Props) {
         if (stored) {
           setToken(stored);
         }
+        // Also hydrate refresh token if available
+        const storedRefreshToken =
+          localStorage.getItem("refreshToken") ||
+          sessionStorage.getItem("refreshToken");
+        if (storedRefreshToken) {
+          setRefreshToken(storedRefreshToken);
+        }
       }
-    }, [token, setToken]);
+    }, [token, setToken, setRefreshToken]);
 
     // Fetch user's auth state (role, hasFarm) when token is available but state is missing
     useEffect(() => {
@@ -203,6 +232,13 @@ function AuthSessionProvider({ children, session }: Props) {
               hasFarm: typeof hasFarmVal === "boolean" ? hasFarmVal : null,
               farmId,
             });
+
+            // Store user data (name, email, profilePicture)
+            setUserData({
+              name: payload?.name ?? null,
+              email: payload?.email ?? null,
+              profilePicture: payload?.profilePicture ?? null,
+            });
           } catch (err) {
             // If /me fails, user might not be authenticated - clear token
             // eslint-disable-next-line no-console
@@ -212,7 +248,7 @@ function AuthSessionProvider({ children, session }: Props) {
           }
         })();
       }
-    }, [token, setRoleAndFarm]);
+    }, [token, setRoleAndFarm, setUserData]);
 
     return null;
   }
