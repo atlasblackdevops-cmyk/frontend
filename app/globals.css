@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Remove default body margins to avoid unintended scrollbars */
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+}

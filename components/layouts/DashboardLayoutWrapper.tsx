@@ -1,0 +1,28 @@
+'use client';
+
+import React from 'react';
+import NavbarSimple from '@/components/navigation/NavbarSimple';
+
+export default function DashboardLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100dvh',
+      }}
+    >
+      <NavbarSimple />
+      <div
+        style={{
+          flex: 1,
+          padding: 16,
+          overflow: 'auto',
+          backgroundColor: '#f9fafb',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
