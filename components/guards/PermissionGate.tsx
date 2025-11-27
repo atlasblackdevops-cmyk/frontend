@@ -55,7 +55,7 @@ export default function PermissionGate({ children }: PermissionGateProps) {
             // If trying to access dashboard without permission, redirect to last authorized route
             if (pathname === "/dashboard") {
                 // Try to get last authorized route from sessionStorage
-                let redirectTo = "/dashboard"; // Default fallback
+                let redirectTo = "/settings"; // Default fallback
                 try {
                     const lastAuthorizedRoute = sessionStorage.getItem(STORAGE_KEY);
                     if (lastAuthorizedRoute && lastAuthorizedRoute !== "/dashboard") {
@@ -74,8 +74,8 @@ export default function PermissionGate({ children }: PermissionGateProps) {
                 }
                 router.replace(redirectTo);
             } else {
-                // For other unauthorized routes, redirect to dashboard
-                // But if dashboard is also not accessible, redirect to last authorized route
+                // For other unauthorized routes, redirect to dashboard if allowed,
+                // otherwise fall back to last authorized route or settings
                 const hasDashboardPermission = hasRoutePermission(
                     "/dashboard",
                     permissions,
@@ -85,7 +85,7 @@ export default function PermissionGate({ children }: PermissionGateProps) {
                     router.replace("/dashboard");
                 } else {
                     // Dashboard also not accessible, try last authorized route
-                    let redirectTo = "/dashboard"; // Default fallback
+                    let redirectTo = "/settings"; // Default fallback
                     try {
                         const lastAuthorizedRoute = sessionStorage.getItem(STORAGE_KEY);
                         if (lastAuthorizedRoute) {

@@ -42,6 +42,11 @@ export function hasRoutePermission(
         return true;
     }
 
+    // Settings should always be accessible so every user can manage their profile
+    if (route === "/settings") {
+        return true;
+    }
+
     const module = ROUTE_PERMISSIONS[route];
     if (!module) {
         // Unknown route - allow by default (for backwards compatibility)

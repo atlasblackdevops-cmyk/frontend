@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Stack, Textarea, TextInput } from '@mantine/core';
+import { Stack, Textarea, TextInput, FileButton, Button, Group, Avatar, Text } from '@mantine/core';
+import { IconUpload, IconBuilding, IconX } from '@tabler/icons-react';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import BaseButton from '@/components/ui/BaseButton';
 import BaseCard from '@/components/ui/BaseCard';
@@ -18,6 +19,8 @@ export default function CreateFarmPage() {
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
   const [address, setAddress] = useState('');
+  const [farmLogoFile, setFarmLogoFile] = useState<File | null>(null);
+  const [farmLogoPreview, setFarmLogoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -38,14 +41,39 @@ export default function CreateFarmPage() {
 
   const isValid = !errors.farmName;
 
+  // Handle farm logo change
+  const handleFarmLogoChange = (file: File | null) => {
+    if (file) {
+      setFarmLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFarmLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async () => {
     setTouched({ farmName: true, city: true, state: true, country: true, address: true });
     if (!isValid) return;
     setSubmitting(true);
     setError(null);
     try {
-      const payload = { name: farmName, city, state, country, address };
-      const { data } = await api.post('/api/v1/farms', payload);
+      const formData = new FormData();
+      formData.append('farmName', farmName.trim());
+      if (city) formData.append('city', city.trim());
+      if (state) formData.append('state', state.trim());
+      if (country) formData.append('country', country.trim());
+      if (address) formData.append('address', address.trim());
+      if (farmLogoFile) {
+        formData.append('farmLogo', farmLogoFile);
+      }
+
+      const { data } = await api.post('/api/v1/farms', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       const created = data?.data ?? data ?? {};
       const newFarmId = created?.id ?? created?.farmId ?? null;
       setRoleAndFarm({ hasFarm: true, farmId: newFarmId });
@@ -74,6 +102,60 @@ export default function CreateFarmPage() {
             {error ? (
               <div style={{ color: 'var(--mantine-color-red-6)', fontSize: 14 }}>{error}</div>
             ) : null}
+            
+            {/* Farm Logo */}
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>
+                Farm Logo (Optional)
+              </Text>
+              <Group gap="md">
+                {farmLogoPreview ? (
+                  <Avatar
+                    src={farmLogoPreview}
+                    size={80}
+                    radius="md"
+                    alt="Farm logo"
+                    variant="light"
+                  />
+                ) : (
+                  <Avatar size={80} radius="md" variant="light" color="gray">
+                    <IconBuilding size={40} />
+                  </Avatar>
+                )}
+                <Stack gap="xs">
+                  <FileButton
+                    onChange={handleFarmLogoChange}
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                  >
+                    {(props) => (
+                      <Button
+                        {...props}
+                        leftSection={<IconUpload size={16} />}
+                        variant="light"
+                        size="sm"
+                      >
+                        Upload Logo
+                      </Button>
+                    )}
+                  </FileButton>
+                  {farmLogoPreview && (
+                    <Button
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      leftSection={<IconX size={16} />}
+                      onClick={() => {
+                        setFarmLogoFile(null);
+                        setFarmLogoPreview(null);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Stack>
+              </Group>
+            </Stack>
+
             <TextInput
               label="Farm name"
               placeholder="E.g., Green Valley Farm"

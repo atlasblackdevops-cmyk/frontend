@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { IconChevronRight } from "@tabler/icons-react";
 import { Avatar, Group, Text, UnstyledButton } from "@mantine/core";
 import { useAuth } from "@/stores/use-auth-store";
@@ -19,14 +20,24 @@ export function UserButton({
     avatarSrc: propAvatarSrc,
     onClick,
 }: UserButtonProps) {
+    const router = useRouter();
     const { userName, userEmail, userProfilePicture } = useAuth();
 
     // Use props if provided, otherwise fall back to store data, then to defaults
     const name = propName ?? userName ?? "";
     const email = propEmail ?? userEmail ?? "";
     const avatarSrc = propAvatarSrc ?? userProfilePicture ?? null;
+
+    const handleClick = () => {
+        if (onClick) {
+            onClick();
+        } else {
+            router.push("/settings");
+        }
+    };
+
     return (
-        <UnstyledButton className={classes.user} onClick={onClick}>
+        <UnstyledButton className={classes.user} onClick={handleClick}>
             <Group
                 justify="space-between"
                 wrap="nowrap"

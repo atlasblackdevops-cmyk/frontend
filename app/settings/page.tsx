@@ -1,14 +1,14 @@
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import FarmGate from '@/components/guards/FarmGate';
 import DashboardLayoutWrapper from '@/components/layouts/DashboardLayoutWrapper';
-import ListingPage from '@/components/listing/ListingPage';
+import SettingsPage from '@/components/settings/SettingsPage';
 
-export default function SettingsPage() {
+export default function SettingsPageRoute() {
   return (
     <RequireAuth>
       <FarmGate>
         <DashboardLayoutWrapper>
-          <ListingPage title="Settings" />
+          <SettingsPage />
         </DashboardLayoutWrapper>
       </FarmGate>
     </RequireAuth>
