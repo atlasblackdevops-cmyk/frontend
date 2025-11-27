@@ -7,6 +7,13 @@ interface OAuthProfile {
     refreshToken?: string;
 }
 
+export interface Permission {
+    id: string;
+    module: string;
+    action: string;
+    description?: string;
+}
+
 export interface AuthStore {
     token: string | null;
     refreshToken: string | null;
@@ -18,6 +25,7 @@ export interface AuthStore {
     userName: string | null;
     userEmail: string | null;
     userProfilePicture: string | null;
+    permissions: Permission[];
     setToken: (token: string | null) => void;
     setRefreshToken: (refreshToken: string | null) => void;
     setAuth: (auth: OAuthProfile) => void;
@@ -32,6 +40,7 @@ export interface AuthStore {
         email?: string | null;
         profilePicture?: string | null;
     }) => void;
+    setPermissions: (permissions: Permission[]) => void;
 }
 
 export const useAuth = create<AuthStore>((set) => ({
@@ -45,6 +54,7 @@ export const useAuth = create<AuthStore>((set) => ({
     userName: null,
     userEmail: null,
     userProfilePicture: null,
+    permissions: [],
     setToken: (token: string | null) => set({ token }),
     setRefreshToken: (refreshToken: string | null) => set({ refreshToken }),
     setAuth: (auth: OAuthProfile) => set({ auth }),
@@ -69,4 +79,5 @@ export const useAuth = create<AuthStore>((set) => ({
                     ? profilePicture
                     : prev.userProfilePicture,
         })),
+    setPermissions: (permissions: Permission[]) => set({ permissions }),
 }));

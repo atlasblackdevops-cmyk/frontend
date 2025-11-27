@@ -66,6 +66,15 @@ export default function FarmGate({ children }: FarmGateProps) {
         profilePicture: payload?.profilePicture ?? null,
       });
 
+      // Store permissions if available
+      const permissions = Array.isArray(payload?.permissions)
+        ? payload.permissions
+        : Array.isArray(payload?.user?.permissions)
+          ? payload.user.permissions
+          : [];
+      const { setPermissions } = useAuth.getState();
+      setPermissions(permissions);
+
       // Refresh the page to ensure all components are updated
       router.refresh();
     } catch (err) {

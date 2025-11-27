@@ -1,10 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/stores/use-auth-store";
 import {
     ActionIcon,
     Avatar,
+    Autocomplete,
     Badge,
     Box,
     Button,
@@ -30,7 +32,6 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
-    IconAdjustmentsHorizontal,
     IconCheck,
     IconDotsVertical,
     IconFilter,
@@ -39,6 +40,7 @@ import {
     IconShieldLock,
     IconUserEdit,
     IconUserPlus,
+    IconUsersGroup,
     IconX,
 } from "@tabler/icons-react";
 
@@ -63,7 +65,7 @@ interface ManagedUser {
 }
 
 interface ApiUserResponse {
-    id: string;
+    farmMemberId?: string;
     user: {
         id: string;
         email: string;
@@ -86,6 +88,26 @@ interface ApiUserResponse {
     }>;
     createdAt: string;
     updatedAt?: string;
+}
+
+interface ExistingUserResponse {
+    id: string;
+    email: string;
+    name: string;
+    mobile?: string | null;
+    isActive: boolean;
+    emailVerified: boolean;
+    farms?: Array<{
+        farmMemberId: string;
+        farm: {
+            id: string;
+            farmName: string;
+        };
+        role: {
+            id: string;
+            roleName: string;
+        };
+    }>;
 }
 
 interface PaginationInfo {
@@ -146,6 +168,7 @@ const toTitleCase = (value: string) => {
 };
 
 export function UserManagementPage() {
+    const { farmId } = useAuth();
     const [users, setUsers] = useState<ManagedUser[]>([]);
     const [filters, setFilters] = useState({
         search: "",
@@ -160,10 +183,23 @@ export function UserManagementPage() {
     });
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [userDrawerOpened, setUserDrawerOpened] = useState(false);
+    const [existingUserDrawerOpened, setExistingUserDrawerOpened] =
+        useState(false);
     const [permissionsDrawerOpened, setPermissionsDrawerOpened] =
         useState(false);
     const [drawerMode, setDrawerMode] = useState<"create" | "edit">("create");
     const [activeUser, setActiveUser] = useState<ManagedUser | null>(null);
+    const [existingUsersSearch, setExistingUsersSearch] = useState("");
+    const [existingUsersList, setExistingUsersList] = useState<
+        Array<{ id: string; name: string; email: string }>
+    >([]);
+    const [isLoadingExistingUsers, setIsLoadingExistingUsers] = useState(false);
+    const autocompleteScrollRef = useRef<HTMLDivElement>(null);
+    const [selectedExistingUser, setSelectedExistingUser] = useState<{
+        id: string;
+        name: string;
+        email: string;
+    } | null>(null);
     const [moduleDefinitions, setModuleDefinitions] = useState<
         ModuleDefinition[]
     >([]);
@@ -303,6 +339,23 @@ export function UserManagementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters.search, moduleDefinitions.length]);
 
+    // Refetch users when farm changes
+    useEffect(() => {
+        if (farmId && moduleDefinitions.length > 0) {
+            // Reset to page 1 when farm changes
+            setPagination((prev) => ({ ...prev, page: 1 }));
+            // Reset filters when farm changes
+            setFilters({
+                search: "",
+                role: "all",
+                status: "all",
+            });
+            // Fetch users for the new farm
+            fetchUsers(1, pagination.limit);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [farmId, moduleDefinitions.length]);
+
     const getRoleLabel = (roleId: string) => {
         const role = roleOptions.find((r) => r.value === roleId);
         return role?.label ?? "Custom";
@@ -334,6 +387,17 @@ export function UserManagementPage() {
         }),
     });
 
+    const existingUserForm = useForm({
+        initialValues: {
+            userId: "",
+            roleId: "",
+        },
+        validate: (values) => ({
+            userId: !values.userId ? "Please select a user" : null,
+            roleId: !values.roleId ? "Please select a role" : null,
+        }),
+    });
+
     // Convert API user response to ManagedUser
     const convertApiUserToManagedUser = (
         apiUser: ApiUserResponse
@@ -353,7 +417,7 @@ export function UserManagementPage() {
         }
 
         return {
-            id: apiUser.id,
+            id: apiUser.user.id, // Use user.id instead of apiUser.id
             name: apiUser.user.name,
             email: apiUser.user.email,
             status: apiUser.user.isActive ? "active" : "inactive",
@@ -489,6 +553,83 @@ export function UserManagementPage() {
         setActiveUser(null);
     };
 
+    // Fetch existing users for search (users not in current farm)
+    const fetchExistingUsers = async (searchQuery: string) => {
+        if (!searchQuery || searchQuery.trim().length < 2) {
+            setExistingUsersList([]);
+            return;
+        }
+
+        setIsLoadingExistingUsers(true);
+        try {
+            const response = await api.get(
+                `/api/v1/users/all?search=${encodeURIComponent(searchQuery)}`
+            );
+            const responseData = response.data?.data;
+            if (responseData) {
+                const apiUsers: ExistingUserResponse[] =
+                    responseData.users || [];
+
+                // Filter out users already in current farm
+                const currentFarmUserIds = new Set(users.map((u) => u.id));
+                const availableUsers = apiUsers
+                    .filter((apiUser) => !currentFarmUserIds.has(apiUser.id))
+                    .map((apiUser) => ({
+                        id: apiUser.id,
+                        name: apiUser.name,
+                        email: apiUser.email,
+                    }));
+
+                setExistingUsersList(availableUsers);
+            }
+        } catch (error) {
+            console.error("Failed to fetch existing users", error);
+            setExistingUsersList([]);
+        } finally {
+            setIsLoadingExistingUsers(false);
+        }
+    };
+
+    // Debounced search for existing users
+    useEffect(() => {
+        if (!existingUserDrawerOpened) return;
+
+        const timeoutId = setTimeout(() => {
+            // Only search if query has at least 2 characters
+            if (existingUsersSearch && existingUsersSearch.trim().length >= 2) {
+                fetchExistingUsers(existingUsersSearch);
+            } else {
+                // Clear list if search is empty or less than 2 characters
+                setExistingUsersList([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [existingUsersSearch, existingUserDrawerOpened, users]);
+
+    const openExistingUserDrawer = () => {
+        setExistingUserDrawerOpened(true);
+        existingUserForm.reset();
+        setPermissionDraft(buildEmptyPermissionState(moduleDefinitions));
+        setSelectedExistingUser(null);
+        setExistingUsersSearch("");
+        setExistingUsersList([]);
+        // Set default roleId if form is empty
+        if (!existingUserForm.values.roleId && roleOptions.length > 0) {
+            existingUserForm.setFieldValue("roleId", roleOptions[0].value);
+        }
+    };
+
+    const closeExistingUserDrawer = () => {
+        setExistingUserDrawerOpened(false);
+        existingUserForm.reset();
+        setPermissionDraft(buildEmptyPermissionState(moduleDefinitions));
+        setSelectedExistingUser(null);
+        setExistingUsersSearch("");
+        setExistingUsersList([]);
+    };
+
     const openPermissionsDrawer = (user: ManagedUser) => {
         setActiveUser(user);
         setPermissionDraft(
@@ -596,9 +737,11 @@ export function UserManagementPage() {
     };
 
     // Update user API call
+    // Note: userId must be user.id (not farmMemberId)
     const updateUser = async (
         userId: string,
         payload: {
+            name?: string;
             email?: string;
             password?: string;
             roleId?: string;
@@ -623,10 +766,12 @@ export function UserManagementPage() {
 
             try {
                 const updatePayload: {
+                    name?: string;
                     email?: string;
                     password?: string;
                     roleId?: string;
                 } = {
+                    name: values.name.trim(),
                     email: values.email.trim().toLowerCase(),
                     roleId: values.roleId,
                 };
@@ -786,6 +931,99 @@ export function UserManagementPage() {
             }
         }
     });
+
+    const handleExistingUserSubmit = existingUserForm.onSubmit(
+        async (values) => {
+            if (!selectedExistingUser) {
+                setNotification({
+                    type: "error",
+                    message: "Please select a user",
+                });
+                setTimeout(() => setNotification(null), 7000);
+                return;
+            }
+
+            setIsSubmitting(true);
+            setNotification(null);
+
+            try {
+                const permissionIds = getPermissionIds(permissionDraft);
+
+                const payload = {
+                    userId: selectedExistingUser.id,
+                    roleId: values.roleId,
+                    permissionIds: permissionIds,
+                };
+
+                const response = await api.post(
+                    "/api/v1/users/add-existing",
+                    payload
+                );
+
+                // Handle response
+                const responseData = response.data?.data;
+                if (responseData) {
+                    const { user, permissions } = responseData;
+
+                    // Convert permissions array to PermissionMatrix format
+                    const userPermissions: PermissionMatrix = {};
+                    if (Array.isArray(permissions)) {
+                        permissions.forEach((perm: any) => {
+                            const moduleName = toTitleCase(perm.module || "");
+                            const action = perm.action?.toLowerCase() || "";
+                            if (moduleName && action) {
+                                if (!userPermissions[moduleName]) {
+                                    userPermissions[moduleName] = [];
+                                }
+                                userPermissions[moduleName].push(action);
+                            }
+                        });
+                    }
+
+                    // Add new user to the list
+                    const newUser: ManagedUser = {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        status: user.isActive ? "active" : "inactive",
+                        roleId: user.role?.id || values.roleId,
+                        roleName: user.role?.roleName,
+                        permissions: normalizePermissions(
+                            moduleDefinitions,
+                            userPermissions
+                        ),
+                        avatarColor: "cyan",
+                        isActive: user.isActive || false,
+                    };
+
+                    setUsers((prev) => [newUser, ...prev]);
+                    setNotification({
+                        type: "success",
+                        message:
+                            response.data?.message ||
+                            "User added to farm successfully",
+                    });
+                    setTimeout(() => setNotification(null), 5000);
+                    closeExistingUserDrawer();
+                    // Refresh the list to get updated pagination
+                    fetchUsers(pagination.page, pagination.limit);
+                }
+            } catch (error: any) {
+                console.error("Failed to add existing user", error);
+                const errorMessage =
+                    error.response?.data?.message ||
+                    error.message ||
+                    "Failed to add existing user. Please try again.";
+                setNotification({
+                    type: "error",
+                    message: errorMessage,
+                });
+                setTimeout(() => setNotification(null), 7000);
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    );
 
     const handlePermissionsSubmit = async (
         event: FormEvent<HTMLFormElement>
@@ -979,22 +1217,18 @@ export function UserManagementPage() {
                     <Title order={2}>Users & Permissions</Title>
                 </div>
                 <Group>
-                    <TextInput
-                        placeholder="Search users"
-                        leftSection={<IconSearch size={16} />}
-                        value={filters.search}
-                        onChange={(event) =>
-                            setFilters((prev) => ({
-                                ...prev,
-                                search: event.currentTarget.value,
-                            }))
-                        }
-                    />
                     <Button
                         leftSection={<IconUserPlus size={16} />}
                         onClick={() => openUserDrawer()}
                     >
                         Add user
+                    </Button>
+                    <Button
+                        variant="light"
+                        leftSection={<IconUsersGroup size={16} />}
+                        onClick={openExistingUserDrawer}
+                    >
+                        Add existing user
                     </Button>
                 </Group>
             </Group>
@@ -1058,13 +1292,19 @@ export function UserManagementPage() {
                                 setPagination((prev) => ({ ...prev, page: 1 }));
                             }}
                         />
+                        <TextInput
+                            placeholder="Search users"
+                            leftSection={<IconSearch size={16} />}
+                            value={filters.search}
+                            onChange={(event) =>
+                                setFilters((prev) => ({
+                                    ...prev,
+                                    search: event.currentTarget.value,
+                                }))
+                            }
+                            style={{ flex: 1, maxWidth: 300 }}
+                        />
                     </Group>
-                    <Button
-                        variant="subtle"
-                        leftSection={<IconAdjustmentsHorizontal size={16} />}
-                    >
-                        Advanced filters
-                    </Button>
                 </Group>
 
                 {isLoadingUsers ? (
@@ -1080,7 +1320,7 @@ export function UserManagementPage() {
                                         <Table.Th>User</Table.Th>
                                         <Table.Th>Role</Table.Th>
                                         <Table.Th>Modules</Table.Th>
-                                        <Table.Th>Active</Table.Th>
+                                        <Table.Th>Status</Table.Th>
                                         <Table.Th />
                                     </Table.Tr>
                                 </Table.Thead>
@@ -1695,6 +1935,300 @@ export function UserManagementPage() {
                         Select a user to update permissions.
                     </Text>
                 )}
+            </Drawer>
+
+            <Drawer
+                opened={existingUserDrawerOpened}
+                onClose={closeExistingUserDrawer}
+                position="right"
+                size="lg"
+                title={
+                    <Group gap="xs">
+                        <IconUsersGroup size={18} />
+                        <Text fw={600}>Add existing user</Text>
+                    </Group>
+                }
+            >
+                <form onSubmit={handleExistingUserSubmit}>
+                    <Stack>
+                        <Autocomplete
+                            label="User"
+                            placeholder="Search for user by name or email"
+                            leftSection={<IconSearch size={16} />}
+                            data={useMemo(() => {
+                                const allUsers = existingUsersList.map(
+                                    (user) => ({
+                                        value: `${user.name} (${user.email})`,
+                                        id: user.id,
+                                        name: user.name,
+                                        email: user.email,
+                                    })
+                                );
+                                // If search is empty, show all users; otherwise filter
+                                if (
+                                    !existingUsersSearch ||
+                                    existingUsersSearch.trim().length === 0
+                                ) {
+                                    return allUsers;
+                                }
+                                const searchLower = existingUsersSearch
+                                    .toLowerCase()
+                                    .trim();
+                                return allUsers.filter((user) =>
+                                    user.value
+                                        .toLowerCase()
+                                        .includes(searchLower)
+                                );
+                            }, [existingUsersList, existingUsersSearch])}
+                            value={existingUsersSearch}
+                            onChange={(value) => {
+                                setExistingUsersSearch(value);
+                                // Find selected user from the list
+                                const selected = existingUsersList.find(
+                                    (u) => `${u.name} (${u.email})` === value
+                                );
+                                if (selected) {
+                                    setSelectedExistingUser(selected);
+                                    existingUserForm.setFieldValue(
+                                        "userId",
+                                        selected.id
+                                    );
+                                } else {
+                                    setSelectedExistingUser(null);
+                                    existingUserForm.setFieldValue(
+                                        "userId",
+                                        ""
+                                    );
+                                }
+                            }}
+                            onOptionSubmit={(value) => {
+                                const option = existingUsersList.find(
+                                    (u) => `${u.name} (${u.email})` === value
+                                );
+                                if (option) {
+                                    setSelectedExistingUser(option);
+                                    existingUserForm.setFieldValue(
+                                        "userId",
+                                        option.id
+                                    );
+                                }
+                            }}
+                            onFocus={() => {
+                                // Ensure dropdown opens when focused if we have data
+                                if (
+                                    existingUsersList.length > 0 &&
+                                    !existingUsersSearch
+                                ) {
+                                    // The dropdown will open automatically on focus
+                                }
+                            }}
+                            rightSection={
+                                isLoadingExistingUsers ? (
+                                    <Loader size="xs" />
+                                ) : null
+                            }
+                            withAsterisk
+                            error={existingUserForm.errors.userId}
+                            comboboxProps={{ withinPortal: true }}
+                        />
+                        {selectedExistingUser && (
+                            <Paper withBorder radius="md" p="sm" bg="gray.0">
+                                <Group gap="xs">
+                                    <Avatar color="cyan" radius="xl" size="sm">
+                                        {selectedExistingUser.name
+                                            .split(" ")
+                                            .map((part) => part[0])
+                                            .slice(0, 2)
+                                            .join("")}
+                                    </Avatar>
+                                    <div>
+                                        <Text size="sm" fw={500}>
+                                            {selectedExistingUser.name}
+                                        </Text>
+                                        <Text size="xs" c="dimmed">
+                                            {selectedExistingUser.email}
+                                        </Text>
+                                    </div>
+                                </Group>
+                            </Paper>
+                        )}
+                        <Select
+                            label="Role"
+                            placeholder="Choose role"
+                            data={roleOptions}
+                            withAsterisk
+                            comboboxProps={{ withinPortal: true }}
+                            {...existingUserForm.getInputProps("roleId")}
+                        />
+                        <Paper withBorder radius="md" p="md">
+                            <div style={{ marginBottom: "1rem" }}>
+                                <Text fw={600}>Permissions</Text>
+                                <Text size="sm" c="dimmed">
+                                    Toggle module access to fine tune this user.
+                                </Text>
+                            </div>
+                            <Box
+                                style={{
+                                    border: "1px solid var(--mantine-color-gray-3)",
+                                    borderRadius: 8,
+                                }}
+                            >
+                                <Table
+                                    horizontalSpacing="md"
+                                    verticalSpacing="xs"
+                                    withColumnBorders
+                                >
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Module</Table.Th>
+                                            {permissionColumns.map((action) => (
+                                                <Table.Th
+                                                    key={`existing-${action}`}
+                                                >
+                                                    {action}
+                                                </Table.Th>
+                                            ))}
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {moduleDefinitions.map((module) => {
+                                            const moduleState =
+                                                getModulePermissionState(
+                                                    module.module
+                                                );
+                                            return (
+                                                <Table.Tr
+                                                    key={`existing-${module.module}`}
+                                                >
+                                                    <Table.Td>
+                                                        <Group
+                                                            gap="xs"
+                                                            wrap="nowrap"
+                                                        >
+                                                            <Checkbox
+                                                                checked={
+                                                                    moduleState.checked
+                                                                }
+                                                                indeterminate={
+                                                                    moduleState.indeterminate
+                                                                }
+                                                                onChange={() =>
+                                                                    toggleModuleAllPermissions(
+                                                                        module.module
+                                                                    )
+                                                                }
+                                                                aria-label={`Select all ${module.module} permissions`}
+                                                                styles={{
+                                                                    input: moduleState.indeterminate
+                                                                        ? {
+                                                                              backgroundColor:
+                                                                                  "var(--mantine-color-red-6)",
+                                                                              borderColor:
+                                                                                  "var(--mantine-color-red-6)",
+                                                                              "&::before":
+                                                                                  {
+                                                                                      backgroundColor:
+                                                                                          "var(--mantine-color-white)",
+                                                                                  },
+                                                                          }
+                                                                        : undefined,
+                                                                }}
+                                                            />
+                                                            <Text
+                                                                fw={600}
+                                                                style={{
+                                                                    whiteSpace:
+                                                                        "nowrap",
+                                                                    overflow:
+                                                                        "hidden",
+                                                                    textOverflow:
+                                                                        "ellipsis",
+                                                                }}
+                                                            >
+                                                                {module.module}
+                                                            </Text>
+                                                        </Group>
+                                                    </Table.Td>
+                                                    {permissionColumns.map(
+                                                        (action) => (
+                                                            <Table.Td
+                                                                key={`existing-${module.module}-${action}`}
+                                                            >
+                                                                {module.actions.includes(
+                                                                    action
+                                                                ) ? (
+                                                                    <Checkbox
+                                                                        aria-label={`${module.module} ${action}`}
+                                                                        checked={
+                                                                            permissionDraft[
+                                                                                module
+                                                                                    .module
+                                                                            ]?.includes(
+                                                                                action
+                                                                            ) ??
+                                                                            false
+                                                                        }
+                                                                        onChange={() =>
+                                                                            togglePermission(
+                                                                                module.module,
+                                                                                action
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <Text
+                                                                        size="xs"
+                                                                        c="dimmed"
+                                                                        ta="center"
+                                                                    >
+                                                                        —
+                                                                    </Text>
+                                                                )}
+                                                            </Table.Td>
+                                                        )
+                                                    )}
+                                                </Table.Tr>
+                                            );
+                                        })}
+                                    </Table.Tbody>
+                                </Table>
+                            </Box>
+                            <Divider my="sm" />
+                            <Stack gap="xs">
+                                <Text size="sm" fw={600}>
+                                    Current access summary
+                                </Text>
+                                {renderPermissionPreview().filter(Boolean)
+                                    .length > 0 ? (
+                                    renderPermissionPreview()
+                                ) : (
+                                    <Text size="sm" c="dimmed">
+                                        No permissions selected yet.
+                                    </Text>
+                                )}
+                            </Stack>
+                        </Paper>
+                        <Group justify="flex-end">
+                            <Button
+                                variant="default"
+                                onClick={closeExistingUserDrawer}
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader size="sm" mr="xs" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add to farm"
+                                )}
+                            </Button>
+                        </Group>
+                    </Stack>
+                </form>
             </Drawer>
         </Stack>
     );

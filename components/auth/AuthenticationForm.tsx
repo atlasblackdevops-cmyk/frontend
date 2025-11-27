@@ -364,6 +364,15 @@ export function AuthenticationForm({
                                     profilePicture:
                                         payload?.profilePicture ?? null,
                                 });
+                                // Store permissions if available
+                                const permissions = Array.isArray(
+                                    payload?.permissions
+                                )
+                                    ? payload.permissions
+                                    : Array.isArray(payload?.user?.permissions)
+                                      ? payload.user.permissions
+                                      : [];
+                                useAuth.getState().setPermissions(permissions);
                             } catch {}
                             // Always navigate to dashboard; FarmGate will show modal if owner without farm
                             router.push("/dashboard");

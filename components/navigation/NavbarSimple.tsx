@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import FarmSwitcherModal from "@/components/farm/FarmSwitcherModal";
 import { api } from "@/lib/api";
 import { useAuth } from "@/stores/use-auth-store";
+import { hasRoutePermission } from "@/lib/permissions";
 import { UserButton } from "./UserButton";
 import classes from "./NavbarSimple.module.css";
 
@@ -52,6 +53,8 @@ export function NavbarSimple() {
         setRoleAndFarm,
         setUserData,
         farmId,
+        role,
+        permissions,
     } = useAuth();
     const [switcherOpen, setSwitcherOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
@@ -120,7 +123,12 @@ export function NavbarSimple() {
         }
     }
 
-    const links = data.map((item) => {
+    // Filter links based on permissions (OWNER/SUPER_ADMIN see all)
+    const filteredLinks = data.filter((item) =>
+        hasRoutePermission(item.link, permissions, role)
+    );
+
+    const links = filteredLinks.map((item) => {
         const isActive = pathname === item.link;
         return (
             <Link
