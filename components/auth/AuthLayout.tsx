@@ -50,7 +50,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           overflow: 'hidden',
         }}
       >
-        <Stack gap={{ base: 'xs', sm: 'sm' }} w="100%" maw={480} align="center" style={{ maxHeight: '100%' }}>
+        <Stack gap="sm" w="100%" maw={480} align="center" style={{ maxHeight: '100%' }}>
           {/* Welcome to Farm Management - One line */}
           <Text
             fw={700}
