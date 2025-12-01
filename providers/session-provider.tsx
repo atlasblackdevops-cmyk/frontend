@@ -124,6 +124,11 @@ function AuthSessionProvider({ children, session }: Props) {
                                     payload?.data?.farmId ??
                                     null;
 
+                                const farmName =
+                                    payload?.currentFarm?.farmName ??
+                                    payload?.currentFarm?.name ??
+                                    null;
+
                                 setRoleAndFarm({
                                     role: roleName ?? null,
                                     hasFarm:
@@ -131,6 +136,7 @@ function AuthSessionProvider({ children, session }: Props) {
                                             ? hasFarmVal
                                             : null,
                                     farmId,
+                                    farmName,
                                 });
 
                                 // Store user data (name, email, profilePicture)
@@ -265,6 +271,11 @@ function AuthSessionProvider({ children, session }: Props) {
                             payload?.data?.farmId ??
                             null;
 
+                        const farmName =
+                            payload?.currentFarm?.farmName ??
+                            payload?.currentFarm?.name ??
+                            null;
+
                         setRoleAndFarm({
                             role: roleName ?? null,
                             hasFarm:
@@ -272,6 +283,7 @@ function AuthSessionProvider({ children, session }: Props) {
                                     ? hasFarmVal
                                     : null,
                             farmId,
+                            farmName,
                         });
 
                         // Store user data (name, email, profilePicture)

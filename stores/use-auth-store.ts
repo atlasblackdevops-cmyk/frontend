@@ -22,6 +22,7 @@ export interface AuthStore {
     role: string | null;
     hasFarm: boolean | null;
     farmId: string | null;
+    farmName: string | null;
     userName: string | null;
     userEmail: string | null;
     userProfilePicture: string | null;
@@ -34,6 +35,7 @@ export interface AuthStore {
         role?: string | null;
         hasFarm?: boolean | null;
         farmId?: string | null;
+        farmName?: string | null;
     }) => void;
     setUserData: (payload: {
         name?: string | null;
@@ -51,6 +53,7 @@ export const useAuth = create<AuthStore>((set) => ({
     role: null,
     hasFarm: null,
     farmId: null,
+    farmName: null,
     userName: null,
     userEmail: null,
     userProfilePicture: null,
@@ -59,7 +62,7 @@ export const useAuth = create<AuthStore>((set) => ({
     setRefreshToken: (refreshToken: string | null) => set({ refreshToken }),
     setAuth: (auth: OAuthProfile) => set({ auth }),
     setUserId: (userId: string | null) => set({ userId }),
-    setRoleAndFarm: ({ role, hasFarm, farmId }) =>
+    setRoleAndFarm: ({ role, hasFarm, farmId, farmName }) =>
         set((prev) => ({
             role: role ?? prev.role,
             hasFarm: typeof hasFarm === "boolean" ? hasFarm : prev.hasFarm,
@@ -69,6 +72,12 @@ export const useAuth = create<AuthStore>((set) => ({
                     : farmId === null
                       ? null
                       : prev.farmId,
+            farmName:
+                typeof farmName === "string"
+                    ? farmName
+                    : farmName === null
+                      ? null
+                      : prev.farmName,
         })),
     setUserData: ({ name, email, profilePicture }) =>
         set((prev) => ({

@@ -195,36 +195,37 @@ export function AuthenticationForm({
 
     return (
         <BaseCard
-            radius="md"
-            p={{ base: "xs", sm: "md" }}
-            withBorder
+            radius={0}
+            p={{ base: "xl", sm: "xl" }}
+            withBorder={false}
             style={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e0e0e0",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
                 width: "100%",
-                maxHeight: "calc(100dvh - 120px)",
+                maxHeight: "calc(100dvh - 200px)",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
             }}
             {...paperProps}
         >
-            <GoogleButton radius="xl" fullWidth>
-                Sign with Google
+            <GoogleButton radius={0} fullWidth>
+                Sign in with Google
             </GoogleButton>
 
             <Divider
                 label="Or continue with email"
                 labelPosition="center"
-                my="xs"
-                color="gray.3"
+                my="lg"
+                color="#e0e0e0"
                 styles={{
                     label: {
-                        color: "var(--mantine-color-gray-6)",
-                        fontSize: "var(--mantine-font-size-xs)",
-                        padding: "0 8px",
+                        color: "#757575",
+                        fontSize: "13px",
+                        padding: "0 16px",
+                        fontWeight: 500,
+                        backgroundColor: "#ffffff",
                     },
                 }}
             />
@@ -345,6 +346,11 @@ export function AuthenticationForm({
                                 payload?.data?.farmId ??
                                 null;
 
+                            const farmName =
+                                payload?.currentFarm?.farmName ??
+                                payload?.currentFarm?.name ??
+                                null;
+
                             // Persist to auth store (same as Google flow)
                             try {
                                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -356,6 +362,7 @@ export function AuthenticationForm({
                                             ? hasFarmVal
                                             : null,
                                     farmId,
+                                    farmName,
                                 });
                                 // Store user data (name, email, profilePicture)
                                 useAuth.getState().setUserData({
@@ -459,14 +466,24 @@ export function AuthenticationForm({
                                 color="red"
                                 variant="light"
                                 mb="md"
-                                radius="md"
-                                style={{ flexShrink: 0 }}
+                                radius={0}
+                                style={{ 
+                                    flexShrink: 0,
+                                    border: "1px solid #ffcdd2",
+                                    backgroundColor: "#ffebee",
+                                }}
+                                styles={{
+                                    message: {
+                                        fontSize: "14px",
+                                        color: "#c62828",
+                                    },
+                                }}
                             >
                                 {status}
                             </Alert>
                         ) : null}
                         <Stack
-                            gap="xs"
+                            gap="md"
                             style={{
                                 flex: 1,
                                 minHeight: 0,
@@ -477,7 +494,7 @@ export function AuthenticationForm({
                             {type === "register" && (
                                 <TextInput
                                     label="Name"
-                                    placeholder="Your name"
+                                    placeholder="Enter your full name"
                                     value={values.name}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
@@ -486,24 +503,31 @@ export function AuthenticationForm({
                                         (touched.name || submitCount > 0) &&
                                         (errors.name as any)
                                     }
-                                    radius="md"
-                                    size="sm"
+                                    radius={0}
+                                    size="md"
                                     styles={{
                                         input: {
-                                            borderColor:
-                                                "var(--mantine-color-gray-3)",
-                                            fontSize:
-                                                "var(--mantine-font-size-xs)",
-                                            padding: "6px 12px",
+                                            borderColor: "#e0e0e0",
+                                            borderWidth: "1px",
+                                            fontSize: "15px",
+                                            padding: "12px 16px",
+                                            backgroundColor: "#fafafa",
+                                            transition: "all 0.2s ease",
                                             "&:focus": {
-                                                borderColor:
-                                                    "var(--mantine-color-brandGreen-6)",
+                                                borderColor: "#4caf50",
+                                                backgroundColor: "#ffffff",
+                                                borderWidth: "2px",
                                             },
                                         },
                                         label: {
-                                            fontSize:
-                                                "var(--mantine-font-size-xs)",
-                                            marginBottom: "4px",
+                                            fontSize: "14px",
+                                            marginBottom: "8px",
+                                            fontWeight: 500,
+                                            color: "#424242",
+                                        },
+                                        error: {
+                                            fontSize: "13px",
+                                            marginTop: "4px",
                                         },
                                     }}
                                 />
@@ -512,7 +536,7 @@ export function AuthenticationForm({
                             <TextInput
                                 required
                                 label="Email"
-                                placeholder="hello@mantine.dev"
+                                placeholder="Enter your email"
                                 value={values.email}
                                 onChange={handleChange}
                                 onBlur={handleBlur}
@@ -521,15 +545,31 @@ export function AuthenticationForm({
                                     (touched.email || submitCount > 0) &&
                                     (errors.email as any)
                                 }
-                                radius="md"
+                                radius={0}
+                                size="md"
                                 styles={{
                                     input: {
-                                        borderColor:
-                                            "var(--mantine-color-gray-3)",
+                                        borderColor: "#e0e0e0",
+                                        borderWidth: "1px",
+                                        fontSize: "15px",
+                                        padding: "12px 16px",
+                                        backgroundColor: "#fafafa",
+                                        transition: "all 0.2s ease",
                                         "&:focus": {
-                                            borderColor:
-                                                "var(--mantine-color-brandGreen-6)",
+                                            borderColor: "#4caf50",
+                                            backgroundColor: "#ffffff",
+                                            borderWidth: "2px",
                                         },
+                                    },
+                                    label: {
+                                        fontSize: "14px",
+                                        marginBottom: "8px",
+                                        fontWeight: 500,
+                                        color: "#424242",
+                                    },
+                                    error: {
+                                        fontSize: "13px",
+                                        marginTop: "4px",
                                     },
                                 }}
                             />
@@ -537,7 +577,7 @@ export function AuthenticationForm({
                             <PasswordInput
                                 required
                                 label="Password"
-                                placeholder="Your password"
+                                placeholder="Enter your password"
                                 value={values.password}
                                 onChange={handleChange}
                                 onBlur={handleBlur}
@@ -546,22 +586,31 @@ export function AuthenticationForm({
                                     (touched.password || submitCount > 0) &&
                                     (errors.password as any)
                                 }
-                                radius="md"
-                                size="sm"
+                                radius={0}
+                                size="md"
                                 styles={{
                                     input: {
-                                        borderColor:
-                                            "var(--mantine-color-gray-3)",
-                                        fontSize: "var(--mantine-font-size-xs)",
-                                        padding: "6px 12px",
+                                        borderColor: "#e0e0e0",
+                                        borderWidth: "1px",
+                                        fontSize: "15px",
+                                        padding: "12px 16px",
+                                        backgroundColor: "#fafafa",
+                                        transition: "all 0.2s ease",
                                         "&:focus": {
-                                            borderColor:
-                                                "var(--mantine-color-brandGreen-6)",
+                                            borderColor: "#4caf50",
+                                            backgroundColor: "#ffffff",
+                                            borderWidth: "2px",
                                         },
                                     },
                                     label: {
-                                        fontSize: "var(--mantine-font-size-xs)",
-                                        marginBottom: "4px",
+                                        fontSize: "14px",
+                                        marginBottom: "8px",
+                                        fontWeight: 500,
+                                        color: "#424242",
+                                    },
+                                    error: {
+                                        fontSize: "13px",
+                                        marginTop: "4px",
                                     },
                                 }}
                             />
@@ -580,44 +629,53 @@ export function AuthenticationForm({
                                         (touched.terms || submitCount > 0) &&
                                         (errors.terms as any)
                                     }
-                                    color="brandGreen"
+                                    color="green"
+                                    radius={0}
                                     styles={{
                                         label: {
-                                            color: "var(--mantine-color-dark-7)",
+                                            color: "#424242",
+                                            fontSize: "14px",
+                                            fontWeight: 400,
+                                        },
+                                        input: {
+                                            borderColor: "#e0e0e0",
+                                            "&:checked": {
+                                                backgroundColor: "#4caf50",
+                                                borderColor: "#4caf50",
+                                            },
+                                        },
+                                        error: {
+                                            fontSize: "13px",
+                                            marginTop: "4px",
                                         },
                                     }}
                                 />
                             )}
                         </Stack>
 
-                        <Stack gap="sm" mt="md" style={{ flexShrink: 0 }}>
+                        <Stack gap="md" mt="xl" style={{ flexShrink: 0 }}>
                             <Button
                                 type="submit"
-                                radius="xl"
+                                radius={0}
                                 loading={isSubmitting}
-                                color="brandGreen"
+                                color="green"
                                 fullWidth
+                                size="md"
                                 styles={{
                                     root: {
-                                        background:
-                                            "linear-gradient(135deg, var(--mantine-color-brandGreen-6) 0%, var(--mantine-color-brandOrange-6) 100%)",
+                                        backgroundColor: "#4caf50",
                                         border: "none",
                                         fontWeight: 600,
-                                        transition:
-                                            "transform 0.2s, box-shadow 0.2s",
-                                        fontSize: "var(--mantine-font-size-sm)",
-                                        padding: "10px 20px",
-                                        "@media (minWidth: 768px)": {
-                                            fontSize:
-                                                "var(--mantine-font-size-md)",
-                                            padding: "12px 24px",
-                                        },
+                                        transition: "all 0.2s ease",
+                                        fontSize: "15px",
+                                        padding: "14px 24px",
+                                        height: "48px",
                                         "&:hover": {
-                                            transform: "translateY(-2px)",
-                                            boxShadow:
-                                                "0 4px 12px rgba(69, 228, 136, 0.4)",
-                                            background:
-                                                "linear-gradient(135deg, var(--mantine-color-brandGreen-7) 0%, var(--mantine-color-brandOrange-7) 100%)",
+                                            backgroundColor: "#45a049",
+                                            transform: "none",
+                                        },
+                                        "&:active": {
+                                            backgroundColor: "#388e3c",
                                         },
                                     },
                                 }}
@@ -628,22 +686,27 @@ export function AuthenticationForm({
                             <Anchor
                                 component="button"
                                 type={undefined as any}
-                                c="brandGreen.7"
+                                c="#4caf50"
                                 onClick={() => toggle()}
                                 size="sm"
                                 fw={500}
                                 ta="center"
+                                style={{
+                                    fontSize: "14px",
+                                    textDecoration: "none",
+                                }}
                                 styles={{
                                     root: {
                                         "&:hover": {
                                             textDecoration: "underline",
+                                            color: "#45a049",
                                         },
                                     },
                                 }}
                             >
                                 {type === "register"
-                                    ? "Already have an account? Login"
-                                    : "Don't have an account? Register"}
+                                    ? "Already have an account? Sign in"
+                                    : "Don't have an account? Sign up"}
                             </Anchor>
                         </Stack>
                     </form>

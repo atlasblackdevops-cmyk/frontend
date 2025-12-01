@@ -52,10 +52,16 @@ export default function FarmGate({ children }: FarmGateProps) {
         payload?.data?.farmId ??
         null;
 
+      const farmName =
+        payload?.currentFarm?.farmName ??
+        payload?.currentFarm?.name ??
+        null;
+
       setRoleAndFarm({
         role: roleName ?? null,
         hasFarm: typeof hasFarmVal === 'boolean' ? hasFarmVal : null,
         farmId,
+        farmName,
       });
 
       // Store user data (name, email, profilePicture)
