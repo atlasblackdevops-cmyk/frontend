@@ -1,5 +1,6 @@
 node_modules
 .env
+.prod.env
 
 .next
 package-lock.json
