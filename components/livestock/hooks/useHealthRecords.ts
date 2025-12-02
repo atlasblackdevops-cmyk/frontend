@@ -20,7 +20,7 @@ export function useHealthRecords(animalId: string | null) {
         setError(null);
         try {
             const data = await getHealthRecords(animalId);
-            setRecords(data);
+            setRecords(data.records);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??

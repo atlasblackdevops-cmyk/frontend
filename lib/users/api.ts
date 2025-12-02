@@ -101,31 +101,31 @@ export const getPermissions = async (): Promise<PermissionModule[]> => {
 export const createUser = async (
     data: CreateUserData
 ): Promise<ApiUserResponse> => {
-    const response = await api.post<{ data?: ApiUserResponse }>(
+    const response = await api.post<{ data?: ApiUserResponse } | ApiUserResponse>(
         "/api/v1/users",
         data
     );
-    return response.data?.data ?? response.data;
+    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
 };
 
 export const updateUser = async (
     userId: string,
     data: UpdateUserData
 ): Promise<ApiUserResponse> => {
-    const response = await api.put<{ data?: ApiUserResponse }>(
+    const response = await api.put<{ data?: ApiUserResponse } | ApiUserResponse>(
         `/api/v1/users/${userId}`,
         data
     );
-    return response.data?.data ?? response.data;
+    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
 };
 
 export const addExistingUser = async (
     data: AddExistingUserData
 ): Promise<ApiUserResponse> => {
-    const response = await api.post<{ data?: ApiUserResponse }>(
+    const response = await api.post<{ data?: ApiUserResponse } | ApiUserResponse>(
         "/api/v1/users/add-existing",
         data
     );
-    return response.data?.data ?? response.data;
+    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
 };
 

@@ -61,7 +61,9 @@ export default function WeightRecordUpdateModal({
             const measuredAtDate = new Date(record.measuredAt);
             form.setValues({
                 measuredAt: measuredAtDate.toISOString().split("T")[0],
-                weight: record.weight,
+                weight: typeof record.weight === "string" 
+                    ? (record.weight === "" ? "" : Number(record.weight))
+                    : record.weight,
                 weightUnit: record.weightUnit,
                 notes: record.notes || "",
             });

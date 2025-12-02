@@ -20,7 +20,7 @@ export function useFeedRecords(animalId: string | null) {
         setError(null);
         try {
             const data = await getFeedRecords(animalId);
-            setRecords(data);
+            setRecords(data.records);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??

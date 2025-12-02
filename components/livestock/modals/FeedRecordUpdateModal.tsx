@@ -60,7 +60,9 @@ export default function FeedRecordUpdateModal({
     useEffect(() => {
         if (opened && record) {
             form.setValues({
-                quantity: record.quantity,
+                quantity: typeof record.quantity === "string" 
+                    ? (record.quantity === "" ? "" : Number(record.quantity))
+                    : record.quantity,
                 quantityUnit: record.quantityUnit,
                 feedType: record.feedType,
                 notes: record.notes || "",

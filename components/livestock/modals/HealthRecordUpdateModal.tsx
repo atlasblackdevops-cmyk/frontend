@@ -57,7 +57,11 @@ export default function HealthRecordUpdateModal({
             form.setValues({
                 type: record.recordType || "",
                 name: record.name || "",
-                cost: record.cost || "",
+                cost: record.cost === null || record.cost === undefined
+                    ? ""
+                    : typeof record.cost === "string"
+                    ? (record.cost === "" ? "" : Number(record.cost))
+                    : record.cost,
                 nextDueDate: record.nextDueDate
                     ? record.nextDueDate.split("T")[0]
                     : "",
