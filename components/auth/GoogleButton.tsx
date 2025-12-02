@@ -29,26 +29,27 @@ export function GoogleButton({
                     });
                 }
             }}
-            radius="xl"
+            radius={0}
+            size="md"
             styles={{
                 root: {
-                    borderColor: "var(--mantine-color-gray-3)",
-                    borderWidth: "1.5px",
-                    color: "var(--mantine-color-dark-7)",
-                    backgroundColor: "white",
+                    borderColor: "#e0e0e0",
+                    borderWidth: "1px",
+                    color: "#424242",
+                    backgroundColor: "#ffffff",
                     fontWeight: 600,
                     transition: "all 0.2s ease",
-                    fontSize: "var(--mantine-font-size-sm)",
-                    padding: "8px 16px",
-                    "@media (minWidth: 768px)": {
-                        fontSize: "var(--mantine-font-size-md)",
-                        padding: "10px 20px",
-                    },
+                    fontSize: "15px",
+                    padding: "14px 24px",
+                    height: "48px",
                     "&:hover": {
                         backgroundColor: "#f5f5f5",
-                        borderColor: "#4caf50",
-                        transform: "translateY(-1px)",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                        borderColor: "#bdbdbd",
+                        transform: "none",
+                        boxShadow: "none",
+                    },
+                    "&:active": {
+                        backgroundColor: "#eeeeee",
                     },
                 },
             }}

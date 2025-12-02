@@ -53,13 +53,14 @@ export function NavbarSimple() {
         setRoleAndFarm,
         setUserData,
         farmId,
+        farmName,
         role,
         permissions,
     } = useAuth();
     const [switcherOpen, setSwitcherOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
 
-    // Fetch farms to get current farm name
+    // Fetch farms list (for switch farm modal)
     const { data: farmsData } = useQuery({
         queryKey: ["owner-farms"],
         queryFn: async () => {
@@ -70,8 +71,6 @@ export function NavbarSimple() {
     });
 
     const farms = Array.isArray(farmsData) ? farmsData : [];
-    const currentFarm = farms.find((f) => (f.id ?? f.farmId) === farmId);
-    const currentFarmName = currentFarm?.farmName ?? currentFarm?.name ?? null;
 
     async function handleLogout() {
         if (logoutLoading) return;
@@ -113,7 +112,7 @@ export function NavbarSimple() {
             }
             setToken(null);
             setRefreshToken(null);
-            setRoleAndFarm({ role: null, hasFarm: null, farmId: null });
+            setRoleAndFarm({ role: null, hasFarm: null, farmId: null, farmName: null });
             setUserData({ name: null, email: null, profilePicture: null });
 
             // Finally navigate to login
@@ -159,7 +158,7 @@ export function NavbarSimple() {
                         Farm Management
                     </Text>
                     <Text size="xs" c="dimmed">
-                        Agriculture Platform
+                        {farmName || "Agriculture Platform"}
                     </Text>
                 </div>
                 <Group className={classes.header} justify="space-between">
@@ -188,7 +187,7 @@ export function NavbarSimple() {
                         />
                         <span>Switch Farm</span>
                     </Group>
-                    {currentFarmName && (
+                    {farmName && (
                         <Text
                             size="xs"
                             c="dimmed"
@@ -201,7 +200,7 @@ export function NavbarSimple() {
                                 fontWeight: 500,
                             }}
                         >
-                            {currentFarmName}
+                            {farmName}
                         </Text>
                     )}
                 </a>
