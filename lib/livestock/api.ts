@@ -7,6 +7,7 @@ import type {
     HealthRecord,
     WeightRecord,
     FeedRecord,
+    PaginationInfo,
 } from "@/components/livestock/types";
 
 export interface GetAnimalsParams {
@@ -169,16 +170,46 @@ export async function deleteAnimal(animalId: string): Promise<void> {
 }
 
 /**
- * Get health records for an animal
+ * Get health records for an animal with pagination and date filters
  */
 export async function getHealthRecords(
-    animalId: string
-): Promise<HealthRecord[]> {
-    const response = await api.get(
-        `/api/v1/animals/${animalId}/health-records`
+    animalId: string,
+    params?: {
+        page?: number;
+        limit?: number;
+        dateFrom?: string;
+        dateTo?: string;
+    }
+): Promise<{ records: HealthRecord[]; pagination: PaginationInfo }> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
+    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
+
+    const response = await api.get<{
+        message?: string;
+        data?: {
+            healthRecords?: HealthRecord[];
+            pagination?: PaginationInfo;
+        };
+    }>(
+        `/api/v1/animals/${animalId}/health-records?${queryParams.toString()}`
     );
-    const data = response.data?.data || response.data || [];
-    return Array.isArray(data) ? data : [];
+    
+    const responseData = response.data?.data;
+    const records = responseData?.healthRecords ?? [];
+    const pagination = responseData?.pagination ?? {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+    };
+
+    return {
+        records: Array.isArray(records) ? records : [],
+        pagination,
+    };
 }
 
 /**
@@ -248,16 +279,46 @@ export async function updateHealthRecord(
 }
 
 /**
- * Get weight records for an animal
+ * Get weight records for an animal with pagination and date filters
  */
 export async function getWeightRecords(
-    animalId: string
-): Promise<WeightRecord[]> {
-    const response = await api.get(
-        `/api/v1/animals/${animalId}/weight-records`
+    animalId: string,
+    params?: {
+        page?: number;
+        limit?: number;
+        dateFrom?: string;
+        dateTo?: string;
+    }
+): Promise<{ records: WeightRecord[]; pagination: PaginationInfo }> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
+    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
+
+    const response = await api.get<{
+        message?: string;
+        data?: {
+            weightRecords?: WeightRecord[];
+            pagination?: PaginationInfo;
+        };
+    }>(
+        `/api/v1/animals/${animalId}/weight-records?${queryParams.toString()}`
     );
-    const data = response.data?.data || response.data || [];
-    return Array.isArray(data) ? data : [];
+    
+    const responseData = response.data?.data;
+    const records = responseData?.weightRecords ?? [];
+    const pagination = responseData?.pagination ?? {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+    };
+
+    return {
+        records: Array.isArray(records) ? records : [],
+        pagination,
+    };
 }
 
 /**
@@ -323,14 +384,46 @@ export async function updateWeightRecord(
 }
 
 /**
- * Get feed records for an animal
+ * Get feed records for an animal with pagination and date filters
  */
-export async function getFeedRecords(animalId: string): Promise<FeedRecord[]> {
-    const response = await api.get(
-        `/api/v1/animals/${animalId}/feed-records`
+export async function getFeedRecords(
+    animalId: string,
+    params?: {
+        page?: number;
+        limit?: number;
+        dateFrom?: string;
+        dateTo?: string;
+    }
+): Promise<{ records: FeedRecord[]; pagination: PaginationInfo }> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
+    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
+
+    const response = await api.get<{
+        message?: string;
+        data?: {
+            feedRecords?: FeedRecord[];
+            pagination?: PaginationInfo;
+        };
+    }>(
+        `/api/v1/animals/${animalId}/feed-records?${queryParams.toString()}`
     );
-    const data = response.data?.data || response.data || [];
-    return Array.isArray(data) ? data : [];
+    
+    const responseData = response.data?.data;
+    const records = responseData?.feedRecords ?? [];
+    const pagination = responseData?.pagination ?? {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+    };
+
+    return {
+        records: Array.isArray(records) ? records : [],
+        pagination,
+    };
 }
 
 /**

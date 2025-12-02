@@ -7,14 +7,19 @@ import {
     Group,
     Loader,
     Notification,
+    Pagination,
     Paper,
     ScrollArea,
+    SimpleGrid,
     Stack,
     Table,
     Text,
+    TextInput,
 } from "@mantine/core";
 import { IconEdit, IconPlus, IconX } from "@tabler/icons-react";
-import type { AnimalRecord, FeedRecord } from "../types";
+import { useAuth } from "@/stores/use-auth-store";
+import { hasPermission } from "@/lib/permissions";
+import type { AnimalRecord, FeedRecord, PaginationInfo } from "../types";
 import { formatDate } from "@/lib/livestock/utils";
 import {
     getFeedRecords,
@@ -35,6 +40,15 @@ export default function FeedRecordsDrawer({
     onClose,
     animal,
 }: FeedRecordsDrawerProps) {
+    const { permissions, role } = useAuth();
+
+    // Permission checks
+    const canList =
+        hasPermission("LIVESTOCK", "LIST", permissions, role) ||
+        hasPermission("LIVESTOCK", "READ", permissions, role);
+    const canCreate = hasPermission("LIVESTOCK", "CREATE", permissions, role);
+    const canUpdate = hasPermission("LIVESTOCK", "UPDATE", permissions, role);
+
     const [records, setRecords] = useState<FeedRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -45,14 +59,28 @@ export default function FeedRecordsDrawer({
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+    });
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
 
-    const fetchRecords = async () => {
-        if (!animal?.id) return;
+    const fetchRecords = async (page: number = 1) => {
+        if (!animal?.id || !canList) return;
         setIsLoading(true);
         setError(null);
         try {
-            const data = await getFeedRecords(animal.id);
-            setRecords(data);
+            const response = await getFeedRecords(animal.id, {
+                page,
+                limit: pagination.limit,
+                dateFrom: dateFrom || undefined,
+                dateTo: dateTo || undefined,
+            });
+            setRecords(response.records);
+            setPagination(response.pagination);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -65,10 +93,15 @@ export default function FeedRecordsDrawer({
     };
 
     useEffect(() => {
-        if (opened && animal?.id) {
-            fetchRecords();
+        if (opened && animal?.id && canList) {
+            fetchRecords(1);
+        } else if (!opened) {
+            // Clear filters when drawer closes
+            setDateFrom("");
+            setDateTo("");
+            setPagination((prev) => ({ ...prev, page: 1 }));
         }
-    }, [opened, animal?.id]);
+    }, [opened, animal?.id, canList]);
 
     useEffect(() => {
         if (error || successMessage) {
@@ -86,7 +119,7 @@ export default function FeedRecordsDrawer({
         feedType: string;
         notes: string;
     }) => {
-        if (!animal?.id) return;
+        if (!animal?.id || !canCreate) return;
         setIsSubmitting(true);
         setError(null);
         try {
@@ -98,7 +131,7 @@ export default function FeedRecordsDrawer({
             });
             setSuccessMessage("Feed record created successfully");
             setCreateModalOpen(false);
-            await fetchRecords();
+            await fetchRecords(pagination.page);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -117,7 +150,7 @@ export default function FeedRecordsDrawer({
         feedType: string;
         notes: string;
     }) => {
-        if (!animal?.id || !selectedRecord) return;
+        if (!animal?.id || !selectedRecord || !canUpdate) return;
         setIsSubmitting(true);
         setError(null);
         try {
@@ -130,7 +163,7 @@ export default function FeedRecordsDrawer({
             setSuccessMessage("Feed record updated successfully");
             setUpdateModalOpen(false);
             setSelectedRecord(null);
-            await fetchRecords();
+            await fetchRecords(pagination.page);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -142,6 +175,34 @@ export default function FeedRecordsDrawer({
             setIsSubmitting(false);
         }
     };
+
+    const handleFilter = () => {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        fetchRecords(1);
+    };
+
+    const handleClearFilters = () => {
+        setDateFrom("");
+        setDateTo("");
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        fetchRecords(1);
+    };
+
+    if (!canList) {
+        return (
+            <Drawer
+                opened={opened}
+                onClose={onClose}
+                title={`Feed Records - ${animal?.name || ""}`}
+                position="right"
+                size="xl"
+            >
+                <Text c="dimmed" ta="center" p="xl">
+                    You don't have permission to view feed records.
+                </Text>
+            </Drawer>
+        );
+    }
 
     return (
         <>
@@ -180,13 +241,52 @@ export default function FeedRecordsDrawer({
                         <Text size="sm" c="dimmed">
                             Manage feed records for this animal
                         </Text>
-                        <Button
-                            leftSection={<IconPlus size={16} />}
-                            onClick={() => setCreateModalOpen(true)}
-                        >
-                            Create Record
-                        </Button>
+                        {canCreate && (
+                            <Button
+                                leftSection={<IconPlus size={16} />}
+                                onClick={() => setCreateModalOpen(true)}
+                            >
+                                Create Record
+                            </Button>
+                        )}
                     </Group>
+
+                    <Paper withBorder p="md" radius="md">
+                        <Stack gap="md">
+                            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                <TextInput
+                                    label="Date From"
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) =>
+                                        setDateFrom(e.currentTarget.value)
+                                    }
+                                />
+                                <TextInput
+                                    label="Date To"
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) =>
+                                        setDateTo(e.currentTarget.value)
+                                    }
+                                />
+                            </SimpleGrid>
+                            <Group justify="flex-end">
+                                <Button
+                                    variant="default"
+                                    onClick={handleClearFilters}
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    onClick={handleFilter}
+                                    loading={isLoading}
+                                >
+                                    Filter
+                                </Button>
+                            </Group>
+                        </Stack>
+                    </Paper>
 
                     <Paper withBorder radius="md">
                         <ScrollArea>
@@ -196,14 +296,18 @@ export default function FeedRecordsDrawer({
                                         <Table.Th>Quantity</Table.Th>
                                         <Table.Th>Unit</Table.Th>
                                         <Table.Th>Feed Type</Table.Th>
-                                        <Table.Th>Date</Table.Th>
-                                        <Table.Th>Actions</Table.Th>
+                                        <Table.Th>Record Date</Table.Th>
+                                        {canUpdate && (
+                                            <Table.Th>Actions</Table.Th>
+                                        )}
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {isLoading ? (
                                         <Table.Tr>
-                                            <Table.Td colSpan={5}>
+                                            <Table.Td
+                                                colSpan={canUpdate ? 5 : 4}
+                                            >
                                                 <Group justify="center" p="xl">
                                                     <Loader size="sm" />
                                                     <Text c="dimmed">
@@ -214,14 +318,16 @@ export default function FeedRecordsDrawer({
                                         </Table.Tr>
                                     ) : records.length === 0 ? (
                                         <Table.Tr>
-                                            <Table.Td colSpan={5}>
+                                            <Table.Td
+                                                colSpan={canUpdate ? 5 : 4}
+                                            >
                                                 <Text
                                                     c="dimmed"
                                                     ta="center"
                                                     p="xl"
                                                 >
-                                                    No feed records found. Create
-                                                    your first record.
+                                                    No feed records found.
+                                                    Create your first record.
                                                 </Text>
                                             </Table.Td>
                                         </Table.Tr>
@@ -229,7 +335,14 @@ export default function FeedRecordsDrawer({
                                         records.map((record) => (
                                             <Table.Tr key={record.id}>
                                                 <Table.Td>
-                                                    {record.quantity}
+                                                    {typeof record.quantity ===
+                                                    "string"
+                                                        ? parseFloat(
+                                                              record.quantity
+                                                          ).toFixed(2)
+                                                        : record.quantity.toFixed(
+                                                              2
+                                                          )}
                                                 </Table.Td>
                                                 <Table.Td>
                                                     {record.quantityUnit}
@@ -242,25 +355,29 @@ export default function FeedRecordsDrawer({
                                                         record.createdAt
                                                     )}
                                                 </Table.Td>
-                                                <Table.Td>
-                                                    <Button
-                                                        variant="subtle"
-                                                        size="xs"
-                                                        leftSection={
-                                                            <IconEdit size={14} />
-                                                        }
-                                                        onClick={() => {
-                                                            setSelectedRecord(
-                                                                record
-                                                            );
-                                                            setUpdateModalOpen(
-                                                                true
-                                                            );
-                                                        }}
-                                                    >
-                                                        Update
-                                                    </Button>
-                                                </Table.Td>
+                                                {canUpdate && (
+                                                    <Table.Td>
+                                                        <Button
+                                                            variant="subtle"
+                                                            size="xs"
+                                                            leftSection={
+                                                                <IconEdit
+                                                                    size={14}
+                                                                />
+                                                            }
+                                                            onClick={() => {
+                                                                setSelectedRecord(
+                                                                    record
+                                                                );
+                                                                setUpdateModalOpen(
+                                                                    true
+                                                                );
+                                                            }}
+                                                        >
+                                                            Update
+                                                        </Button>
+                                                    </Table.Td>
+                                                )}
                                             </Table.Tr>
                                         ))
                                     )}
@@ -268,18 +385,41 @@ export default function FeedRecordsDrawer({
                             </Table>
                         </ScrollArea>
                     </Paper>
+
+                    {pagination.totalPages > 1 && (
+                        <Group justify="space-between" align="center">
+                            <Text size="sm" c="dimmed">
+                                Showing {records.length} of {pagination.total}{" "}
+                                records
+                            </Text>
+                            <Pagination
+                                value={pagination.page}
+                                onChange={(page) => {
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        page,
+                                    }));
+                                    fetchRecords(page);
+                                }}
+                                total={pagination.totalPages}
+                                size="sm"
+                            />
+                        </Group>
+                    )}
                 </Stack>
             </Drawer>
 
-            <FeedRecordModal
-                opened={createModalOpen}
-                onClose={() => setCreateModalOpen(false)}
-                onSubmit={handleCreate}
-                isSubmitting={isSubmitting}
-                animal={animal}
-            />
+            {canCreate && (
+                <FeedRecordModal
+                    opened={createModalOpen}
+                    onClose={() => setCreateModalOpen(false)}
+                    onSubmit={handleCreate}
+                    isSubmitting={isSubmitting}
+                    animal={animal}
+                />
+            )}
 
-            {selectedRecord && (
+            {canUpdate && selectedRecord && (
                 <FeedRecordUpdateModal
                     opened={updateModalOpen}
                     onClose={() => {
@@ -295,4 +435,3 @@ export default function FeedRecordsDrawer({
         </>
     );
 }
-

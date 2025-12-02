@@ -67,7 +67,7 @@ export type HealthRecord = {
     id: string;
     recordType: string;
     name: string;
-    cost: number | null;
+    cost: number | string | null;
     nextDueDate: string | null;
     description: string | null;
     createdAt: string;
@@ -77,7 +77,7 @@ export type HealthRecord = {
 export type WeightRecord = {
     id: string;
     measuredAt: string;
-    weight: number;
+    weight: number | string;
     weightUnit: string;
     notes: string | null;
     createdAt: string;
@@ -86,7 +86,7 @@ export type WeightRecord = {
 
 export type FeedRecord = {
     id: string;
-    quantity: number;
+    quantity: number | string;
     quantityUnit: string;
     feedType: string;
     notes: string | null;
@@ -136,4 +136,3 @@ export const GENDER_OPTIONS = [
     { value: "Male", label: "Male" },
     { value: "Unknown", label: "Unknown" },
 ] as const;
-

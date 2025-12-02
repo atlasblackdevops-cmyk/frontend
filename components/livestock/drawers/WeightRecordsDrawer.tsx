@@ -7,14 +7,19 @@ import {
     Group,
     Loader,
     Notification,
+    Pagination,
     Paper,
     ScrollArea,
+    SimpleGrid,
     Stack,
     Table,
     Text,
+    TextInput,
 } from "@mantine/core";
 import { IconEdit, IconPlus, IconX } from "@tabler/icons-react";
-import type { AnimalRecord, WeightRecord } from "../types";
+import { useAuth } from "@/stores/use-auth-store";
+import { hasPermission } from "@/lib/permissions";
+import type { AnimalRecord, WeightRecord, PaginationInfo } from "../types";
 import { formatDate } from "@/lib/livestock/utils";
 import {
     getWeightRecords,
@@ -35,6 +40,15 @@ export default function WeightRecordsDrawer({
     onClose,
     animal,
 }: WeightRecordsDrawerProps) {
+    const { permissions, role } = useAuth();
+
+    // Permission checks
+    const canList =
+        hasPermission("LIVESTOCK", "LIST", permissions, role) ||
+        hasPermission("LIVESTOCK", "READ", permissions, role);
+    const canCreate = hasPermission("LIVESTOCK", "CREATE", permissions, role);
+    const canUpdate = hasPermission("LIVESTOCK", "UPDATE", permissions, role);
+
     const [records, setRecords] = useState<WeightRecord[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -45,14 +59,28 @@ export default function WeightRecordsDrawer({
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+    });
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
 
-    const fetchRecords = async () => {
-        if (!animal?.id) return;
+    const fetchRecords = async (page: number = 1) => {
+        if (!animal?.id || !canList) return;
         setIsLoading(true);
         setError(null);
         try {
-            const data = await getWeightRecords(animal.id);
-            setRecords(data);
+            const response = await getWeightRecords(animal.id, {
+                page,
+                limit: pagination.limit,
+                dateFrom: dateFrom || undefined,
+                dateTo: dateTo || undefined,
+            });
+            setRecords(response.records);
+            setPagination(response.pagination);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -65,10 +93,15 @@ export default function WeightRecordsDrawer({
     };
 
     useEffect(() => {
-        if (opened && animal?.id) {
-            fetchRecords();
+        if (opened && animal?.id && canList) {
+            fetchRecords(1);
+        } else if (!opened) {
+            // Clear filters when drawer closes
+            setDateFrom("");
+            setDateTo("");
+            setPagination((prev) => ({ ...prev, page: 1 }));
         }
-    }, [opened, animal?.id]);
+    }, [opened, animal?.id, canList]);
 
     useEffect(() => {
         if (error || successMessage) {
@@ -86,7 +119,7 @@ export default function WeightRecordsDrawer({
         weightUnit: string;
         notes: string;
     }) => {
-        if (!animal?.id) return;
+        if (!animal?.id || !canCreate) return;
         setIsSubmitting(true);
         setError(null);
         try {
@@ -98,7 +131,7 @@ export default function WeightRecordsDrawer({
             });
             setSuccessMessage("Weight record created successfully");
             setCreateModalOpen(false);
-            await fetchRecords();
+            await fetchRecords(pagination.page);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -117,7 +150,7 @@ export default function WeightRecordsDrawer({
         weightUnit: string;
         notes: string;
     }) => {
-        if (!animal?.id || !selectedRecord) return;
+        if (!animal?.id || !selectedRecord || !canUpdate) return;
         setIsSubmitting(true);
         setError(null);
         try {
@@ -130,7 +163,7 @@ export default function WeightRecordsDrawer({
             setSuccessMessage("Weight record updated successfully");
             setUpdateModalOpen(false);
             setSelectedRecord(null);
-            await fetchRecords();
+            await fetchRecords(pagination.page);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ??
@@ -142,6 +175,34 @@ export default function WeightRecordsDrawer({
             setIsSubmitting(false);
         }
     };
+
+    const handleFilter = () => {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        fetchRecords(1);
+    };
+
+    const handleClearFilters = () => {
+        setDateFrom("");
+        setDateTo("");
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        fetchRecords(1);
+    };
+
+    if (!canList) {
+        return (
+            <Drawer
+                opened={opened}
+                onClose={onClose}
+                title={`Weight Records - ${animal?.name || ""}`}
+                position="right"
+                size="xl"
+            >
+                <Text c="dimmed" ta="center" p="xl">
+                    You don't have permission to view weight records.
+                </Text>
+            </Drawer>
+        );
+    }
 
     return (
         <>
@@ -180,13 +241,52 @@ export default function WeightRecordsDrawer({
                         <Text size="sm" c="dimmed">
                             Manage weight records for this animal
                         </Text>
-                        <Button
-                            leftSection={<IconPlus size={16} />}
-                            onClick={() => setCreateModalOpen(true)}
-                        >
-                            Create Record
-                        </Button>
+                        {canCreate && (
+                            <Button
+                                leftSection={<IconPlus size={16} />}
+                                onClick={() => setCreateModalOpen(true)}
+                            >
+                                Create Record
+                            </Button>
+                        )}
                     </Group>
+
+                    <Paper withBorder p="md" radius="md">
+                        <Stack gap="md">
+                            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                                <TextInput
+                                    label="Date From"
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) =>
+                                        setDateFrom(e.currentTarget.value)
+                                    }
+                                />
+                                <TextInput
+                                    label="Date To"
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) =>
+                                        setDateTo(e.currentTarget.value)
+                                    }
+                                />
+                            </SimpleGrid>
+                            <Group justify="flex-end">
+                                <Button
+                                    variant="default"
+                                    onClick={handleClearFilters}
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    onClick={handleFilter}
+                                    loading={isLoading}
+                                >
+                                    Filter
+                                </Button>
+                            </Group>
+                        </Stack>
+                    </Paper>
 
                     <Paper withBorder radius="md">
                         <ScrollArea>
@@ -196,13 +296,18 @@ export default function WeightRecordsDrawer({
                                         <Table.Th>Measured At</Table.Th>
                                         <Table.Th>Weight</Table.Th>
                                         <Table.Th>Unit</Table.Th>
-                                        <Table.Th>Actions</Table.Th>
+                                        <Table.Th>Record Date</Table.Th>
+                                        {canUpdate && (
+                                            <Table.Th>Actions</Table.Th>
+                                        )}
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {isLoading ? (
                                         <Table.Tr>
-                                            <Table.Td colSpan={4}>
+                                            <Table.Td
+                                                colSpan={canUpdate ? 5 : 4}
+                                            >
                                                 <Group justify="center" p="xl">
                                                     <Loader size="sm" />
                                                     <Text c="dimmed">
@@ -213,7 +318,9 @@ export default function WeightRecordsDrawer({
                                         </Table.Tr>
                                     ) : records.length === 0 ? (
                                         <Table.Tr>
-                                            <Table.Td colSpan={4}>
+                                            <Table.Td
+                                                colSpan={canUpdate ? 5 : 4}
+                                            >
                                                 <Text
                                                     c="dimmed"
                                                     ta="center"
@@ -232,29 +339,47 @@ export default function WeightRecordsDrawer({
                                                         record.measuredAt
                                                     )}
                                                 </Table.Td>
-                                                <Table.Td>{record.weight}</Table.Td>
+                                                <Table.Td>
+                                                    {typeof record.weight ===
+                                                    "string"
+                                                        ? parseFloat(
+                                                              record.weight
+                                                          ).toFixed(2)
+                                                        : record.weight.toFixed(
+                                                              2
+                                                          )}
+                                                </Table.Td>
                                                 <Table.Td>
                                                     {record.weightUnit}
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Button
-                                                        variant="subtle"
-                                                        size="xs"
-                                                        leftSection={
-                                                            <IconEdit size={14} />
-                                                        }
-                                                        onClick={() => {
-                                                            setSelectedRecord(
-                                                                record
-                                                            );
-                                                            setUpdateModalOpen(
-                                                                true
-                                                            );
-                                                        }}
-                                                    >
-                                                        Update
-                                                    </Button>
+                                                    {formatDate(
+                                                        record.createdAt
+                                                    )}
                                                 </Table.Td>
+                                                {canUpdate && (
+                                                    <Table.Td>
+                                                        <Button
+                                                            variant="subtle"
+                                                            size="xs"
+                                                            leftSection={
+                                                                <IconEdit
+                                                                    size={14}
+                                                                />
+                                                            }
+                                                            onClick={() => {
+                                                                setSelectedRecord(
+                                                                    record
+                                                                );
+                                                                setUpdateModalOpen(
+                                                                    true
+                                                                );
+                                                            }}
+                                                        >
+                                                            Update
+                                                        </Button>
+                                                    </Table.Td>
+                                                )}
                                             </Table.Tr>
                                         ))
                                     )}
@@ -262,18 +387,41 @@ export default function WeightRecordsDrawer({
                             </Table>
                         </ScrollArea>
                     </Paper>
+
+                    {pagination.totalPages > 1 && (
+                        <Group justify="space-between" align="center">
+                            <Text size="sm" c="dimmed">
+                                Showing {records.length} of {pagination.total}{" "}
+                                records
+                            </Text>
+                            <Pagination
+                                value={pagination.page}
+                                onChange={(page) => {
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        page,
+                                    }));
+                                    fetchRecords(page);
+                                }}
+                                total={pagination.totalPages}
+                                size="sm"
+                            />
+                        </Group>
+                    )}
                 </Stack>
             </Drawer>
 
-            <WeightRecordModal
-                opened={createModalOpen}
-                onClose={() => setCreateModalOpen(false)}
-                onSubmit={handleCreate}
-                isSubmitting={isSubmitting}
-                animal={animal}
-            />
+            {canCreate && (
+                <WeightRecordModal
+                    opened={createModalOpen}
+                    onClose={() => setCreateModalOpen(false)}
+                    onSubmit={handleCreate}
+                    isSubmitting={isSubmitting}
+                    animal={animal}
+                />
+            )}
 
-            {selectedRecord && (
+            {canUpdate && selectedRecord && (
                 <WeightRecordUpdateModal
                     opened={updateModalOpen}
                     onClose={() => {
@@ -289,4 +437,3 @@ export default function WeightRecordsDrawer({
         </>
     );
 }
-
