@@ -63,6 +63,12 @@ export type AddAnimalValues = {
     photo: File | null;
 };
 
+export type HealthRecordImage = {
+    id: string;
+    imageKey: string;
+    imageUrl: string;
+};
+
 export type HealthRecord = {
     id: string;
     recordType: string;
@@ -70,6 +76,7 @@ export type HealthRecord = {
     cost: number | string | null;
     nextDueDate: string | null;
     description: string | null;
+    images?: HealthRecordImage[]; // Array of image objects from API
     createdAt: string;
     updatedAt: string;
 };
@@ -100,6 +107,7 @@ export type HealthRecordValues = {
     cost: number | "";
     nextDueDate: string;
     description: string;
+    images?: File[]; // Array of image files for upload
 };
 
 export type WeightRecordValues = {

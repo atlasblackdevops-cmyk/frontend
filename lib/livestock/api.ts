@@ -34,6 +34,12 @@ export interface CreateHealthRecordData {
     cost?: number;
     nextDueDate?: string;
     description?: string;
+    images?: File[]; // Array of image files for upload
+}
+
+export interface UpdateHealthRecordData
+    extends Partial<CreateHealthRecordData> {
+    deletedImageKeys?: string[]; // Array of image keys to delete (only for updates)
 }
 
 export interface CreateWeightRecordData {
@@ -57,7 +63,7 @@ export async function getAnimals(
     params: GetAnimalsParams = {}
 ): Promise<AnimalsApiResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) {
         queryParams.append("page", params.page.toString());
     }
@@ -96,7 +102,7 @@ export async function getAnimalDetails(
 
     const responseData = response.data?.data ?? response.data;
     const animalData = responseData?.animal;
-    
+
     if (!animalData) {
         throw new Error("Animal data not found");
     }
@@ -125,7 +131,7 @@ export async function createAnimal(data: CreateAnimalData): Promise<void> {
     formData.append("breed", data.breed);
     formData.append("gender", data.gender);
     formData.append("birthdate", data.birthdate);
-    
+
     if (data.photo) {
         formData.append("image", data.photo);
     }
@@ -150,7 +156,7 @@ export async function updateAnimal(
     formData.append("breed", data.breed);
     formData.append("gender", data.gender);
     formData.append("birthdate", data.birthdate);
-    
+
     if (data.photo) {
         formData.append("image", data.photo);
     }
@@ -193,10 +199,8 @@ export async function getHealthRecords(
             healthRecords?: HealthRecord[];
             pagination?: PaginationInfo;
         };
-    }>(
-        `/api/v1/animals/${animalId}/health-records?${queryParams.toString()}`
-    );
-    
+    }>(`/api/v1/animals/${animalId}/health-records?${queryParams.toString()}`);
+
     const responseData = response.data?.data;
     const records = responseData?.healthRecords ?? [];
     const pagination = responseData?.pagination ?? {
@@ -219,28 +223,33 @@ export async function createHealthRecord(
     animalId: string,
     data: CreateHealthRecordData
 ): Promise<void> {
-    const payload: {
-        recordType: string;
-        name: string;
-        cost?: number;
-        nextDueDate?: string;
-        description?: string;
-    } = {
-        recordType: data.recordType,
-        name: data.name,
-    };
+    // Always use FormData for multipart/form-data as per API spec
+    const formData = new FormData();
+    formData.append("recordType", data.recordType);
+    formData.append("name", data.name);
 
     if (data.cost !== null && data.cost !== undefined) {
-        payload.cost = data.cost;
+        formData.append("cost", data.cost.toString());
     }
     if (data.nextDueDate) {
-        payload.nextDueDate = data.nextDueDate;
+        formData.append("nextDueDate", data.nextDueDate);
     }
     if (data.description) {
-        payload.description = data.description;
+        formData.append("description", data.description);
     }
 
-    await api.post(`/api/v1/animals/${animalId}/health-records`, payload);
+    // Append images if provided
+    if (data.images && data.images.length > 0) {
+        data.images.forEach((image) => {
+            formData.append("images", image);
+        });
+    }
+
+    await api.post(`/api/v1/animals/${animalId}/health-records`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
 }
 
 /**
@@ -249,32 +258,52 @@ export async function createHealthRecord(
 export async function updateHealthRecord(
     animalId: string,
     recordId: string,
-    data: CreateHealthRecordData
+    data: UpdateHealthRecordData
 ): Promise<void> {
-    const payload: {
-        recordType: string;
-        name: string;
-        cost?: number;
-        nextDueDate?: string;
-        description?: string;
-    } = {
-        recordType: data.recordType,
-        name: data.name,
-    };
+    // Always use FormData for multipart/form-data as per API spec
+    const formData = new FormData();
 
+    // All fields are optional for update
+    if (data.recordType) {
+        formData.append("recordType", data.recordType);
+    }
+    if (data.name) {
+        formData.append("name", data.name);
+    }
     if (data.cost !== null && data.cost !== undefined) {
-        payload.cost = data.cost;
+        formData.append("cost", data.cost.toString());
     }
     if (data.nextDueDate) {
-        payload.nextDueDate = data.nextDueDate;
+        formData.append("nextDueDate", data.nextDueDate);
     }
     if (data.description) {
-        payload.description = data.description;
+        formData.append("description", data.description);
+    }
+
+    // Append images if provided (adds new images)
+    if (data.images && data.images.length > 0) {
+        data.images.forEach((image) => {
+            formData.append("images", image);
+        });
+    }
+
+    // Append deletedImageKeys if provided (deletes specific images by S3 key)
+    if (data.deletedImageKeys && data.deletedImageKeys.length > 0) {
+        // Send as JSON array string or multiple entries
+        // Backend should parse this as array of strings
+        data.deletedImageKeys.forEach((key) => {
+            formData.append("deletedImageKeys", key);
+        });
     }
 
     await api.put(
         `/api/v1/animals/${animalId}/health-records/${recordId}`,
-        payload
+        formData,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        }
     );
 }
 
@@ -302,10 +331,8 @@ export async function getWeightRecords(
             weightRecords?: WeightRecord[];
             pagination?: PaginationInfo;
         };
-    }>(
-        `/api/v1/animals/${animalId}/weight-records?${queryParams.toString()}`
-    );
-    
+    }>(`/api/v1/animals/${animalId}/weight-records?${queryParams.toString()}`);
+
     const responseData = response.data?.data;
     const records = responseData?.weightRecords ?? [];
     const pagination = responseData?.pagination ?? {
@@ -407,10 +434,8 @@ export async function getFeedRecords(
             feedRecords?: FeedRecord[];
             pagination?: PaginationInfo;
         };
-    }>(
-        `/api/v1/animals/${animalId}/feed-records?${queryParams.toString()}`
-    );
-    
+    }>(`/api/v1/animals/${animalId}/feed-records?${queryParams.toString()}`);
+
     const responseData = response.data?.data;
     const records = responseData?.feedRecords ?? [];
     const pagination = responseData?.pagination ?? {
@@ -479,4 +504,3 @@ export async function updateFeedRecord(
         payload
     );
 }
-

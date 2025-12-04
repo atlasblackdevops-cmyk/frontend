@@ -96,4 +96,3 @@ export interface UsersApiResponse {
     users?: ApiUserResponse[];
     pagination?: PaginationInfo;
 }
-
