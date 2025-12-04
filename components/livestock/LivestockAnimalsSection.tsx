@@ -25,11 +25,11 @@ import {
     WeightRecordsDrawer,
     FeedRecordsDrawer,
 } from "./drawers";
-import { AnimalTable, AnimalFilters } from "./components";
+import { AnimalTable, AnimalFilters, LivestockDashboard } from "./components";
 
 export default function LivestockAnimalsSection() {
     const { farmId, permissions, role } = useAuth();
-    const [activeTab, setActiveTab] = useState<string | null>("animals");
+    const [activeTab, setActiveTab] = useState<string | null>("dashboard");
 
     // Permission checks
     const canList =
@@ -243,13 +243,18 @@ export default function LivestockAnimalsSection() {
 
             <Tabs
                 value={activeTab}
-                onChange={(value) => setActiveTab(value ?? "animals")}
+                onChange={(value) => setActiveTab(value ?? "dashboard")}
                 keepMounted={false}
             >
                 <Tabs.List>
+                    <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
                     <Tabs.Tab value="animals">Animals</Tabs.Tab>
                 </Tabs.List>
             </Tabs>
+
+            {activeTab === "dashboard" && (
+                <LivestockDashboard />
+            )}
 
             {activeTab === "animals" && (
                 <Stack gap="md">

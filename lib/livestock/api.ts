@@ -504,3 +504,101 @@ export async function updateFeedRecord(
         payload
     );
 }
+
+/**
+ * Dashboard stats API response
+ */
+export interface DashboardStatsResponse {
+    message: string;
+    data: {
+        totalAnimals: number;
+        averageWeight: number;
+        totalWeightRecords: number;
+        vaccinationCompliance: number;
+    };
+}
+
+/**
+ * Weight trends API response
+ */
+export interface WeightTrendsResponse {
+    message: string;
+    data: {
+        weightTrends: Array<{
+            date: string; // Format: "YYYY-MM"
+            averageWeight: number; // in kg
+            count: number; // number of records in that month
+        }>;
+    };
+}
+
+/**
+ * Get dashboard statistics for livestock
+ */
+export async function getDashboardStats(): Promise<
+    DashboardStatsResponse["data"]
+> {
+    const response = await api.get<DashboardStatsResponse>(
+        "/api/v1/animals/dashboard"
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Dashboard data not found");
+    }
+
+    return responseData;
+}
+
+/**
+ * Get weight trends for livestock dashboard
+ */
+export async function getWeightTrends(): Promise<
+    WeightTrendsResponse["data"]["weightTrends"]
+> {
+    const response = await api.get<WeightTrendsResponse>(
+        "/api/v1/animals/dashboard/weight-trends"
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData || !responseData.weightTrends) {
+        throw new Error("Weight trends data not found");
+    }
+
+    return responseData.weightTrends;
+}
+
+/**
+ * Feed trends API response
+ */
+export interface FeedTrendsResponse {
+    message: string;
+    data: {
+        feedEntriesTrends: Array<{
+            date: string; // Format: "YYYY-MM"
+            totalQuantity: number; // in kg
+            count: number; // number of feed entries in that month
+        }>;
+    };
+}
+
+/**
+ * Get feed trends for livestock dashboard
+ */
+export async function getFeedTrends(): Promise<
+    FeedTrendsResponse["data"]["feedEntriesTrends"]
+> {
+    const response = await api.get<FeedTrendsResponse>(
+        "/api/v1/animals/dashboard/feed-trends"
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData || !responseData.feedEntriesTrends) {
+        throw new Error("Feed trends data not found");
+    }
+
+    return responseData.feedEntriesTrends;
+}
