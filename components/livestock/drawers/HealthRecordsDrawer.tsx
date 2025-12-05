@@ -15,8 +15,13 @@ import {
     Table,
     Text,
     TextInput,
+    Image,
+    Tooltip,
+    Badge,
+    ActionIcon,
+    Box,
 } from "@mantine/core";
-import { IconEdit, IconPlus, IconX } from "@tabler/icons-react";
+import { IconEdit, IconPlus, IconX, IconPhoto } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import type { AnimalRecord, HealthRecord, PaginationInfo } from "../types";
@@ -28,6 +33,7 @@ import {
 } from "@/lib/livestock/api";
 import HealthRecordModal from "../modals/HealthRecordModal";
 import HealthRecordUpdateModal from "../modals/HealthRecordUpdateModal";
+import HealthRecordImageViewer from "../modals/HealthRecordImageViewer";
 
 interface HealthRecordsDrawerProps {
     opened: boolean;
@@ -53,9 +59,11 @@ export default function HealthRecordsDrawer({
     const [isLoading, setIsLoading] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [updateModalOpen, setUpdateModalOpen] = useState(false);
+    const [imageViewerOpen, setImageViewerOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(
         null
     );
+    const [viewingImages, setViewingImages] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,6 +127,7 @@ export default function HealthRecordsDrawer({
         cost: number | null;
         nextDueDate: string | null;
         description: string | null;
+        images: File[];
     }) => {
         if (!animal?.id || !canCreate) return;
         setIsSubmitting(true);
@@ -130,6 +139,7 @@ export default function HealthRecordsDrawer({
                 cost: values.cost ?? undefined,
                 nextDueDate: values.nextDueDate ?? undefined,
                 description: values.description ?? undefined,
+                images: values.images,
             });
             setSuccessMessage("Health record created successfully");
             setCreateModalOpen(false);
@@ -152,6 +162,8 @@ export default function HealthRecordsDrawer({
         cost: number | null;
         nextDueDate: string | null;
         description: string | null;
+        images?: File[]; // New images to add
+        deletedImageKeys?: string[]; // Image keys to delete
     }) => {
         if (!animal?.id || !selectedRecord || !canUpdate) return;
         setIsSubmitting(true);
@@ -163,6 +175,8 @@ export default function HealthRecordsDrawer({
                 cost: values.cost ?? undefined,
                 nextDueDate: values.nextDueDate ?? undefined,
                 description: values.description ?? undefined,
+                images: values.images,
+                deletedImageKeys: values.deletedImageKeys,
             });
             setSuccessMessage("Health record updated successfully");
             setUpdateModalOpen(false);
@@ -178,6 +192,13 @@ export default function HealthRecordsDrawer({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleViewImages = (record: HealthRecord) => {
+        // Extract image URLs from the image objects
+        const imageUrls = record.images?.map((img) => img.imageUrl) || [];
+        setViewingImages(imageUrls);
+        setImageViewerOpen(true);
     };
 
     const handleFilter = () => {
@@ -294,7 +315,11 @@ export default function HealthRecordsDrawer({
 
                     <Paper withBorder radius="md">
                         <ScrollArea>
-                            <Table striped highlightOnHover>
+                            <Table
+                                striped
+                                highlightOnHover
+                                verticalSpacing="sm"
+                            >
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Type</Table.Th>
@@ -302,17 +327,17 @@ export default function HealthRecordsDrawer({
                                         <Table.Th>Cost</Table.Th>
                                         <Table.Th>Next Due Date</Table.Th>
                                         <Table.Th>Record Date</Table.Th>
-                                        {canUpdate && (
-                                            <Table.Th>Actions</Table.Th>
-                                        )}
+                                        <Table.Th
+                                            style={{ textAlign: "right" }}
+                                        >
+                                            Actions
+                                        </Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {isLoading ? (
                                         <Table.Tr>
-                                            <Table.Td
-                                                colSpan={canUpdate ? 6 : 5}
-                                            >
+                                            <Table.Td colSpan={6}>
                                                 <Group justify="center" p="xl">
                                                     <Loader size="sm" />
                                                     <Text c="dimmed">
@@ -323,9 +348,7 @@ export default function HealthRecordsDrawer({
                                         </Table.Tr>
                                     ) : records.length === 0 ? (
                                         <Table.Tr>
-                                            <Table.Td
-                                                colSpan={canUpdate ? 6 : 5}
-                                            >
+                                            <Table.Td colSpan={6}>
                                                 <Text
                                                     c="dimmed"
                                                     ta="center"
@@ -337,56 +360,179 @@ export default function HealthRecordsDrawer({
                                             </Table.Td>
                                         </Table.Tr>
                                     ) : (
-                                        records.map((record) => (
-                                            <Table.Tr key={record.id}>
-                                                <Table.Td>
-                                                    {record.recordType}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    {record.name}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    {record.cost
-                                                        ? `$${typeof record.cost === "string" ? parseFloat(record.cost).toFixed(2) : record.cost.toFixed(2)}`
-                                                        : "—"}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    {record.nextDueDate
-                                                        ? formatDate(
-                                                              record.nextDueDate
-                                                          )
-                                                        : "—"}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    {formatDate(
-                                                        record.createdAt
-                                                    )}
-                                                </Table.Td>
-                                                {canUpdate && (
+                                        records.map((record) => {
+                                            const hasImages =
+                                                record.images &&
+                                                record.images.length > 0;
+                                            return (
+                                                <Table.Tr key={record.id}>
                                                     <Table.Td>
-                                                        <Button
-                                                            variant="subtle"
-                                                            size="xs"
-                                                            leftSection={
-                                                                <IconEdit
-                                                                    size={14}
-                                                                />
+                                                        <Tooltip
+                                                            label={
+                                                                record.recordType
                                                             }
-                                                            onClick={() => {
-                                                                setSelectedRecord(
-                                                                    record
-                                                                );
-                                                                setUpdateModalOpen(
-                                                                    true
-                                                                );
-                                                            }}
+                                                            disabled={
+                                                                record
+                                                                    .recordType
+                                                                    .length <=
+                                                                20
+                                                            }
+                                                            withArrow
                                                         >
-                                                            Update
-                                                        </Button>
+                                                            <Badge
+                                                                variant="light"
+                                                                color="blue"
+                                                                size="sm"
+                                                            >
+                                                                <Text
+                                                                    size="xs"
+                                                                    truncate="end"
+                                                                    style={{
+                                                                        maxWidth: 120,
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        record.recordType
+                                                                    }
+                                                                </Text>
+                                                            </Badge>
+                                                        </Tooltip>
                                                     </Table.Td>
-                                                )}
-                                            </Table.Tr>
-                                        ))
+                                                    <Table.Td>
+                                                        <Tooltip
+                                                            label={record.name}
+                                                            disabled={
+                                                                record.name
+                                                                    .length <=
+                                                                25
+                                                            }
+                                                            withArrow
+                                                        >
+                                                            <Text
+                                                                size="sm"
+                                                                fw={500}
+                                                                truncate="end"
+                                                            >
+                                                                {record.name}
+                                                            </Text>
+                                                        </Tooltip>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        {record.cost ? (
+                                                            <Text
+                                                                size="sm"
+                                                                fw={600}
+                                                                c="green"
+                                                            >
+                                                                $
+                                                                {typeof record.cost ===
+                                                                "string"
+                                                                    ? parseFloat(
+                                                                          record.cost
+                                                                      ).toFixed(
+                                                                          2
+                                                                      )
+                                                                    : record.cost.toFixed(
+                                                                          2
+                                                                      )}
+                                                            </Text>
+                                                        ) : (
+                                                            <Text
+                                                                size="sm"
+                                                                c="dimmed"
+                                                            >
+                                                                —
+                                                            </Text>
+                                                        )}
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        {record.nextDueDate ? (
+                                                            <Text size="sm">
+                                                                {formatDate(
+                                                                    record.nextDueDate
+                                                                )}
+                                                            </Text>
+                                                        ) : (
+                                                            <Text
+                                                                size="sm"
+                                                                c="dimmed"
+                                                            >
+                                                                —
+                                                            </Text>
+                                                        )}
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Text
+                                                            size="sm"
+                                                            c="dimmed"
+                                                        >
+                                                            {formatDate(
+                                                                record.createdAt
+                                                            )}
+                                                        </Text>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Group
+                                                            gap={4}
+                                                            justify="flex-end"
+                                                            wrap="nowrap"
+                                                        >
+                                                            {hasImages && (
+                                                                <Tooltip
+                                                                    label={`View ${record.images?.length || 0} image(s)`}
+                                                                    withArrow
+                                                                >
+                                                                    <ActionIcon
+                                                                        variant="light"
+                                                                        color="blue"
+                                                                        size="md"
+                                                                        radius="md"
+                                                                        onClick={() =>
+                                                                            handleViewImages(
+                                                                                record
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <IconPhoto
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    </ActionIcon>
+                                                                </Tooltip>
+                                                            )}
+                                                            {canUpdate && (
+                                                                <Tooltip
+                                                                    label="Update record"
+                                                                    withArrow
+                                                                >
+                                                                    <ActionIcon
+                                                                        variant="light"
+                                                                        color="gray"
+                                                                        size="md"
+                                                                        radius="md"
+                                                                        onClick={() => {
+                                                                            setSelectedRecord(
+                                                                                record
+                                                                            );
+                                                                            setUpdateModalOpen(
+                                                                                true
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        <IconEdit
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    </ActionIcon>
+                                                                </Tooltip>
+                                                            )}
+                                                        </Group>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            );
+                                        })
                                     )}
                                 </Table.Tbody>
                             </Table>
@@ -439,6 +585,16 @@ export default function HealthRecordsDrawer({
                     record={selectedRecord}
                 />
             )}
+
+            <HealthRecordImageViewer
+                opened={imageViewerOpen}
+                onClose={() => {
+                    setImageViewerOpen(false);
+                    setViewingImages([]);
+                }}
+                images={viewingImages}
+                title={`Health Record Images - ${selectedRecord?.name || ""}`}
+            />
         </>
     );
 }

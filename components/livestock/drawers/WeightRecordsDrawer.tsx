@@ -15,6 +15,9 @@ import {
     Table,
     Text,
     TextInput,
+    Tooltip,
+    Badge,
+    ActionIcon,
 } from "@mantine/core";
 import { IconEdit, IconPlus, IconX } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
@@ -290,7 +293,11 @@ export default function WeightRecordsDrawer({
 
                     <Paper withBorder radius="md">
                         <ScrollArea>
-                            <Table striped highlightOnHover>
+                            <Table
+                                striped
+                                highlightOnHover
+                                verticalSpacing="sm"
+                            >
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Measured At</Table.Th>
@@ -298,7 +305,11 @@ export default function WeightRecordsDrawer({
                                         <Table.Th>Unit</Table.Th>
                                         <Table.Th>Record Date</Table.Th>
                                         {canUpdate && (
-                                            <Table.Th>Actions</Table.Th>
+                                            <Table.Th
+                                                style={{ textAlign: "right" }}
+                                            >
+                                                Actions
+                                            </Table.Th>
                                         )}
                                     </Table.Tr>
                                 </Table.Thead>
@@ -335,49 +346,77 @@ export default function WeightRecordsDrawer({
                                         records.map((record) => (
                                             <Table.Tr key={record.id}>
                                                 <Table.Td>
-                                                    {formatDate(
-                                                        record.measuredAt
-                                                    )}
+                                                    <Text size="sm">
+                                                        {formatDate(
+                                                            record.measuredAt
+                                                        )}
+                                                    </Text>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    {typeof record.weight ===
-                                                    "string"
-                                                        ? parseFloat(
-                                                              record.weight
-                                                          ).toFixed(2)
-                                                        : record.weight.toFixed(
-                                                              2
-                                                          )}
+                                                    <Text
+                                                        size="sm"
+                                                        fw={600}
+                                                        c="green"
+                                                    >
+                                                        {typeof record.weight ===
+                                                        "string"
+                                                            ? parseFloat(
+                                                                  record.weight
+                                                              ).toFixed(2)
+                                                            : record.weight.toFixed(
+                                                                  2
+                                                              )}
+                                                    </Text>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    {record.weightUnit}
+                                                    <Badge
+                                                        variant="light"
+                                                        color="gray"
+                                                        size="sm"
+                                                    >
+                                                        {record.weightUnit}
+                                                    </Badge>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    {formatDate(
-                                                        record.createdAt
-                                                    )}
+                                                    <Text size="sm" c="dimmed">
+                                                        {formatDate(
+                                                            record.createdAt
+                                                        )}
+                                                    </Text>
                                                 </Table.Td>
                                                 {canUpdate && (
                                                     <Table.Td>
-                                                        <Button
-                                                            variant="subtle"
-                                                            size="xs"
-                                                            leftSection={
-                                                                <IconEdit
-                                                                    size={14}
-                                                                />
-                                                            }
-                                                            onClick={() => {
-                                                                setSelectedRecord(
-                                                                    record
-                                                                );
-                                                                setUpdateModalOpen(
-                                                                    true
-                                                                );
-                                                            }}
+                                                        <Group
+                                                            gap={4}
+                                                            justify="flex-end"
+                                                            wrap="nowrap"
                                                         >
-                                                            Update
-                                                        </Button>
+                                                            <Tooltip
+                                                                label="Update record"
+                                                                withArrow
+                                                            >
+                                                                <ActionIcon
+                                                                    variant="light"
+                                                                    color="gray"
+                                                                    size="md"
+                                                                    radius="md"
+                                                                    onClick={() => {
+                                                                        setSelectedRecord(
+                                                                            record
+                                                                        );
+                                                                        setUpdateModalOpen(
+                                                                            true
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <IconEdit
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </ActionIcon>
+                                                            </Tooltip>
+                                                        </Group>
                                                     </Table.Td>
                                                 )}
                                             </Table.Tr>

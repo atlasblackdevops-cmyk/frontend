@@ -108,7 +108,11 @@ const refreshToken = async (): Promise<string | null> => {
             }
 
             // Redirect to login page if refresh token expired or any other error
-            if (window.location.pathname !== "/login") {
+            // Don't redirect if already on login page or root page (public landing page)
+            if (
+                window.location.pathname !== "/login" &&
+                window.location.pathname !== "/"
+            ) {
                 // Use replace to avoid adding to history
                 window.location.replace("/login");
             }
@@ -218,9 +222,11 @@ api.interceptors.response.use(
             // 1. The request doesn't have a config (edge case)
             // 2. The request was already retried and failed again
             // In either case, redirect to login
+            // Don't redirect if already on login page or root page (public landing page)
             if (
                 typeof window !== "undefined" &&
-                window.location.pathname !== "/login"
+                window.location.pathname !== "/login" &&
+                window.location.pathname !== "/"
             ) {
                 // Clear tokens
                 localStorage.removeItem("accessToken");

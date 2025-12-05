@@ -25,11 +25,16 @@ import {
     WeightRecordsDrawer,
     FeedRecordsDrawer,
 } from "./drawers";
-import { AnimalTable, AnimalFilters } from "./components";
+import {
+    AnimalTable,
+    AnimalFilters,
+    LivestockDashboard,
+    AnimalGroupsSection,
+} from "./components";
 
 export default function LivestockAnimalsSection() {
     const { farmId, permissions, role } = useAuth();
-    const [activeTab, setActiveTab] = useState<string | null>("animals");
+    const [activeTab, setActiveTab] = useState<string | null>("dashboard");
 
     // Permission checks
     const canList =
@@ -51,6 +56,10 @@ export default function LivestockAnimalsSection() {
         deleteAnimal,
         setPagination,
     } = useAnimals();
+
+    // State for all animals (for groups section)
+    const [allAnimals, setAllAnimals] = useState<AnimalRecord[]>([]);
+    const [isLoadingAllAnimals, setIsLoadingAllAnimals] = useState(false);
 
     // Modal/Drawer states
     const [modalOpen, setModalOpen] = useState(false);
@@ -90,6 +99,25 @@ export default function LivestockAnimalsSection() {
             fetchAnimals(1);
         }
     }, [farmId, canList]);
+
+    // Fetch all animals when groups tab is active
+    useEffect(() => {
+        if (activeTab === "groups" && farmId && canList) {
+            setIsLoadingAllAnimals(true);
+            // Fetch with current filters to get animals
+            // Note: In production, you'd want a separate API endpoint to fetch all animals
+            fetchAnimals(1, {}).finally(() => {
+                setIsLoadingAllAnimals(false);
+            });
+        }
+    }, [activeTab, farmId, canList]);
+
+    // Update allAnimals when animals change (for groups section)
+    useEffect(() => {
+        if (animals.length > 0 && activeTab === "groups") {
+            setAllAnimals(animals);
+        }
+    }, [animals, activeTab]);
 
     // Clear notifications after 5 seconds
     useEffect(() => {
@@ -243,13 +271,17 @@ export default function LivestockAnimalsSection() {
 
             <Tabs
                 value={activeTab}
-                onChange={(value) => setActiveTab(value ?? "animals")}
+                onChange={(value) => setActiveTab(value ?? "dashboard")}
                 keepMounted={false}
             >
                 <Tabs.List>
+                    <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
                     <Tabs.Tab value="animals">Animals</Tabs.Tab>
+                    <Tabs.Tab value="groups">Animal Groups</Tabs.Tab>
                 </Tabs.List>
             </Tabs>
+
+            {activeTab === "dashboard" && <LivestockDashboard />}
 
             {activeTab === "animals" && (
                 <Stack gap="md">
@@ -363,6 +395,13 @@ export default function LivestockAnimalsSection() {
                         </Group>
                     )}
                 </Stack>
+            )}
+
+            {activeTab === "groups" && (
+                <AnimalGroupsSection
+                    availableAnimals={allAnimals}
+                    isLoadingAnimals={isLoadingAllAnimals}
+                />
             )}
 
             <AddAnimalModal
