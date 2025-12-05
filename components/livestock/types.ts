@@ -144,3 +144,112 @@ export const GENDER_OPTIONS = [
     { value: "Male", label: "Male" },
     { value: "Unknown", label: "Unknown" },
 ] as const;
+
+// Animal Groups Types
+export type AnimalGroup = {
+    id: string;
+    name: string;
+    description: string | null;
+    isActive: boolean;
+    animalCount: number;
+    averageWeight: number | null;
+    averageAge: number | null;
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: {
+        id: string;
+        email: string;
+    };
+    updatedBy?: {
+        id: string;
+        email: string;
+    };
+};
+
+export type AnimalGroupAssignment = {
+    id: string;
+    animal: AnimalRecord;
+    assignedAt: string;
+};
+
+export type AnimalGroupWithAnimals = AnimalGroup & {
+    animals: AnimalGroupAssignment[];
+};
+
+export type GroupMetrics = {
+    totalGroups: number;
+    animalsInGroups: number;
+    averageGroupSize: number;
+    averageWeight: number | null;
+    averageAge: number | null;
+    groupDistribution: number;
+};
+
+export type AddGroupValues = {
+    name: string;
+    description: string;
+};
+
+export type AssignAnimalsValues = {
+    animalIds: string[];
+};
+
+export type GroupsApiResponse = {
+    message: string;
+    data: {
+        groups: AnimalGroup[];
+        pagination: PaginationInfo;
+    };
+};
+
+export type GroupDetailsResponse = {
+    message: string;
+    data: AnimalGroupWithAnimals;
+};
+
+export type GroupDashboardResponse = {
+    message: string;
+    data: GroupMetrics;
+};
+
+export type CreateGroupResponse = {
+    message: string;
+    data: {
+        id: string;
+        name: string;
+        description: string | null;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type AssignAnimalsResponse = {
+    message: string;
+    data: {
+        assigned: number;
+        alreadyAssigned: number;
+        total: number;
+    };
+};
+
+export type UpdateGroupValues = {
+    name?: string;
+    description?: string;
+};
+
+export type GroupAnimalsResponse = {
+    message: string;
+    data: {
+        animals: AnimalGroupAssignment[];
+        pagination: PaginationInfo;
+    };
+};
+
+export type RemoveAnimalsResponse = {
+    message: string;
+    data: {
+        removed: number;
+        requested: number;
+    };
+};

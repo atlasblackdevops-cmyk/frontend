@@ -8,6 +8,16 @@ import type {
     WeightRecord,
     FeedRecord,
     PaginationInfo,
+    GroupsApiResponse,
+    GroupDetailsResponse,
+    GroupDashboardResponse,
+    CreateGroupResponse,
+    AddGroupValues,
+    GroupMetrics,
+    AssignAnimalsResponse,
+    UpdateGroupValues,
+    GroupAnimalsResponse,
+    RemoveAnimalsResponse,
 } from "@/components/livestock/types";
 
 export interface GetAnimalsParams {
@@ -601,4 +611,234 @@ export async function getFeedTrends(): Promise<
     }
 
     return responseData.feedEntriesTrends;
+}
+
+/**
+ * Animal Groups API
+ */
+
+export interface GetGroupsParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+}
+
+/**
+ * Get dashboard metrics for animal groups
+ */
+export async function getGroupsDashboard(): Promise<GroupMetrics> {
+    const response = await api.get<GroupDashboardResponse>(
+        "/api/v1/animals/groups/dashboard"
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Groups dashboard data not found");
+    }
+
+    return responseData;
+}
+
+/**
+ * Get all animal groups with pagination and search
+ */
+export async function getGroups(
+    params: GetGroupsParams = {}
+): Promise<GroupsApiResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.page) {
+        queryParams.append("page", params.page.toString());
+    }
+    if (params.limit) {
+        queryParams.append("limit", params.limit.toString());
+    }
+    if (params.search?.trim()) {
+        queryParams.append("search", params.search.trim());
+    }
+
+    const response = await api.get<GroupsApiResponse>(
+        `/api/v1/animals/groups?${queryParams.toString()}`
+    );
+
+    return response.data;
+}
+
+/**
+ * Get single group details with animals
+ */
+export async function getGroupDetails(
+    groupId: string
+): Promise<GroupDetailsResponse["data"]> {
+    const response = await api.get<GroupDetailsResponse>(
+        `/api/v1/animals/groups/${groupId}`
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Group data not found");
+    }
+
+    return responseData;
+}
+
+/**
+ * Create a new animal group
+ */
+export async function createGroup(
+    data: AddGroupValues
+): Promise<CreateGroupResponse["data"]> {
+    const payload: {
+        name: string;
+        description?: string;
+    } = {
+        name: data.name.trim(),
+    };
+
+    if (data.description && data.description.trim()) {
+        payload.description = data.description.trim();
+    }
+
+    const response = await api.post<CreateGroupResponse>(
+        "/api/v1/animals/groups",
+        payload
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Group creation failed");
+    }
+
+    return responseData;
+}
+
+/**
+ * Update an animal group
+ */
+export async function updateGroup(
+    groupId: string,
+    data: UpdateGroupValues
+): Promise<CreateGroupResponse["data"]> {
+    const payload: {
+        name?: string;
+        description?: string;
+    } = {};
+
+    if (data.name !== undefined) {
+        payload.name = data.name.trim();
+    }
+    if (data.description !== undefined) {
+        const trimmed = data.description.trim();
+        payload.description = trimmed || undefined;
+    }
+
+    const response = await api.put<CreateGroupResponse>(
+        `/api/v1/animals/groups/${groupId}`,
+        payload
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Group update failed");
+    }
+
+    return responseData;
+}
+
+/**
+ * Delete an animal group
+ */
+export async function deleteGroup(groupId: string): Promise<void> {
+    await api.delete(`/api/v1/animals/groups/${groupId}`);
+}
+
+/**
+ * Assign animals to a group
+ */
+export async function assignAnimalsToGroup(
+    groupId: string,
+    animalIds: string[]
+): Promise<AssignAnimalsResponse["data"]> {
+    const payload = {
+        animalIds: animalIds,
+    };
+
+    const response = await api.post<AssignAnimalsResponse>(
+        `/api/v1/animals/groups/${groupId}/animals`,
+        payload
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Failed to assign animals");
+    }
+
+    return responseData;
+}
+
+/**
+ * Get animals in a group with pagination and search
+ */
+export async function getGroupAnimals(
+    groupId: string,
+    params?: {
+        page?: number;
+        limit?: number;
+        search?: string;
+    }
+): Promise<GroupAnimalsResponse["data"]> {
+    const queryParams = new URLSearchParams();
+
+    if (params?.page) {
+        queryParams.append("page", params.page.toString());
+    }
+    if (params?.limit) {
+        queryParams.append("limit", params.limit.toString());
+    }
+    if (params?.search?.trim()) {
+        queryParams.append("search", params.search.trim());
+    }
+
+    const response = await api.get<GroupAnimalsResponse>(
+        `/api/v1/animals/groups/${groupId}/animals?${queryParams.toString()}`
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Group animals data not found");
+    }
+
+    return responseData;
+}
+
+/**
+ * Remove animals from a group
+ * DELETE /api/v1/animals/groups/{groupId}/animals
+ */
+export async function removeAnimalsFromGroup(
+    groupId: string,
+    animalIds: string[]
+): Promise<RemoveAnimalsResponse["data"]> {
+    const payload = {
+        animalIds: animalIds,
+    };
+
+    const response = await api.delete<RemoveAnimalsResponse>(
+        `/api/v1/animals/groups/${groupId}/animals`,
+        { data: payload }
+    );
+
+    const responseData = response.data?.data ?? response.data;
+
+    if (!responseData) {
+        throw new Error("Failed to remove animals");
+    }
+
+    return responseData;
 }
