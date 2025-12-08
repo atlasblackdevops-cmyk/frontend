@@ -38,9 +38,15 @@ export const theme = createTheme({
     components: {
         Button: {
             defaultProps: {
-                radius: "md",
-                size: "md",
+                radius: 6,
                 variant: "filled",
+                styles: {
+                    root: {
+                        height: 42,
+                        minHeight: 42,
+                        fontSize: 15,
+                    },
+                },
             },
         },
         Paper: {
@@ -72,6 +78,29 @@ export const theme = createTheme({
         Checkbox: {
             defaultProps: {
                 radius: "sm",
+            },
+        },
+        Table: {
+            defaultProps: {
+                highlightOnHover: true,
+                verticalSpacing: 0,
+            },
+            styles: {
+                th: {
+                    paddingLeft: 16,
+                    paddingRight: 2,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    whiteSpace: "nowrap",
+                },
+                td: {
+                    paddingLeft: 16,
+                    paddingRight: 2,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    whiteSpace: "nowrap",
+                    minHeight: 46,
+                },
             },
         },
     },

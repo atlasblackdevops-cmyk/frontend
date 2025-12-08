@@ -16,8 +16,10 @@ export type PermissionMatrix = Record<string, string[]>; // module -> actions[]
  */
 export const ROUTE_PERMISSIONS: Record<string, string> = {
     "/dashboard": "DASHBOARD",
+    "/fields": "CROPS", // Fields use CROPS permissions
     "/livestock": "LIVESTOCK",
     "/crops": "CROPS",
+    "/crops/planting": "CROPS",
     "/finance": "FINANCE",
     "/marketplace": "MARKETPLACE",
     "/ai": "AI",

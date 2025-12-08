@@ -12,8 +12,64 @@ import AuthSessionProvider from "@/providers/session-provider";
 import { theme } from "@/theme";
 
 export const metadata = {
-    title: "Farm Management",
-    description: "Farm Management System",
+    title: {
+        default: "Agri-Pulse | Farm Management System",
+    },
+    description: "Comprehensive farm management system for modern agriculture. Manage livestock, crops, finances, and more with AI-powered insights.",
+    keywords: [
+        "farm management",
+        "agriculture",
+        "livestock management",
+        "crop management",
+        "farm finance",
+        "agricultural technology",
+        "farm software",
+        "agtech",
+    ],
+    publisher: "Agri-Pulse",
+    formatDetection: {
+        email: false,
+        address: false,
+        telephone: false,
+    },
+    metadataBase: new URL(process.env.NEXTAUTH_URL || "https://yourdomain.com"),
+    alternates: {
+        canonical: "/",
+    },
+    openGraph: {
+        type: "website",
+        locale: "en_US",
+        url: process.env.NEXTAUTH_URL || "https://yourdomain.com",
+        siteName: "Agri-Pulse",
+        title: "Agri-Pulse | Farm Management System",
+        description: "Comprehensive farm management system for modern agriculture. Manage livestock, crops, finances, and more with AI-powered insights.",
+        images: [
+            {
+                url: "/assets/images/farm-landing-banner.jpg",
+                width: 1200,
+                height: 630,
+                alt: "Agri-Pulse Farm Management System",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Agri-Pulse | Farm Management System",
+        description: "Comprehensive farm management system for modern agriculture.",
+        images: ["/assets/images/farm-landing-banner.jpg"],
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+        },
+    },
+    
 };
 
 export default function RootLayout({ children }: { children: any }) {

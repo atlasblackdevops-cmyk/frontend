@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -15,8 +15,12 @@ import {
     IconShoppingCart,
     IconSwitchHorizontal,
     IconUsersGroup,
+    IconMapPin,
+    IconChevronDown,
+    IconChevronRight,
+    IconSeeding,
 } from "@tabler/icons-react";
-import { Group, Text } from "@mantine/core";
+import { Group, Text, Collapse, Paper } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import FarmSwitcherModal from "@/components/farm/FarmSwitcherModal";
 import { api } from "@/lib/api";
@@ -25,10 +29,25 @@ import { hasRoutePermission } from "@/lib/permissions";
 import { UserButton } from "./UserButton";
 import classes from "./NavbarSimple.module.css";
 
-const data = [
+interface NavItem {
+    link: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string; stroke?: number }>;
+    children?: NavItem[];
+}
+
+const data: NavItem[] = [
     { link: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
+    { link: "/fields", label: "Fields", icon: IconMapPin },
     { link: "/livestock", label: "Livestock", icon: IconDeer },
-    { link: "/crops", label: "Crops", icon: IconPlant2 },
+    {
+        link: "/crops",
+        label: "Crops",
+        icon: IconPlant2,
+        children: [
+            { link: "/crops/planting", label: "Planting", icon: IconSeeding },
+        ],
+    },
     { link: "/finance", label: "Finance", icon: IconCurrencyDollar },
     { link: "/marketplace", label: "Marketplace", icon: IconShoppingCart },
     { link: "/ai", label: "AI", icon: IconCpu },
@@ -59,6 +78,7 @@ export function NavbarSimple() {
     } = useAuth();
     const [switcherOpen, setSwitcherOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
+    const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
     // Fetch farms list (for switch farm modal)
     const { data: farmsData } = useQuery({
@@ -122,13 +142,90 @@ export function NavbarSimple() {
         }
     }
 
+    // Check if pathname matches a route (including nested routes)
+    const isRouteActive = (link: string, children?: NavItem[]) => {
+        if (pathname === link) return true;
+        if (children) {
+            return children.some((child) => pathname === child.link || pathname.startsWith(child.link + "/"));
+        }
+        return pathname.startsWith(link + "/");
+    };
+
+    // Toggle menu expansion
+    const toggleMenu = (link: string) => {
+        setExpandedMenus((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(link)) {
+                newSet.delete(link);
+            } else {
+                newSet.add(link);
+            }
+            return newSet;
+        });
+    };
+
+    // Auto-expand menus if current path matches
+    useEffect(() => {
+        data.forEach((item) => {
+            if (item.children && isRouteActive(item.link, item.children)) {
+                setExpandedMenus((prev) => new Set(prev).add(item.link));
+            }
+        });
+    }, [pathname]);
+
     // Filter links based on permissions (OWNER/SUPER_ADMIN see all)
     const filteredLinks = data.filter((item) =>
         hasRoutePermission(item.link, permissions, role)
     );
 
-    const links = filteredLinks.map((item) => {
-        const isActive = pathname === item.link;
+    const renderNavItem = (item: NavItem) => {
+        const hasChildren = item.children && item.children.length > 0;
+        const isExpanded = expandedMenus.has(item.link);
+        const isActive = isRouteActive(item.link, item.children);
+        const hasActiveChild = item.children?.some((child) => pathname === child.link || pathname.startsWith(child.link + "/"));
+
+        if (hasChildren) {
+            return (
+                <div key={item.label}>
+                    <a
+                        href="#"
+                        className={classes.link}
+                        data-active={isActive || undefined}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            toggleMenu(item.link);
+                        }}
+                    >
+                        <item.icon className={classes.linkIcon} stroke={1.5} />
+                        <span style={{ flex: 1 }}>{item.label}</span>
+                        {isExpanded ? (
+                            <IconChevronDown size={16} className={classes.linkIcon} />
+                        ) : (
+                            <IconChevronRight size={16} className={classes.linkIcon} />
+                        )}
+                    </a>
+                    <Collapse in={isExpanded}>
+                        <div className={classes.submenu}>
+                            {item.children?.map((child) => {
+                                const isChildActive = pathname === child.link || pathname.startsWith(child.link + "/");
+                                return (
+                                    <Link
+                                        href={child.link}
+                                        key={child.label}
+                                        className={classes.sublink}
+                                        data-active={isChildActive || undefined}
+                                    >
+                                        <child.icon className={classes.linkIcon} stroke={1.5} />
+                                        <span>{child.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </Collapse>
+                </div>
+            );
+        }
+
         return (
             <Link
                 href={item.link}
@@ -140,7 +237,9 @@ export function NavbarSimple() {
                 <span>{item.label}</span>
             </Link>
         );
-    });
+    };
+
+    const links = filteredLinks.map((item) => renderNavItem(item));
 
     return (
         <nav className={classes.navbar}>
@@ -151,15 +250,36 @@ export function NavbarSimple() {
                         fw={600}
                         c="dark.8"
                         style={{
-                            marginBottom: "4px",
                             letterSpacing: "-0.3px",
                         }}
                     >
                         Farm Management
                     </Text>
-                    <Text size="xs" c="dimmed">
-                        {farmName || "Agriculture Platform"}
-                    </Text>
+                    <Paper
+                        withBorder
+                        radius="md"
+                        p="sm"
+                        style={{
+                            marginTop: 6,
+                            background: "var(--mantine-color-gray-0)",
+                        }}
+                    >
+                        <Group gap={8} align="flex-start">
+                            <IconMapPin
+                                size={18}
+                                color="var(--mantine-color-green-6)"
+                                style={{ marginTop: 2 }}
+                            />
+                            <div style={{ lineHeight: 1.2 }}>
+                                <Text size="xs" c="dimmed" fw={600}>
+                                    Active farm
+                                </Text>
+                                <Text size="sm" fw={600}>
+                                    {farmName || "Agriculture Platform"}
+                                </Text>
+                            </div>
+                        </Group>
+                    </Paper>
                 </div>
                 <Group className={classes.header} justify="space-between">
                     <UserButton />
