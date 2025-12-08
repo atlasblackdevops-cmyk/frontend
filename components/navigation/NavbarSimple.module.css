@@ -2,10 +2,41 @@
   background-color: #ffffff;
   height: 100dvh;
   width: 260px;
-  padding: 20px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e5e7eb;
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.02);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.navbarCollapsed {
+  width: 80px;
+}
+
+.collapseButtonWrapper {
+  position: absolute;
+  right: -12px;
+  top: 20px;
+  z-index: 10;
+}
+
+.collapseButton {
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+  border: 2px solid #ffffff;
+  transition: all 0.2s ease;
+  background-color: #f0fdf4 !important;
+  color: #16a34a !important;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+    background-color: #ecfdf5 !important;
+    color: #15803d !important;
+  }
 }
 
 .navbarMain {
@@ -13,22 +44,39 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .brandSection {
-  padding: 0 24px 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 24px;
+  padding: 20px 20px 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 8px;
+  background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+  transition: padding 0.3s ease;
+}
+
+.navbarCollapsed .brandSection {
+  padding: 20px 12px 16px 12px;
 }
 
 .header {
-  padding: 0 16px;
-  margin-bottom: 24px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
 }
+
+.navbarCollapsed .header {
+  padding: 12px 8px;
+  display: flex;
+  justify-content: center;
+}
+
 
 .linksSection {
   display: flex;
   flex-direction: column;
+  padding: 8px 0;
+  gap: 2px;
 }
 
 .title {
@@ -48,25 +96,80 @@
   font-size: 14px;
   color: #374151;
   padding: 10px 16px;
-  margin: 0 8px 2px 8px;
-  border-radius: 6px;
+  margin: 0 8px;
+  border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  justify-content: flex-start;
 
   &:hover {
-    background-color: #f3f4f6;
+    background-color: #f9fafb;
     color: #111827;
+    transform: translateX(2px);
   }
 
   &[data-active] {
-    background-color: #f0fdf4;
-    color: #16a34a;
+    background: linear-gradient(to right, #f0fdf4 0%, #ecfdf5 100%);
+    color: #15803d;
     font-weight: 600;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.1);
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: linear-gradient(to bottom, #22c55e, #16a34a);
+      border-radius: 0 2px 2px 0;
+    }
 
     & .linkIcon {
       color: #16a34a;
     }
   }
+}
+
+.linkCollapsed {
+  justify-content: center;
+  padding: 10px 16px;
+  margin: 0 8px;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  & .linkIcon {
+    margin-right: 0;
+  }
+}
+
+.footer {
+  border-top: 1px solid #f3f4f6;
+  padding: 12px 8px;
+  margin-top: auto;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer .link {
+  margin-bottom: 0;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.footer .link:hover {
+  background-color: #f3f4f6;
+}
+
+.navbarCollapsed .footer {
+  padding: 12px 8px;
+  align-items: center;
 }
 
 .linkIcon {
@@ -75,23 +178,24 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+  transition: color 0.2s ease, transform 0.2s ease, margin 0.3s ease;
 }
 
-.footer {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 16px;
-  margin-top: auto;
+.linkCollapsed .linkIcon {
+  margin-right: 0;
 }
 
-.footer .link {
-  margin-bottom: 4px;
-  font-size: 13px;
+.link:hover .linkIcon {
+  transform: scale(1.05);
 }
+
 
 .submenu {
   padding-left: 8px;
   margin-left: 8px;
   border-left: 2px solid #e5e7eb;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 .sublink {
@@ -100,21 +204,23 @@
   text-decoration: none;
   font-size: 13px;
   color: #6b7280;
-  padding: 8px 16px 8px 32px;
+  padding: 8px 16px 8px 36px;
   margin: 0 8px 2px 8px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #f3f4f6;
+    background-color: #f9fafb;
     color: #111827;
+    transform: translateX(2px);
   }
 
   &[data-active] {
-    background-color: #f0fdf4;
-    color: #16a34a;
+    background: linear-gradient(to right, #f0fdf4 0%, #ecfdf5 100%);
+    color: #15803d;
     font-weight: 600;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.1);
 
     & .linkIcon {
       color: #16a34a;

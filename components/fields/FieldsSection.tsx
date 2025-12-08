@@ -273,10 +273,20 @@ export default function FieldsSection() {
   }
 
   return (
-    <Paper p={26} radius="none" withBorder={false} style={{ height: "100%" }}>
-      <Stack gap="lg">
+    <Paper 
+      p={26} 
+      radius="none" 
+      withBorder={false} 
+      style={{ 
+        height: "100%", 
+        display: "flex", 
+        flexDirection: "column",
+        overflow: "hidden"
+      }}
+    >
+      <Stack gap="lg" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
         {/* Header */}
-        <Group justify="space-between" align="center">
+        <Group justify="space-between" align="center" style={{ flexShrink: 0 }}>
           <div>
             <Title order={2}>Fields</Title>
             <Text c="dimmed" size="sm">
@@ -294,10 +304,12 @@ export default function FieldsSection() {
         </Group>
 
         {/* Toast */}
-        <Toast />
+        <div style={{ flexShrink: 0 }}>
+          <Toast />
+        </div>
 
         {/* Search and Filters */}
-        <Group gap="md" align="stretch" justify="space-between">
+        <Group gap="md" align="stretch" justify="space-between" style={{ flexShrink: 0 }}>
           <TextInput
             size={"md"}
             placeholder="Search by field name"
@@ -315,27 +327,40 @@ export default function FieldsSection() {
           <FieldFilters onOpenFilters={() => setFiltersDrawerOpen(true)} />
         </Group>
 
-        {/* Table */}
-        <Paper withBorder radius={6} p="none" style={{ overflow: "hidden" }}>
-          <FieldTable
-            fields={fields}
-            isLoading={isLoading}
-            canUpdate={canUpdate}
-            canDelete={canDelete}
-            onUpdate={(field) => {
-              setSelectedField(field);
-              setUpdateModalOpen(true);
-            }}
-            onDelete={(field) => {
-              setFieldToDelete(field);
-              setDeleteModalOpen(true);
-            }}
-          />
+        {/* Table - Scrollable container */}
+        <Paper 
+          withBorder 
+          radius={6} 
+          p="none" 
+          style={{ 
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
+          }}
+        >
+          <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+            <FieldTable
+              fields={fields}
+              isLoading={isLoading}
+              canUpdate={canUpdate}
+              canDelete={canDelete}
+              onUpdate={(field) => {
+                setSelectedField(field);
+                setUpdateModalOpen(true);
+              }}
+              onDelete={(field) => {
+                setFieldToDelete(field);
+                setDeleteModalOpen(true);
+              }}
+            />
+          </div>
         </Paper>
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <Group justify="center">
+          <Group justify="center" style={{ flexShrink: 0 }}>
             <Pagination
               value={pagination.page}
               onChange={handlePageChange}

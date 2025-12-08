@@ -19,8 +19,10 @@ import {
     IconChevronDown,
     IconChevronRight,
     IconSeeding,
+    IconCircleCheck,
+    IconChevronLeft,
 } from "@tabler/icons-react";
-import { Group, Text, Collapse, Paper } from "@mantine/core";
+import { Group, Text, Collapse, Paper, ActionIcon, Tooltip, Avatar } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import FarmSwitcherModal from "@/components/farm/FarmSwitcherModal";
 import { api } from "@/lib/api";
@@ -75,10 +77,20 @@ export function NavbarSimple() {
         farmName,
         role,
         permissions,
+        userName,
+        userEmail,
+        userProfilePicture,
     } = useAuth();
     const [switcherOpen, setSwitcherOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
     const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+    const [collapsed, setCollapsed] = useState(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("sidebarCollapsed");
+            return saved === "true";
+        }
+        return false;
+    });
 
     // Fetch farms list (for switch farm modal)
     const { data: farmsData } = useQuery({
@@ -173,6 +185,21 @@ export function NavbarSimple() {
         });
     }, [pathname]);
 
+    // Save collapsed state to localStorage
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("sidebarCollapsed", collapsed.toString());
+        }
+    }, [collapsed]);
+
+    const toggleCollapse = () => {
+        setCollapsed(!collapsed);
+        // Close all expanded menus when collapsing
+        if (!collapsed) {
+            setExpandedMenus(new Set());
+        }
+    };
+
     // Filter links based on permissions (OWNER/SUPER_ADMIN see all)
     const filteredLinks = data.filter((item) =>
         hasRoutePermission(item.link, permissions, role)
@@ -185,161 +212,299 @@ export function NavbarSimple() {
         const hasActiveChild = item.children?.some((child) => pathname === child.link || pathname.startsWith(child.link + "/"));
 
         if (hasChildren) {
-            return (
-                <div key={item.label}>
-                    <a
-                        href="#"
-                        className={classes.link}
-                        data-active={isActive || undefined}
-                        onClick={(e) => {
-                            e.preventDefault();
+            const linkContent = (
+                <a
+                    href="#"
+                    className={`${classes.link} ${collapsed ? classes.linkCollapsed : ""}`}
+                    data-active={isActive || undefined}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        if (!collapsed) {
                             toggleMenu(item.link);
-                        }}
-                    >
-                        <item.icon className={classes.linkIcon} stroke={1.5} />
-                        <span style={{ flex: 1 }}>{item.label}</span>
-                        {isExpanded ? (
+                        }
+                    }}
+                >
+                    <item.icon className={classes.linkIcon} stroke={1.5} />
+                    {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+                    {!collapsed && (
+                        isExpanded ? (
                             <IconChevronDown size={16} className={classes.linkIcon} />
                         ) : (
                             <IconChevronRight size={16} className={classes.linkIcon} />
-                        )}
-                    </a>
-                    <Collapse in={isExpanded}>
-                        <div className={classes.submenu}>
-                            {item.children?.map((child) => {
-                                const isChildActive = pathname === child.link || pathname.startsWith(child.link + "/");
-                                return (
-                                    <Link
-                                        href={child.link}
-                                        key={child.label}
-                                        className={classes.sublink}
-                                        data-active={isChildActive || undefined}
-                                    >
-                                        <child.icon className={classes.linkIcon} stroke={1.5} />
-                                        <span>{child.label}</span>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </Collapse>
+                        )
+                    )}
+                </a>
+            );
+
+            return (
+                <div key={item.label}>
+                    {collapsed ? (
+                        <Tooltip label={item.label} position="right" withArrow>
+                            {linkContent}
+                        </Tooltip>
+                    ) : (
+                        linkContent
+                    )}
+                    {!collapsed && (
+                        <Collapse in={isExpanded}>
+                            <div className={classes.submenu}>
+                                {item.children?.map((child) => {
+                                    const isChildActive = pathname === child.link || pathname.startsWith(child.link + "/");
+                                    return (
+                                        <Link
+                                            href={child.link}
+                                            key={child.label}
+                                            className={classes.sublink}
+                                            data-active={isChildActive || undefined}
+                                        >
+                                            <child.icon className={classes.linkIcon} stroke={1.5} />
+                                            <span>{child.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </Collapse>
+                    )}
                 </div>
             );
         }
 
-        return (
+        const linkContent = (
             <Link
                 href={item.link}
                 key={item.label}
-                className={classes.link}
+                className={`${classes.link} ${collapsed ? classes.linkCollapsed : ""}`}
                 data-active={isActive || undefined}
             >
                 <item.icon className={classes.linkIcon} stroke={1.5} />
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
             </Link>
+        );
+
+        return collapsed ? (
+            <Tooltip key={item.label} label={item.label} position="right" withArrow>
+                {linkContent}
+            </Tooltip>
+        ) : (
+            linkContent
         );
     };
 
     const links = filteredLinks.map((item) => renderNavItem(item));
 
     return (
-        <nav className={classes.navbar}>
+        <nav className={`${classes.navbar} ${collapsed ? classes.navbarCollapsed : ""}`}>
+            <div className={classes.collapseButtonWrapper}>
+                <Tooltip 
+                    label={collapsed ? "Expand sidebar" : "Collapse sidebar"} 
+                    position="right" 
+                    withArrow
+                    withinPortal
+                >
+                    <ActionIcon
+                        variant="filled"
+                        color="green"
+                        onClick={toggleCollapse}
+                        size="md"
+                        radius="xl"
+                        className={classes.collapseButton}
+                    >
+                        {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
+                    </ActionIcon>
+                </Tooltip>
+            </div>
             <div className={classes.navbarMain}>
                 <div className={classes.brandSection}>
-                    <Text
-                        size="lg"
-                        fw={600}
-                        c="dark.8"
-                        style={{
-                            letterSpacing: "-0.3px",
-                        }}
-                    >
-                        Farm Management
-                    </Text>
-                    <Paper
-                        withBorder
-                        radius="md"
-                        p="sm"
-                        style={{
-                            marginTop: 6,
-                            background: "var(--mantine-color-gray-0)",
-                        }}
-                    >
-                        <Group gap={8} align="flex-start">
-                            <IconMapPin
-                                size={18}
-                                color="var(--mantine-color-green-6)"
-                                style={{ marginTop: 2 }}
-                            />
-                            <div style={{ lineHeight: 1.2 }}>
-                                <Text size="xs" c="dimmed" fw={600}>
-                                    Active farm
-                                </Text>
-                                <Text size="sm" fw={600}>
-                                    {farmName || "Agriculture Platform"}
-                                </Text>
-                            </div>
-                        </Group>
-                    </Paper>
+                    
+                    {!collapsed && (
+                        <Paper
+                            withBorder
+                            radius="md"
+                            p={12}
+                            style={{
+                                background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+                                borderColor: "#d1fae5",
+                                boxShadow: "0 1px 3px rgba(22, 163, 74, 0.1)",
+                                transition: "all 0.2s ease",
+                                cursor: "pointer",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "translateY(-1px)";
+                                e.currentTarget.style.boxShadow = "0 2px 6px rgba(22, 163, 74, 0.15)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow = "0 1px 3px rgba(22, 163, 74, 0.1)";
+                            }}
+                            onClick={() => setSwitcherOpen(true)}
+                        >
+                            <Group gap={10} align="flex-start" wrap="nowrap">
+                                <div
+                                    style={{
+                                        background: "white",
+                                        borderRadius: "6px",
+                                        padding: "6px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                                    }}
+                                >
+                                    <IconCircleCheck
+                                        size={16}
+                                        color="var(--mantine-color-green-6)"
+                                    />
+                                </div>
+                                <div style={{ lineHeight: 1.3, flex: 1, minWidth: 0 }}>
+                                    <Text size="xs" c="dimmed" fw={600} style={{ textTransform: "uppercase", letterSpacing: "0.5px", fontSize: "10px" }}>
+                                        Active farm
+                                    </Text>
+                                    <Text 
+                                        size="sm" 
+                                        fw={700}
+                                        style={{
+                                            color: "#15803d",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {farmName || "Agriculture Platform"}
+                                    </Text>
+                                </div>
+                            </Group>
+                        </Paper>
+                    )}
+                    {collapsed && (
+                        <Tooltip label={farmName || "Agriculture Platform"} position="right" withArrow>
+                            <ActionIcon
+                                variant="light"
+                                color="green"
+                                size="xl"
+                                radius="md"
+                                onClick={() => setSwitcherOpen(true)}
+                                style={{
+                                    width: "100%",
+                                    marginTop: 8,
+                                }}
+                            >
+                                <IconCircleCheck size={20} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
                 </div>
                 <Group className={classes.header} justify="space-between">
-                    <UserButton />
+                    {collapsed ? (
+                        <Tooltip label={`${userName || "User"}\n${userEmail || ""}`} position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="lg"
+                                radius="md"
+                                onClick={() => router.push("/settings")}
+                                style={{ width: "100%" }}
+                            >
+                                <Avatar
+                                    src={userProfilePicture}
+                                    radius="xl"
+                                    size={28}
+                                />
+                            </ActionIcon>
+                        </Tooltip>
+                    ) : (
+                        <UserButton />
+                    )}
                 </Group>
                 <div className={classes.linksSection}>{links}</div>
             </div>
 
             <div className={classes.footer}>
-                <a
-                    href="#"
-                    className={classes.link}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        setSwitcherOpen(true);
-                    }}
-                    style={{
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                    }}
-                >
-                    <Group gap="xs" style={{ flex: 1 }}>
-                        <IconSwitchHorizontal
-                            className={classes.linkIcon}
-                            stroke={1.8}
-                        />
-                        <span>Switch Farm</span>
-                    </Group>
-                    {farmName && (
-                        <Text
-                            size="xs"
-                            c="dimmed"
+                {collapsed ? (
+                    <>
+                        <Tooltip label="Switch Farm" position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="lg"
+                                radius="md"
+                                onClick={() => setSwitcherOpen(true)}
+                                style={{ width: "100%", marginBottom: 8 }}
+                            >
+                                <IconSwitchHorizontal size={18} />
+                            </ActionIcon>
+                        </Tooltip>
+                        <Tooltip label="Logout" position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                size="lg"
+                                radius="md"
+                                onClick={() => void handleLogout()}
+                                loading={logoutLoading}
+                                style={{ width: "100%" }}
+                            >
+                                <IconLogout size={18} />
+                            </ActionIcon>
+                        </Tooltip>
+                    </>
+                ) : (
+                    <>
+                        <a
+                            href="#"
+                            className={classes.link}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                setSwitcherOpen(true);
+                            }}
                             style={{
-                                marginLeft: "8px",
-                                padding: "2px 8px",
-                                borderRadius: "4px",
-                                background: "#f3f4f6",
-                                color: "#6b7280",
-                                fontWeight: 500,
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                color: "#374151",
                             }}
                         >
-                            {farmName}
-                        </Text>
-                    )}
-                </a>
-                <a
-                    href="#"
-                    className={classes.link}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        void handleLogout();
-                    }}
-                    style={{
-                        opacity: logoutLoading ? 0.6 : 1,
-                        cursor: logoutLoading ? "wait" : "pointer",
-                        color: logoutLoading ? "#9ca3af" : "#dc2626",
-                    }}
-                >
-                    <IconLogout className={classes.linkIcon} stroke={1.8} />
-                    <span>{logoutLoading ? "Logging out..." : "Logout"}</span>
-                </a>
+                            <Group gap="xs" style={{ flex: 1 }}>
+                                <IconSwitchHorizontal
+                                    className={classes.linkIcon}
+                                    stroke={1.8}
+                                />
+                                <span>Switch Farm</span>
+                            </Group>
+                            {farmName && (
+                                <Text
+                                    size="xs"
+                                    style={{
+                                        marginLeft: "8px",
+                                        padding: "4px 10px",
+                                        borderRadius: "6px",
+                                        background: "white",
+                                        color: "#6b7280",
+                                        fontWeight: 600,
+                                        border: "1px solid #e5e7eb",
+                                        fontSize: "11px",
+                                    }}
+                                >
+                                    {farmName}
+                                </Text>
+                            )}
+                        </a>
+                        <a
+                            href="#"
+                            className={classes.link}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleLogout();
+                            }}
+                            style={{
+                                opacity: logoutLoading ? 0.6 : 1,
+                                cursor: logoutLoading ? "wait" : "pointer",
+                                color: logoutLoading ? "#9ca3af" : "#dc2626",
+                            }}
+                        >
+                            <IconLogout className={classes.linkIcon} stroke={1.8} />
+                            <span>{logoutLoading ? "Logging out..." : "Logout"}</span>
+                        </a>
+                    </>
+                )}
             </div>
 
             <FarmSwitcherModal

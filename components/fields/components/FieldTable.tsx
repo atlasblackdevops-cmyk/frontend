@@ -42,38 +42,46 @@ export default function FieldTable({
     };
 
     return (
-        <div style={{ width: "100%", overflowX: "auto" }}>
-            <Table
-                verticalSpacing="sm"
-                highlightOnHover
-                style={{
-                    width: "100%",
-                    minWidth: 900,
-                    tableLayout: "fixed",
-                }}
-            >
-                <colgroup>
-                    <col style={{ width: "22%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "18%" }} />
-                    <col style={{ width: "120px" }} />
-                </colgroup>
-                <Table.Thead style={{ backgroundColor: "var(--mantine-color-gray-0)" }}>
-                    <Table.Tr>
-                        <Table.Th style={nowrap}>Field Name</Table.Th>
-                        <Table.Th style={nowrap}>Size</Table.Th>
-                        <Table.Th style={nowrap}>Soil Type</Table.Th>
-                        <Table.Th style={nowrap}>Status</Table.Th>
-                        <Table.Th style={nowrap}>Created</Table.Th>
-                        <Table.Th style={nowrap}>Notes</Table.Th>
-                        <Table.Th style={{ ...nowrap, paddingLeft: 24, paddingRight: 12 }}>
-                            Actions
-                        </Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
+        <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
+                <Table
+                    verticalSpacing="sm"
+                    highlightOnHover
+                    style={{
+                        width: "100%",
+                        minWidth: 900,
+                        tableLayout: "fixed",
+                    }}
+                >
+                    <colgroup>
+                        <col style={{ width: "22%" }} />
+                        <col style={{ width: "14%" }} />
+                        <col style={{ width: "14%" }} />
+                        <col style={{ width: "10%" }} />
+                        <col style={{ width: "12%" }} />
+                        <col style={{ width: "18%" }} />
+                        <col style={{ width: "120px" }} />
+                    </colgroup>
+                    <Table.Thead 
+                        style={{ 
+                            backgroundColor: "var(--mantine-color-gray-0)",
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 10,
+                        }}
+                    >
+                        <Table.Tr>
+                            <Table.Th style={nowrap}>Field Name</Table.Th>
+                            <Table.Th style={nowrap}>Size</Table.Th>
+                            <Table.Th style={nowrap}>Soil Type</Table.Th>
+                            <Table.Th style={nowrap}>Status</Table.Th>
+                            <Table.Th style={nowrap}>Created</Table.Th>
+                            <Table.Th style={nowrap}>Notes</Table.Th>
+                            <Table.Th style={{ ...nowrap, paddingLeft: 24, paddingRight: 12 }}>
+                                Actions
+                            </Table.Th>
+                        </Table.Tr>
+                    </Table.Thead>
                 <Table.Tbody>
                     {isLoading ? (
                         <Table.Tr>
