@@ -2,19 +2,18 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Formik } from "formik";
-import Joi from "joi";
+import { useForm } from "@mantine/form";
 import {
     Alert,
     Anchor,
-    Button,
     Checkbox,
     Divider,
-    PasswordInput,
     Stack,
     Text,
-    TextInput,
 } from "@mantine/core";
+import { BaseInput } from "@/components/ui";
+import { BasePasswordInput } from "@/components/ui";
+import { BaseButton } from "@/components/ui";
 import { upperFirst, useToggle } from "@mantine/hooks";
 import BaseCard, { BaseCardProps } from "@/components/ui/BaseCard";
 import { api } from "@/lib/api";
@@ -130,57 +129,45 @@ function mapApiErrorsToFormErrors(data: any): Record<string, string> {
     return fieldErrors;
 }
 
-function buildValidationSchema(type: "login" | "register") {
-    const base = {
-        email: Joi.string()
-            .trim()
-            .lowercase()
-            .email({ tlds: false })
-            .required()
-            .messages({
-                "string.email": "Invalid email",
-                "any.required": "Email is required",
-            }),
-        password: Joi.string().min(6).required().messages({
-            "string.min": "Password should include at least 6 characters",
-            "any.required": "Password is required",
-        }),
+function buildValidation(type: "login" | "register") {
+    return {
+        email: (value: string) => {
+            if (!value || value.trim().length === 0) {
+                return "Email is required";
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value.trim().toLowerCase())) {
+                return "Invalid email";
+            }
+            return null;
+        },
+        password: (value: string) => {
+            if (!value || value.length === 0) {
+                return "Password is required";
+            }
+            if (value.length < 6) {
+                return "Password should include at least 6 characters";
+            }
+            return null;
+        },
+        name: (value: string) => {
+            if (type === "register") {
+                if (!value || value.trim().length === 0) {
+                    return "Name is required";
+                }
+                if (value.trim().length < 2) {
+                    return "Name should include at least 2 characters";
+                }
+            }
+            return null;
+        },
+        terms: (value: boolean) => {
+            if (type === "register" && !value) {
+                return "You must accept terms and conditions";
+            }
+            return null;
+        },
     };
-
-    if (type === "register") {
-        return Joi.object({
-            ...base,
-            name: Joi.string().trim().min(2).required().messages({
-                "string.min": "Name should include at least 2 characters",
-                "any.required": "Name is required",
-            }),
-            terms: Joi.boolean().valid(true).required().messages({
-                "any.only": "You must accept terms and conditions",
-            }),
-        });
-    }
-
-    return Joi.object({
-        ...base,
-        name: Joi.string().allow(""),
-        terms: Joi.boolean().default(true),
-    });
-}
-
-function joiValidate(values: any, type: "login" | "register") {
-    const schema = buildValidationSchema(type);
-    const { error, value } = schema.validate(values, { abortEarly: false });
-    // Propagate normalized values (e.g., lowercase email)
-    Object.assign(values, value);
-
-    if (!error) return {};
-    const errors: Record<string, string> = {};
-    for (const detail of error.details) {
-        const key = detail.path?.[0] as string | undefined;
-        if (!key) continue;
-        if (!errors[key]) errors[key] = detail.message;
-    }
-    return errors;
 }
 
 export function AuthenticationForm({
@@ -192,10 +179,53 @@ export function AuthenticationForm({
     const [type, toggle] = useToggle<"login" | "register">(toggleValues);
     const router = useRouter();
     const { setToken, setRefreshToken } = useAuth();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [status, setStatus] = React.useState<string | undefined>(undefined);
+
+    const form = useForm({
+        initialValues: {
+            email: "",
+            name: "",
+            password: "",
+            terms: true,
+        },
+        validateInputOnBlur: true,
+        validate: (values) => {
+            const validation = buildValidation(type);
+            const errors: Record<string, string | null> = {};
+            
+            const emailError = validation.email(values.email);
+            if (emailError) errors.email = emailError;
+            
+            const passwordError = validation.password(values.password);
+            if (passwordError) errors.password = passwordError;
+            
+            const nameError = validation.name(values.name);
+            if (nameError) errors.name = nameError;
+            
+            const termsError = validation.terms(values.terms);
+            if (termsError) errors.terms = termsError;
+            
+            return Object.keys(errors).length > 0 ? errors : {};
+        },
+    });
+
+    // Update form when type changes
+    React.useEffect(() => {
+        const currentEmail = form.values.email;
+        const currentPassword = form.values.password;
+        form.setValues({
+            email: currentEmail,
+            name: "",
+            password: currentPassword,
+            terms: true,
+        });
+        form.clearErrors();
+    }, [type]);
 
     return (
         <BaseCard
-            radius={0}
+            radius={6}
             p={{ base: "xl", sm: "xl" }}
             withBorder={false}
             style={{
@@ -210,7 +240,7 @@ export function AuthenticationForm({
             }}
             {...paperProps}
         >
-            <GoogleButton radius={0} fullWidth>
+            <GoogleButton fullWidth>
                 Sign in with Google
             </GoogleButton>
 
@@ -230,25 +260,15 @@ export function AuthenticationForm({
                 }}
             />
 
-            <Formik
-                enableReinitialize
-                initialValues={{
-                    email: "",
-                    name: "",
-                    password: "",
-                    terms: true,
-                }}
-                validate={(values) => joiValidate(values, type)}
-                onSubmit={async (
-                    values,
-                    { setErrors, setSubmitting, setTouched, setStatus }
-                ) => {
+            <form
+                onSubmit={form.onSubmit(async (values) => {
                     try {
+                        setIsSubmitting(true);
                         setStatus(undefined);
                         const payload = {
                             email: values.email.trim().toLowerCase(),
                             password: values.password,
-                            name: values.name,
+                            name: values.name.trim(),
                         };
 
                         if (type === "register") {
@@ -257,7 +277,8 @@ export function AuthenticationForm({
                                 password: payload.password,
                                 name: payload.name,
                             });
-                            setSubmitting(false);
+                            setIsSubmitting(false);
+                            form.reset();
                             toggle(); // Switch to login after successful register
                             return;
                         }
@@ -411,18 +432,13 @@ export function AuthenticationForm({
                             }
 
                             if (Object.keys(known).length > 0) {
-                                const touchedFields: Record<string, boolean> =
-                                    {};
-                                for (const key of Object.keys(known))
-                                    touchedFields[key] = true;
-                                setTouched(touchedFields);
-                                setErrors(known as any);
+                                form.setErrors(known);
                             }
                             if (unknownMessages.length > 0) {
                                 setStatus(unknownMessages.join("; "));
                             }
 
-                            setSubmitting(false);
+                            setIsSubmitting(false);
                             return;
                         }
 
@@ -433,285 +449,159 @@ export function AuthenticationForm({
                                 ? "Registration failed"
                                 : "Login failed");
 
-                        setTouched({ email: true });
-                        setErrors({ email: message } as any);
+                        form.setFieldError("email", message);
                         setStatus(message);
-                        setSubmitting(false);
+                        setIsSubmitting(false);
                     }
+                })}
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    minHeight: 0,
                 }}
             >
-                {({
-                    values,
-                    errors,
-                    touched,
-                    handleChange,
-                    handleBlur,
-                    setFieldValue,
-                    handleSubmit,
-                    isSubmitting,
-                    submitCount,
-                    status,
-                }) => (
-                    <form
-                        onSubmit={handleSubmit}
-                        style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            flex: 1,
-                            minHeight: 0,
+                {status ? (
+                    <Alert
+                        color="red"
+                        variant="light"
+                        mb="md"
+                        radius={6}
+                        style={{ 
+                            flexShrink: 0,
+                            border: "1px solid #ffcdd2",
+                            backgroundColor: "#ffebee",
+                        }}
+                        styles={{
+                            message: {
+                                fontSize: "14px",
+                                color: "#c62828",
+                            },
                         }}
                     >
-                        {status ? (
-                            <Alert
-                                color="red"
-                                variant="light"
-                                mb="md"
-                                radius={0}
-                                style={{ 
-                                    flexShrink: 0,
-                                    border: "1px solid #ffcdd2",
-                                    backgroundColor: "#ffebee",
-                                }}
-                                styles={{
-                                    message: {
-                                        fontSize: "14px",
-                                        color: "#c62828",
-                                    },
-                                }}
-                            >
-                                {status}
-                            </Alert>
-                        ) : null}
-                        <Stack
-                            gap="md"
-                            style={{
-                                flex: 1,
-                                minHeight: 0,
-                                overflowY: "auto",
-                                overflowX: "hidden",
-                            }}
-                        >
-                            {type === "register" && (
-                                <TextInput
-                                    label="Name"
-                                    placeholder="Enter your full name"
-                                    value={values.name}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
-                                    name="name"
-                                    error={
-                                        (touched.name || submitCount > 0) &&
-                                        (errors.name as any)
-                                    }
-                                    radius={0}
-                                    size="md"
-                                    styles={{
-                                        input: {
-                                            borderColor: "#e0e0e0",
-                                            borderWidth: "1px",
-                                            fontSize: "15px",
-                                            padding: "12px 16px",
-                                            backgroundColor: "#fafafa",
-                                            transition: "all 0.2s ease",
-                                            "&:focus": {
-                                                borderColor: "#4caf50",
-                                                backgroundColor: "#ffffff",
-                                                borderWidth: "2px",
-                                            },
-                                        },
-                                        label: {
-                                            fontSize: "14px",
-                                            marginBottom: "8px",
-                                            fontWeight: 500,
-                                            color: "#424242",
-                                        },
-                                        error: {
-                                            fontSize: "13px",
-                                            marginTop: "4px",
-                                        },
-                                    }}
-                                />
-                            )}
+                        {status}
+                    </Alert>
+                ) : null}
+                <Stack
+                    gap="md"
+                    style={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                    }}
+                >
+                    {type === "register" && (
+                        <BaseInput
+                            label="Name"
+                            placeholder="Enter your full name"
+                            required
+                            {...form.getInputProps("name")}
+                        />
+                    )}
 
-                            <TextInput
-                                required
-                                label="Email"
-                                placeholder="Enter your email"
-                                value={values.email}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                name="email"
-                                error={
-                                    (touched.email || submitCount > 0) &&
-                                    (errors.email as any)
-                                }
-                                radius={0}
-                                size="md"
-                                styles={{
-                                    input: {
-                                        borderColor: "#e0e0e0",
-                                        borderWidth: "1px",
-                                        fontSize: "15px",
-                                        padding: "12px 16px",
-                                        backgroundColor: "#fafafa",
-                                        transition: "all 0.2s ease",
-                                        "&:focus": {
-                                            borderColor: "#4caf50",
-                                            backgroundColor: "#ffffff",
-                                            borderWidth: "2px",
-                                        },
-                                    },
-                                    label: {
-                                        fontSize: "14px",
-                                        marginBottom: "8px",
-                                        fontWeight: 500,
-                                        color: "#424242",
-                                    },
-                                    error: {
-                                        fontSize: "13px",
-                                        marginTop: "4px",
-                                    },
-                                }}
-                            />
+                    <BaseInput
+                        required
+                        label="Email"
+                        placeholder="Enter your email"
+                        {...form.getInputProps("email")}
+                    />
 
-                            <PasswordInput
-                                required
-                                label="Password"
-                                placeholder="Enter your password"
-                                value={values.password}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                name="password"
-                                error={
-                                    (touched.password || submitCount > 0) &&
-                                    (errors.password as any)
-                                }
-                                radius={0}
-                                size="md"
-                                styles={{
-                                    input: {
-                                        borderColor: "#e0e0e0",
-                                        borderWidth: "1px",
-                                        fontSize: "15px",
-                                        padding: "12px 16px",
-                                        backgroundColor: "#fafafa",
-                                        transition: "all 0.2s ease",
-                                        "&:focus": {
-                                            borderColor: "#4caf50",
-                                            backgroundColor: "#ffffff",
-                                            borderWidth: "2px",
-                                        },
-                                    },
-                                    label: {
-                                        fontSize: "14px",
-                                        marginBottom: "8px",
-                                        fontWeight: 500,
-                                        color: "#424242",
-                                    },
-                                    error: {
-                                        fontSize: "13px",
-                                        marginTop: "4px",
-                                    },
-                                }}
-                            />
+                    <BasePasswordInput
+                        required
+                        label="Password"
+                        placeholder="Enter your password"
+                        {...form.getInputProps("password")}
+                    />
 
-                            {type === "register" && (
-                                <Checkbox
-                                    label="I accept terms and conditions"
-                                    checked={values.terms}
-                                    onChange={(event) =>
-                                        setFieldValue(
-                                            "terms",
-                                            event.currentTarget.checked
-                                        )
-                                    }
-                                    error={
-                                        (touched.terms || submitCount > 0) &&
-                                        (errors.terms as any)
-                                    }
-                                    color="green"
-                                    radius={0}
-                                    styles={{
-                                        label: {
-                                            color: "#424242",
-                                            fontSize: "14px",
-                                            fontWeight: 400,
-                                        },
-                                        input: {
-                                            borderColor: "#e0e0e0",
-                                            "&:checked": {
-                                                backgroundColor: "#4caf50",
-                                                borderColor: "#4caf50",
-                                            },
-                                        },
-                                        error: {
-                                            fontSize: "13px",
-                                            marginTop: "4px",
-                                        },
-                                    }}
-                                />
-                            )}
-                        </Stack>
-
-                        <Stack gap="md" mt="xl" style={{ flexShrink: 0 }}>
-                            <Button
-                                type="submit"
-                                radius={0}
-                                loading={isSubmitting}
-                                color="green"
-                                fullWidth
-                                size="md"
-                                styles={{
-                                    root: {
-                                        backgroundColor: "#4caf50",
-                                        border: "none",
-                                        fontWeight: 600,
-                                        transition: "all 0.2s ease",
-                                        fontSize: "15px",
-                                        padding: "14px 24px",
-                                        height: "48px",
-                                        "&:hover": {
-                                            backgroundColor: "#45a049",
-                                            transform: "none",
-                                        },
-                                        "&:active": {
-                                            backgroundColor: "#388e3c",
-                                        },
-                                    },
-                                }}
-                            >
-                                {upperFirst(type)}
-                            </Button>
-
-                            <Anchor
-                                component="button"
-                                type={undefined as any}
-                                c="#4caf50"
-                                onClick={() => toggle()}
-                                size="sm"
-                                fw={500}
-                                ta="center"
-                                style={{
+                    {type === "register" && (
+                        <Checkbox
+                            label="I accept terms and conditions"
+                            {...form.getInputProps("terms", { type: "checkbox" })}
+                            error={form.errors.terms}
+                            color="green"
+                            radius={6}
+                            styles={{
+                                label: {
+                                    color: "#424242",
                                     fontSize: "14px",
-                                    textDecoration: "none",
-                                }}
-                                styles={{
-                                    root: {
-                                        "&:hover": {
-                                            textDecoration: "underline",
-                                            color: "#45a049",
-                                        },
+                                    fontWeight: 400,
+                                },
+                                input: {
+                                    borderColor: "#e0e0e0",
+                                    "&:checked": {
+                                        backgroundColor: "#4caf50",
+                                        borderColor: "#4caf50",
                                     },
-                                }}
-                            >
-                                {type === "register"
-                                    ? "Already have an account? Sign in"
-                                    : "Don't have an account? Sign up"}
-                            </Anchor>
-                        </Stack>
-                    </form>
-                )}
-            </Formik>
+                                },
+                                error: {
+                                    fontSize: "12px",
+                                    marginTop: "4px",
+                                },
+                            }}
+                        />
+                    )}
+                </Stack>
+
+                <Stack gap="md" mt="xl" style={{ flexShrink: 0 }}>
+                    <BaseButton
+                        type="submit"
+                        loading={isSubmitting}
+                        color="green"
+                        fullWidth
+                        size="md"
+                        styles={{
+                            root: {
+                                backgroundColor: "#4caf50",
+                                border: "none",
+                                fontWeight: 600,
+                                transition: "all 0.2s ease",
+                                fontSize: "15px",
+                                padding: "14px 24px",
+                                height: "48px",
+                                "&:hover": {
+                                    backgroundColor: "#45a049",
+                                    transform: "none",
+                                },
+                                "&:active": {
+                                    backgroundColor: "#388e3c",
+                                },
+                            },
+                        }}
+                    >
+                        {upperFirst(type)}
+                    </BaseButton>
+
+                    <Anchor
+                        component="button"
+                        type="button"
+                        c="#4caf50"
+                        onClick={() => {
+                            form.reset();
+                            toggle();
+                        }}
+                        size="sm"
+                        fw={500}
+                        ta="center"
+                        style={{
+                            fontSize: "14px",
+                            textDecoration: "none",
+                        }}
+                        styles={{
+                            root: {
+                                "&:hover": {
+                                    textDecoration: "underline",
+                                    color: "#45a049",
+                                },
+                            },
+                        }}
+                    >
+                        {type === "register"
+                            ? "Already have an account? Sign in"
+                            : "Don't have an account? Sign up"}
+                    </Anchor>
+                </Stack>
+            </form>
         </BaseCard>
     );
 }

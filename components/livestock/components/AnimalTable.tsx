@@ -33,7 +33,7 @@ export default function AnimalTable({
                     <Avatar
                         src={animal.photo}
                         radius="xl"
-                        size={42}
+                        size={28}
                     >
                         {!animal.photo &&
                             animal.name.charAt(0).toUpperCase()}
@@ -159,8 +159,8 @@ export default function AnimalTable({
                     { width: "20%" },
                     { width: "15%" },
                     { width: "15%" },
-                    { width: "10%" },
                     { width: "15%" },
+                    { width: "18%" },
                     { width: "150px" },
                 ]}
             />

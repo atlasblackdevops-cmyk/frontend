@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, Group, Modal, NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Group, Modal, NumberInput, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { BaseInput, BaseTextarea } from "@/components/ui";
 import type { FeedRecordValues, AnimalRecord, FeedRecord } from "../types";
 
 interface FeedRecordUpdateModalProps {
@@ -113,13 +114,13 @@ export default function FeedRecordUpdateModal({
                         required
                         {...form.getInputProps("quantityUnit")}
                     />
-                    <TextInput
+                    <BaseInput
                         label="Feed type"
                         placeholder="e.g. Hay, Grain, Pellets"
                         required
                         {...form.getInputProps("feedType")}
                     />
-                    <Textarea
+                    <BaseTextarea
                         label="Notes"
                         placeholder="Enter notes (optional)"
                         rows={4}

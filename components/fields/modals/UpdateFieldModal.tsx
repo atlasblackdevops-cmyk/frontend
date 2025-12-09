@@ -1,10 +1,11 @@
 "use client";
 
-import { Modal, Stack, TextInput, Select, NumberInput, Textarea, Button, Group, Switch } from "@mantine/core";
+import { Modal, Stack, Select, NumberInput, Button, Group, Switch } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 import type { AddFieldValues, UpdateFieldModalProps } from "../types";
 import { SIZE_UNIT_OPTIONS, SOIL_TYPE_OPTIONS } from "../types";
+import { BaseInput, BaseTextarea } from "@/components/ui";
 
 export default function UpdateFieldModal({
     opened,
@@ -85,7 +86,7 @@ export default function UpdateFieldModal({
         >
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <Stack gap="md">
-                    <TextInput
+                    <BaseInput
                         label="Field Name"
                         placeholder="e.g., North Field, Field A"
                         required
@@ -120,7 +121,7 @@ export default function UpdateFieldModal({
                         {...form.getInputProps("isActive", { type: "checkbox" })}
                     />
 
-                    <Textarea
+                    <BaseTextarea
                         label="Notes (Optional)"
                         placeholder="Additional notes about this field"
                         minRows={3}

@@ -1,9 +1,10 @@
 "use client";
 
-import { Drawer, Stack, Select, TextInput, Group, Button } from "@mantine/core";
+import { Drawer, Stack, Select, Group, Button } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconFilter } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { BaseDateInput } from "@/components/ui";
 import type { FilterValues } from "../types";
 import { CROP_OPTIONS } from "../types";
 import { getActiveFields } from "@/lib/fields/api";
@@ -102,24 +103,30 @@ export default function PlantingFiltersDrawer({
                     onChange={(value) => form.setFieldValue("crop", value || "all")}
                 />
 
-                <TextInput
-                    type="date"
+                <BaseDateInput
                     label="Planting Date From"
                     placeholder="Select start date"
-                    value={form.values.plantingDateFrom}
-                    onChange={(e) =>
-                        form.setFieldValue("plantingDateFrom", e.currentTarget.value)
-                    }
+                    value={form.values.plantingDateFrom ? new Date(form.values.plantingDateFrom) : null}
+                    onChange={(date) => {
+                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                            form.setFieldValue("plantingDateFrom", (date as Date).toISOString().split('T')[0]);
+                        } else {
+                            form.setFieldValue("plantingDateFrom", "");
+                        }
+                    }}
                 />
 
-                <TextInput
-                    type="date"
+                <BaseDateInput
                     label="Planting Date To"
                     placeholder="Select end date"
-                    value={form.values.plantingDateTo}
-                    onChange={(e) =>
-                        form.setFieldValue("plantingDateTo", e.currentTarget.value)
-                    }
+                    value={form.values.plantingDateTo ? new Date(form.values.plantingDateTo) : null}
+                    onChange={(date) => {
+                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                            form.setFieldValue("plantingDateTo", (date as Date).toISOString().split('T')[0]);
+                        } else {
+                            form.setFieldValue("plantingDateTo", "");
+                        }
+                    }}
                 />
 
                 <Group justify="flex-end" mt="md">

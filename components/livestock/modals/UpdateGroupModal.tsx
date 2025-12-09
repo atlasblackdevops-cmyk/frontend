@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, Group, Modal, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Group, Modal, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { BaseInput, BaseTextarea } from "@/components/ui";
 import type { AnimalGroup, UpdateGroupValues } from "../types";
 
 interface UpdateGroupModalProps {
@@ -72,14 +73,14 @@ export default function UpdateGroupModal({
                 })}
             >
                 <Stack gap="md">
-                    <TextInput
+                    <BaseInput
                         label="Group Name"
                         placeholder="e.g. Cattle Barn 1"
                         required
                         description="Give your group a descriptive name"
                         {...form.getInputProps("name")}
                     />
-                    <Textarea
+                    <BaseTextarea
                         label="Description"
                         placeholder="Optional description for this group..."
                         description="Add any additional notes about this group"

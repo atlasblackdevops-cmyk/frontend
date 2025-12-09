@@ -1,20 +1,20 @@
 "use client";
 
-import { TextInput, TextInputProps } from "@mantine/core";
+import { Select, SelectProps } from "@mantine/core";
 import { forwardRef } from "react";
 
-export interface BaseInputProps extends TextInputProps {
+export interface BaseSelectProps extends SelectProps {
     // Add any custom props here if needed
 }
 
 /**
- * Common Input component used across all modules
+ * Common Select component used across all modules
  * Provides consistent styling and behavior
  */
-const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
+const BaseSelect = forwardRef<HTMLInputElement, BaseSelectProps>(
     ({ styles, ...props }, ref) => {
         return (
-            <TextInput
+            <Select
                 ref={ref}
                 size="md"
                 radius={6}
@@ -30,6 +30,12 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
                     error: {
                         fontSize: "12px",
                     },
+                    dropdown: {
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                    },
+                    option: {
+                        fontSize: "14px",
+                    },
                     ...styles,
                 }}
                 {...props}
@@ -38,7 +44,7 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
     }
 );
 
-BaseInput.displayName = "BaseInput";
+BaseSelect.displayName = "BaseSelect";
 
-export default BaseInput;
+export default BaseSelect;
 

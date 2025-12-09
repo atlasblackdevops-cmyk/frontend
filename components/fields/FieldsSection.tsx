@@ -8,7 +8,6 @@ import {
   Pagination,
   Stack,
   Text,
-  TextInput,
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -17,6 +16,7 @@ import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { useToast } from "@/components/ui/useToast";
+import { BaseInput } from "@/components/ui";
 import type { FieldRecord, FilterValues } from "./types";
 import { useFields } from "./hooks";
 import { AddFieldModal, UpdateFieldModal } from "./modals";
@@ -310,8 +310,7 @@ export default function FieldsSection() {
 
         {/* Search and Filters */}
         <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-          <TextInput
-            size={"md"}
+          <BaseInput
             placeholder="Search by field name"
             leftSection={<IconSearch size={16} />}
             style={{ 
@@ -320,7 +319,12 @@ export default function FieldsSection() {
               flex: "1 1 0",
               minWidth: 0
             }}
-            radius={6}
+            styles={{
+              input: {
+                height: "42px",
+                minHeight: "42px",
+              },
+            }}
             value={filterForm.values.search}
             onChange={(e) => handleSearchChange(e.currentTarget.value)}
             onKeyDown={(e) => {

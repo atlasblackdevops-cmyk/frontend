@@ -12,12 +12,24 @@ export interface BaseTextareaProps extends TextareaProps {
  * Provides consistent styling and behavior
  */
 const BaseTextarea = forwardRef<HTMLTextAreaElement, BaseTextareaProps>(
-    ({ ...props }, ref) => {
+    ({ styles, ...props }, ref) => {
         return (
             <Textarea
                 ref={ref}
                 size="md"
                 radius={6}
+                styles={{
+                    label: {
+                        fontSize: "14px",
+                    },
+                    input: {
+                        fontSize: "14px",
+                    },
+                    error: {
+                        fontSize: "12px",
+                    },
+                    ...styles,
+                }}
                 {...props}
             />
         );

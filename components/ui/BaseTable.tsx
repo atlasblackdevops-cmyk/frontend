@@ -74,16 +74,14 @@ export default function BaseTable<T = any>({
                 {colgroup && (
                     <colgroup>
                         {colgroup.map((col, index) => {
-                            const width = typeof col.width === 'number' ? `${col.width}px` : (col.width || undefined);
+                            const width =  (col.width || undefined);
                             return (
                                 <col 
                                     key={index} 
-                                    style={width ? { 
-                                        width, 
-                                        minWidth: width, 
-                                        maxWidth: width,
+                                    style={ { 
+                                        width: width, 
                                         boxSizing: 'border-box'
-                                    } : {}} 
+                                    }} 
                                 />
                             );
                         })}
@@ -100,21 +98,15 @@ export default function BaseTable<T = any>({
                 >
                     <Table.Tr>
                         {columns.map((column, colIndex) => {
-                            const colWidth = colgroup && colgroup[colIndex] ? colgroup[colIndex].width : column.width;
-                            const width = colWidth || column.width;
-                            const widthStyle = width ? (typeof width === 'number' ? `${width}px` : width) : undefined;
+                            const width =  column.width;
                             return (
                                 <Table.Th
                                     key={column.key}
                                     style={{
                                         whiteSpace: "nowrap",
                                         backgroundColor: "var(--mantine-color-gray-2)",
-                                        ...(widthStyle && { 
-                                            width: widthStyle, 
-                                            minWidth: widthStyle, 
-                                            maxWidth: widthStyle,
+                                            width: width, 
                                             boxSizing: 'border-box'
-                                        }),
                                     }}
                                 >
                                     {column.label}
@@ -200,24 +192,18 @@ export default function BaseTable<T = any>({
                             >
                                 {columns.map((column, colIndex) => {
                                     const isActionColumn = column.key === "actions";
-                                    const colWidth = colgroup && colgroup[colIndex] ? colgroup[colIndex].width : column.width;
-                                    const width = colWidth || column.width;
-                                    const widthStyle = width ? (typeof width === 'number' ? `${width}px` : width) : undefined;
+                                    const width =  column.width;
                                     return (
                                         <Table.Td 
                                             key={column.key}
                                             style={{
                                                 paddingTop: isActionColumn ? 4 : 6,
                                                 paddingBottom: isActionColumn ? 4 : 6,
-                                                paddingLeft: isActionColumn ? 2 : undefined,
-                                                paddingRight: isActionColumn ? 2 : undefined,
+                                                paddingLeft: isActionColumn ? 2 : 16,
+                                                paddingRight: isActionColumn ? 2 : 16,
                                                 backgroundColor: "transparent",
-                                                ...(widthStyle && { 
-                                                    width: widthStyle, 
-                                                    minWidth: widthStyle, 
-                                                    maxWidth: widthStyle,
+                                                    width: width, 
                                                     boxSizing: 'border-box'
-                                                }),
                                             }}
                                         >
                                             {column.render
