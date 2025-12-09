@@ -47,7 +47,15 @@ function StatCard({
     iconColor,
 }: StatCardProps) {
     return (
-        <Paper withBorder p="md" radius="md" style={{ height: "100%" }}>
+        <Paper 
+            withBorder 
+            p="md" 
+            radius="md" 
+            style={{ 
+                height: "100%",
+                backgroundColor: "var(--mantine-color-white)"
+            }}
+        >
             <Group justify="space-between" align="flex-start">
                 <Stack gap="xs" style={{ flex: 1 }}>
                     <Text size="sm" c="dimmed" fw={500}>
@@ -117,7 +125,7 @@ export default function LivestockDashboard() {
     }));
 
     return (
-        <Stack gap="lg">
+        <Stack gap="lg" style={{ backgroundColor: "transparent" }}>
             <Title order={3}>
                 Herd Summary{" "}
                 <Text component="span" size="sm" c="dimmed" fw={400}>
@@ -174,7 +182,12 @@ export default function LivestockDashboard() {
             <Grid>
                 <Grid.Col span={{ base: 12, md: 6 }}>
                     {stats.weightTrends.length > 0 ? (
-                        <Paper withBorder p="md" radius="md">
+                        <Paper 
+                            withBorder 
+                            p="md" 
+                            radius="md"
+                            style={{ backgroundColor: "var(--mantine-color-white)" }}
+                        >
                             <Stack gap="md">
                                 <Title order={4}>
                                     Weight Trends{" "}
@@ -229,7 +242,12 @@ export default function LivestockDashboard() {
                             </Stack>
                         </Paper>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
+                        <Paper 
+                            withBorder 
+                            p="xl" 
+                            radius="md"
+                            style={{ backgroundColor: "var(--mantine-color-white)" }}
+                        >
                             <Text c="dimmed" ta="center">
                                 No weight data available yet. Start recording
                                 weight measurements to see trends.
@@ -240,7 +258,12 @@ export default function LivestockDashboard() {
 
                 <Grid.Col span={{ base: 12, md: 6 }}>
                     {stats.feedEntriesTrends.length > 0 ? (
-                        <Paper withBorder p="md" radius="md">
+                        <Paper 
+                            withBorder 
+                            p="md" 
+                            radius="md"
+                            style={{ backgroundColor: "var(--mantine-color-white)" }}
+                        >
                             <Stack gap="md">
                                 <Title order={4}>
                                     Feed Entries Progress{" "}
@@ -327,7 +350,12 @@ export default function LivestockDashboard() {
                             </Stack>
                         </Paper>
                     ) : (
-                        <Paper withBorder p="xl" radius="md">
+                        <Paper 
+                            withBorder 
+                            p="xl" 
+                            radius="md"
+                            style={{ backgroundColor: "var(--mantine-color-white)" }}
+                        >
                             <Text c="dimmed" ta="center">
                                 No feed entries data available yet. Start
                                 recording feed entries to see progress.

@@ -1,15 +1,9 @@
 "use client";
 
-import {
-    Badge,
-    Button,
-    Group,
-    Loader,
-    Table,
-    Text,
-} from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
-import type { PlantingTableProps } from "../types";
+import { Button, Group, Text } from "@mantine/core";
+import { IconEdit, IconTrash, IconPlant } from "@tabler/icons-react";
+import BaseTable, { BaseTableColumn } from "@/components/ui/BaseTable";
+import type { PlantingTableProps, PlantingRecord } from "../types";
 
 export default function PlantingTable({
     plantings,
@@ -32,129 +26,133 @@ export default function PlantingTable({
         }
     };
 
-    return (
-        <div style={{ width: "100%", overflowX: "auto" }}>
-            <Table
-                verticalSpacing="sm"
-                highlightOnHover
-                style={{
-                    width: "100%",
-                    minWidth: 900,
-                    tableLayout: "fixed",
-                }}
-            >
-                <colgroup>
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "16%" }} />
-                </colgroup>
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Field</Table.Th>
-                        <Table.Th>Crop</Table.Th>
-                        <Table.Th>Seed Type</Table.Th>
-                        <Table.Th>Planting Date</Table.Th>
-                        <Table.Th>Expected Harvest</Table.Th>
-                        <Table.Th>Area</Table.Th>
-                        <Table.Th
-                            style={{
-                                textAlign: "right",
-                            }}
+    const actionButtonStyle = {
+        padding: "4px 8px",
+        minHeight: "auto",
+    };
+
+    const actionIconStyle = {
+        marginRight: "4px",
+    };
+
+    const columns: BaseTableColumn<PlantingRecord>[] = [
+        {
+            key: "fieldName",
+            label: "Field",
+            width: "15%",
+            render: (planting) => (
+                <Text fw={500} size="sm">
+                    {planting.fieldName || "N/A"}
+                </Text>
+            ),
+        },
+        {
+            key: "crop",
+            label: "Crop",
+            width: "15%",
+            render: (planting) => (
+                <Text size="sm">{planting.crop}</Text>
+            ),
+        },
+        {
+            key: "seedType",
+            label: "Seed Type",
+            width: "15%",
+            render: (planting) => (
+                <Text size="sm" c="dimmed">
+                    {planting.seedType}
+                </Text>
+            ),
+        },
+        {
+            key: "plantingDate",
+            label: "Planting Date",
+            width: "12%",
+            render: (planting) => (
+                <Text size="sm">
+                    {formatDate(planting.plantingDate)}
+                </Text>
+            ),
+        },
+        {
+            key: "expectedHarvestDate",
+            label: "Expected Harvest",
+            width: "12%",
+            render: (planting) => (
+                <Text size="sm" c="dimmed">
+                    {formatDate(planting.expectedHarvestDate)}
+                </Text>
+            ),
+        },
+        {
+            key: "area",
+            label: "Area",
+            width: "15%",
+            render: (planting) => (
+                planting.area ? (
+                    <Text size="sm">
+                        {planting.area} {planting.areaUnit || ""}
+                    </Text>
+                ) : (
+                    <Text size="sm" c="dimmed">
+                        N/A
+                    </Text>
+                )
+            ),
+        },
+        {
+            key: "actions",
+            label: "Actions",
+            width: "16%",
+            render: (planting) => (
+                <Group justify="flex-end" gap="xs" wrap="nowrap">
+                    {canUpdate && (
+                        <Button
+                            variant="subtle"
+                            size="md"
+                            px="xs"
+                            style={actionButtonStyle}
+                            aria-label="Edit planting"
+                            onClick={() => onUpdate(planting)}
                         >
-                            Actions
-                        </Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {isLoading ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={8}>
-                                <Group justify="center" p="xl">
-                                    <Loader size="sm" />
-                                    <Text c="dimmed">Loading plantings...</Text>
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                    ) : plantings.length === 0 ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={8}>
-                                <Text c="dimmed" ta="center" p="xl">
-                                    No plantings found. Add your first planting record!
-                                </Text>
-                            </Table.Td>
-                        </Table.Tr>
-                    ) : (
-                        plantings.map((planting) => (
-                            <Table.Tr key={planting.id}>
-                                <Table.Td>
-                                    <Text fw={500} size="sm">
-                                        {planting.fieldName || "N/A"}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm">{planting.crop}</Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm" c="dimmed">
-                                        {planting.seedType}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm">
-                                        {formatDate(planting.plantingDate)}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm" c="dimmed">
-                                        {formatDate(planting.expectedHarvestDate)}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    {planting.area ? (
-                                        <Text size="sm">
-                                            {planting.area} {planting.areaUnit || ""}
-                                        </Text>
-                                    ) : (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group justify="flex-end" gap="xs">
-                                        {canUpdate && (
-                                            <Button
-                                                variant="subtle"
-                                                size="xs"
-                                                leftSection={<IconEdit size={14} />}
-                                                onClick={() => onUpdate(planting)}
-                                            >
-                                                Edit
-                                            </Button>
-                                        )}
-                                        {canDelete && (
-                                            <Button
-                                                variant="subtle"
-                                                color="red"
-                                                size="xs"
-                                                leftSection={<IconTrash size={14} />}
-                                                onClick={() => onDelete(planting)}
-                                            >
-                                                Delete
-                                            </Button>
-                                        )}
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))
+                            <IconEdit size={18} style={actionIconStyle} />
+                        </Button>
                     )}
-                </Table.Tbody>
-            </Table>
-        </div>
+                    {canDelete && (
+                        <Button
+                            variant="subtle"
+                            color="red"
+                            size="md"
+                            px="xs"
+                            style={actionButtonStyle}
+                            aria-label="Delete planting"
+                            onClick={() => onDelete(planting)}
+                        >
+                            <IconTrash size={18} style={actionIconStyle} />
+                        </Button>
+                    )}
+                </Group>
+            ),
+        },
+    ];
+
+    return (
+        <BaseTable
+            columns={columns}
+            data={plantings}
+            isLoading={isLoading}
+            emptyState={{
+                icon: IconPlant,
+                title: "No Planting Records Found",
+                description: "You haven't added any planting records yet. Start by adding your first planting record to track crops in your fields.",
+                iconColor: "var(--mantine-color-green-5)",
+            }}
+            stickyHeader={true}
+            minWidth={900}
+            colgroup={[
+                { width: "15%" }, { width: "15%" }, { width: "15%" }, { width: "12%" }, { width: "12%" }, { width: "15%" }, { width: "16%" }
+            ]}
+        />
     );
 }
 

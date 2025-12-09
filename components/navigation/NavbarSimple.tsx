@@ -21,6 +21,7 @@ import {
     IconSeeding,
     IconCircleCheck,
     IconChevronLeft,
+    IconChartBar,
 } from "@tabler/icons-react";
 import { Group, Text, Collapse, Paper, ActionIcon, Tooltip, Avatar } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
@@ -41,7 +42,16 @@ interface NavItem {
 const data: NavItem[] = [
     { link: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
     { link: "/fields", label: "Fields", icon: IconMapPin },
-    { link: "/livestock", label: "Livestock", icon: IconDeer },
+    {
+        link: "/livestock",
+        label: "Livestock",
+        icon: IconDeer,
+        children: [
+            { link: "/livestock/dashboard", label: "Dashboard", icon: IconChartBar },
+            { link: "/livestock/animals", label: "Animals", icon: IconDeer },
+            { link: "/livestock/groups", label: "Groups", icon: IconUsersGroup },
+        ],
+    },
     {
         link: "/crops",
         label: "Crops",
@@ -320,65 +330,122 @@ export function NavbarSimple() {
                         <Paper
                             withBorder
                             radius="md"
-                            p={12}
+                            p={14}
                             style={{
-                                background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
-                                borderColor: "#d1fae5",
-                                boxShadow: "0 1px 3px rgba(22, 163, 74, 0.1)",
-                                transition: "all 0.2s ease",
+                                background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+                                borderColor: "#86efac",
+                                borderWidth: "2px",
+                                boxShadow: "0 2px 8px rgba(22, 163, 74, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.05)",
+                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                                 cursor: "pointer",
+                                position: "relative",
+                                overflow: "hidden",
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = "translateY(-1px)";
-                                e.currentTarget.style.boxShadow = "0 2px 6px rgba(22, 163, 74, 0.15)";
+                                e.currentTarget.style.transform = "translateY(-2px)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(22, 163, 74, 0.2), 0 0 0 1px rgba(22, 163, 74, 0.1)";
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = "translateY(0)";
-                                e.currentTarget.style.boxShadow = "0 1px 3px rgba(22, 163, 74, 0.1)";
+                                e.currentTarget.style.boxShadow = "0 2px 8px rgba(22, 163, 74, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.05)";
                             }}
                             onClick={() => setSwitcherOpen(true)}
                         >
-                            <Group gap={10} align="flex-start" wrap="nowrap">
+                            {/* Decorative background pattern */}
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: -10,
+                                    right: -10,
+                                    width: 60,
+                                    height: 60,
+                                    background: "radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%)",
+                                    borderRadius: "50%",
+                                }}
+                            />
+                            
+                            <Group gap={12} align="center" wrap="nowrap">
                                 <div
                                     style={{
-                                        background: "white",
-                                        borderRadius: "6px",
-                                        padding: "6px",
+                                        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                        borderRadius: "10px",
+                                        padding: "10px",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                                        boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)",
+                                        flexShrink: 0,
                                     }}
                                 >
                                     <IconCircleCheck
-                                        size={16}
-                                        color="var(--mantine-color-green-6)"
+                                        size={20}
+                                        color="white"
+                                        strokeWidth={2.5}
                                     />
                                 </div>
-                                <div style={{ lineHeight: 1.3, flex: 1, minWidth: 0 }}>
-                                    <Text size="xs" c="dimmed" fw={600} style={{ textTransform: "uppercase", letterSpacing: "0.5px", fontSize: "10px" }}>
-                                        Active farm
+                                <div style={{ lineHeight: 1.4, flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
+                                    <Text 
+                                        size="xs" 
+                                        fw={700} 
+                                        style={{ 
+                                            textTransform: "uppercase", 
+                                            letterSpacing: "1px", 
+                                            fontSize: "9px",
+                                            color: "#15803d",
+                                            marginBottom: "4px",
+                                            opacity: 0.9,
+                                        }}
+                                    >
+                                        My Active Farm
                                     </Text>
                                     <Text 
-                                        size="sm" 
-                                        fw={700}
+                                        size="md" 
+                                        fw={800}
                                         style={{
-                                            color: "#15803d",
+                                            color: "#14532d",
                                             overflow: "hidden",
                                             textOverflow: "ellipsis",
                                             whiteSpace: "nowrap",
+                                            fontSize: "15px",
+                                            lineHeight: "1.2",
                                         }}
                                     >
                                         {farmName || "Agriculture Platform"}
                                     </Text>
                                 </div>
+                                <ActionIcon
+                                    variant="subtle"
+                                    color="green"
+                                    size="sm"
+                                    radius="md"
+                                    style={{
+                                        flexShrink: 0,
+                                        background: "rgba(255, 255, 255, 0.6)",
+                                        color: "#15803d",
+                                    }}
+                                >
+                                    <IconChevronRight size={16} />
+                                </ActionIcon>
                             </Group>
                         </Paper>
                     )}
                     {collapsed && (
-                        <Tooltip label={farmName || "Agriculture Platform"} position="right" withArrow>
+                        <Tooltip 
+                            label={
+                                <div>
+                                    <Text size="xs" fw={700} style={{ textTransform: "uppercase", marginBottom: 4 }}>
+                                        My Active Farm
+                                    </Text>
+                                    <Text size="sm" fw={600}>
+                                        {farmName || "Agriculture Platform"}
+                                    </Text>
+                                </div>
+                            } 
+                            position="right" 
+                            withArrow
+                        >
                             <ActionIcon
-                                variant="light"
+                                variant="filled"
                                 color="green"
                                 size="xl"
                                 radius="md"
@@ -386,9 +453,11 @@ export function NavbarSimple() {
                                 style={{
                                     width: "100%",
                                     marginTop: 8,
+                                    background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                    boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)",
                                 }}
                             >
-                                <IconCircleCheck size={20} />
+                                <IconCircleCheck size={22} strokeWidth={2.5} />
                             </ActionIcon>
                         </Tooltip>
                     )}
@@ -457,30 +526,47 @@ export function NavbarSimple() {
                                 setSwitcherOpen(true);
                             }}
                             style={{
+                                display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 color: "#374151",
+                                padding: "10px 12px",
+                                borderRadius: "8px",
+                                transition: "all 0.2s ease",
+                                marginTop: "8px",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(34, 197, 94, 0.05)";
+                                e.currentTarget.style.color = "#15803d";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.color = "#374151";
                             }}
                         >
-                            <Group gap="xs" style={{ flex: 1 }}>
+                            <Group gap="xs" style={{ flex: 1, alignItems: "center" }}>
                                 <IconSwitchHorizontal
                                     className={classes.linkIcon}
-                                    stroke={1.8}
+                                    stroke={2}
+                                    style={{ flexShrink: 0 }}
                                 />
-                                <span>Switch Farm</span>
+                                <span style={{ fontWeight: 500, flex: 1 }}>Switch Farm</span>
                             </Group>
                             {farmName && (
                                 <Text
                                     size="xs"
                                     style={{
                                         marginLeft: "8px",
-                                        padding: "4px 10px",
+                                        padding: "5px 12px",
                                         borderRadius: "6px",
-                                        background: "white",
-                                        color: "#6b7280",
-                                        fontWeight: 600,
-                                        border: "1px solid #e5e7eb",
+                                        background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                                        color: "#15803d",
+                                        fontWeight: 700,
+                                        border: "1px solid #bbf7d0",
                                         fontSize: "11px",
+                                        boxShadow: "0 1px 2px rgba(22, 163, 74, 0.1)",
+                                        flexShrink: 0,
+                                        whiteSpace: "nowrap",
                                     }}
                                 >
                                     {farmName}
@@ -495,13 +581,40 @@ export function NavbarSimple() {
                                 void handleLogout();
                             }}
                             style={{
+                                display: "flex",
+                                alignItems: "center",
                                 opacity: logoutLoading ? 0.6 : 1,
                                 cursor: logoutLoading ? "wait" : "pointer",
                                 color: logoutLoading ? "#9ca3af" : "#dc2626",
+                                padding: "10px 12px",
+                                borderRadius: "8px",
+                                transition: "all 0.2s ease",
+                                fontWeight: 500,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!logoutLoading) {
+                                    e.currentTarget.style.background = "rgba(220, 38, 38, 0.1)";
+                                    e.currentTarget.style.color = "#b91c1c";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!logoutLoading) {
+                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.color = "#dc2626";
+                                }
                             }}
                         >
-                            <IconLogout className={classes.linkIcon} stroke={1.8} />
-                            <span>{logoutLoading ? "Logging out..." : "Logout"}</span>
+                            <Group gap="xs" style={{ alignItems: "center" }}>
+                                <IconLogout 
+                                    className={classes.linkIcon} 
+                                    stroke={2}
+                                    style={{ 
+                                        color: logoutLoading ? "#9ca3af" : "#dc2626",
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <span style={{ fontWeight: 600 }}>{logoutLoading ? "Logging out..." : "Logout"}</span>
+                            </Group>
                         </a>
                     </>
                 )}

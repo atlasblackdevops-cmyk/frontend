@@ -93,9 +93,12 @@ export async function getAnimals(
         queryParams.append("birthdateTo", params.birthdateTo);
     }
 
-    const response = await api.get<AnimalsApiResponse>(
-        `/api/v1/animals?${queryParams.toString()}`
-    );
+    const queryString = queryParams.toString();
+    const url = queryString 
+        ? `/api/v1/animals?${queryString}`
+        : `/api/v1/animals`;
+    
+    const response = await api.get<AnimalsApiResponse>(url);
 
     return response.data;
 }

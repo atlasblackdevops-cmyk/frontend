@@ -1,81 +1,40 @@
 "use client";
 
-import { Group, Select, TextInput } from "@mantine/core";
-import { IconFilter, IconSearch, IconShieldLock } from "@tabler/icons-react";
+import { Box, Button } from "@mantine/core";
+import { IconFilter } from "@tabler/icons-react";
 
 interface UserFiltersProps {
-    filters: {
-        search: string;
-        role: string;
-        status: string;
-    };
-    roleOptions: { value: string; label: string }[];
-    onFilterChange: (filters: {
-        search: string;
-        role: string;
-        status: string;
-    }) => void;
-    onPageReset: () => void;
+    onOpenFilters: () => void;
 }
 
 export default function UserFilters({
-    filters,
-    roleOptions,
-    onFilterChange,
-    onPageReset,
+    onOpenFilters,
 }: UserFiltersProps) {
     return (
-        <Group justify="space-between" mb="md">
-            <Group gap="xs">
-                <Select
-                    placeholder="Role"
-                    leftSection={<IconShieldLock size={16} />}
-                    data={[
-                        { value: "all", label: "All roles" },
-                        ...roleOptions,
-                    ]}
-                    value={filters.role}
-                    onChange={(value) => {
-                        onFilterChange({
-                            ...filters,
-                            role: value ?? "all",
-                        });
-                        onPageReset();
-                    }}
-                    w={180}
-                />
-                <Select
-                    placeholder="Status"
+        <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}>
+            <Box visibleFrom="sm">
+                <Button
+                    variant="default"
                     leftSection={<IconFilter size={16} />}
-                    data={[
-                        { value: "all", label: "All statuses" },
-                        { value: "active", label: "Active" },
-                        { value: "inactive", label: "Inactive" },
-                    ]}
-                    value={filters.status}
-                    w={180}
-                    onChange={(value) => {
-                        onFilterChange({
-                            ...filters,
-                            status: value ?? "all",
-                        });
-                        onPageReset();
-                    }}
-                />
-                <TextInput
-                    placeholder="Search users"
-                    leftSection={<IconSearch size={16} />}
-                    value={filters.search}
-                    onChange={(event) =>
-                        onFilterChange({
-                            ...filters,
-                            search: event.currentTarget.value,
-                        })
-                    }
-                    style={{ flex: 1, maxWidth: 300 }}
-                />
-            </Group>
-        </Group>
+                    onClick={onOpenFilters}
+                    radius={6}
+                    style={{ alignSelf: 'stretch', height: '42px' }}
+                >
+                    Filters
+                </Button>
+            </Box>
+            <Box hiddenFrom="sm">
+                <Button
+                    variant="default"
+                    onClick={onOpenFilters}
+                    radius={6}
+                    style={{ alignSelf: 'stretch', height: '42px', padding: '8px', minWidth: '42px' }}
+                    aria-label="Filters"
+                >
+                    <IconFilter size={16} />
+                </Button>
+            </Box>
+        </div>
     );
 }
 

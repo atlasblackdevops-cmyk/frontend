@@ -4,12 +4,11 @@ import {
     Badge,
     Button,
     Group,
-    Loader,
-    Table,
     Text,
 } from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
-import type { FieldTableProps } from "../types";
+import { IconEdit, IconTrash, IconMapPin } from "@tabler/icons-react";
+import BaseTable, { type BaseTableColumn } from "@/components/ui/BaseTable";
+import type { FieldTableProps, FieldRecord } from "../types";
 
 export default function FieldTable({
     fields,
@@ -41,204 +40,149 @@ export default function FieldTable({
         }
     };
 
-    return (
-        <div style={{ width: "100%", height: "100%", overflow: "auto", position: "relative" }}>
-            <Table
-                verticalSpacing="sm"
-                highlightOnHover
-                style={{
-                    width: "100%",
-                    minWidth: 900,
-                    tableLayout: "fixed",
-                }}
-            >
-                <colgroup>
-                    <col style={{ width: "22%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "12%" }} />
-                    <col style={{ width: "18%" }} />
-                    <col style={{ width: "120px" }} />
-                </colgroup>
-                <Table.Thead 
-                    style={{ 
-                        backgroundColor: "var(--mantine-color-gray-0)",
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 10,
-                    }}
-                >
-                    <Table.Tr>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Field Name
-                        </Table.Th>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Size
-                        </Table.Th>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Soil Type
-                        </Table.Th>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Status
-                        </Table.Th>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Created
-                        </Table.Th>
-                        <Table.Th 
-                            style={{
-                                ...nowrap,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Notes
-                        </Table.Th>
-                        <Table.Th 
-                            style={{ 
-                                ...nowrap, 
-                                paddingLeft: 24, 
-                                paddingRight: 12,
-                                backgroundColor: "var(--mantine-color-gray-0)",
-                            }}
-                        >
-                            Actions
-                        </Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {isLoading ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={7}>
-                                <Group justify="center" p="xl">
-                                    <Loader size="sm" />
-                                    <Text c="dimmed">Loading fields...</Text>
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                    ) : fields.length === 0 ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={7}>
-                                <Text c="dimmed" ta="center" p="xl">
-                                    No fields found. Add your first field!
-                                </Text>
-                            </Table.Td>
-                        </Table.Tr>
+    const columns: BaseTableColumn<FieldRecord>[] = [
+        {
+            key: "fieldName",
+            label: "Field Name",
+            render: (field) => (
+                <Text fw={500} size="sm" style={nowrap}>
+                    {field.fieldName}
+                </Text>
+            ),
+        },
+        {
+            key: "fieldSize",
+            label: "Size",
+            render: (field) => (
+                <Text size="sm" style={nowrap}>
+                    {field.fieldSize ? (
+                        <>
+                            {field.fieldSize}{" "}
+                            <span style={{ fontSize: "12px", color: "var(--mantine-color-gray-7)" }}>
+                                ({field.sizeUnit || ""})
+                            </span>
+                        </>
                     ) : (
-                        fields.map((field) => (
-                            <Table.Tr key={field.id}>
-                                <Table.Td style={nowrap}>
-                                    <Text fw={500} size="sm">
-                                        {field.fieldName}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td style={nowrap}>
-                                    {field.fieldSize ? (
-                                        <Text size="sm" tt="capitalize">
-                                            {field.fieldSize} <span style={{ fontSize: "12px", color: "var(--mantine-color-gray-7)" }}>({field.sizeUnit || ""})</span>
-                                        </Text>
-                                    ) : (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )}
-                                </Table.Td>
-                                <Table.Td style={nowrap}>
-                                {field.soilType ? (
-                                        <Text size="sm" tt="capitalize">
-                                             {field.soilType || "N/A"}
-                                        </Text>
-                                    ) : (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )}
-                                   
-                                </Table.Td>
-                                <Table.Td style={nowrap}>
-                                    <Badge
-                                        color={field.isActive ? "green" : "gray"}
-                                        variant="light"
-                                        size="sm"
-                                    >
-                                        {field.isActive ? "Active" : "Inactive"}
-                                    </Badge>
-                                </Table.Td>
-                                <Table.Td style={nowrap}>
-                                    <Text size="sm">
-                                        {formatDate(field.createdAt)}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Text size="sm" c="dimmed" lineClamp={1} style={{ whiteSpace: "nowrap" }}>
-                                        {field.notes || "N/A"}
-                                    </Text>
-                                </Table.Td>
-                                <Table.Td
-                                    style={{
-                                        ...nowrap,
-                                        textAlign: "center",
-                                        paddingRight: 12,
-                                        paddingLeft: 12,
-                                    }}
-                                >
-                                    <Group justify="flex-start" gap="1" wrap="nowrap">
-                                        {canUpdate && (
-                                            <Button
-                                                variant="subtle"
-                                                size="md"
-                                                px="xs"
-                                                style={actionButtonStyle}
-                                                aria-label="Edit field"
-                                                onClick={() => onUpdate(field)}
-                                            >
-                                                <IconEdit size={18} style={actionIconStyle} />
-                                            </Button>
-                                        )}
-                                        {canDelete && (
-                                            <Button
-                                                variant="subtle"
-                                                color="red"
-                                                size="md"
-                                                px="xs"
-                                                style={actionButtonStyle}
-                                                aria-label="Delete field"
-                                                onClick={() => onDelete(field)}
-                                            >
-                                                <IconTrash size={18} style={actionIconStyle} />
-                                            </Button>
-                                        )}
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))
+                        <Text size="sm" c="dimmed" component="span">
+                            N/A
+                        </Text>
                     )}
-                </Table.Tbody>
-            </Table>
+                </Text>
+            ),
+        },
+        {
+            key: "soilType",
+            label: "Soil Type",
+            render: (field) => (
+                <Text size="sm" tt="capitalize" style={nowrap}>
+                    {field.soilType || (
+                        <Text size="sm" c="dimmed" component="span">
+                            N/A
+                        </Text>
+                    )}
+                </Text>
+            ),
+        },
+        {
+            key: "isActive",
+            label: "Status",
+            render: (field) => (
+                <Badge
+                    color={field.isActive ? "green" : "gray"}
+                    variant="light"
+                    size="sm"
+                    style={nowrap}
+                >
+                    {field.isActive ? "Active" : "Inactive"}
+                </Badge>
+            ),
+        },
+        {
+            key: "createdAt",
+            label: "Created",
+            render: (field) => (
+                <Text size="sm" style={nowrap}>
+                    {formatDate(field.createdAt)}
+                </Text>
+            ),
+        },
+        {
+            key: "notes",
+            label: "Notes",
+            render: (field) => (
+                <Text size="sm" c="dimmed" lineClamp={1} style={{ whiteSpace: "nowrap" }}>
+                    {field.notes || "N/A"}
+                </Text>
+            ),
+        },
+        {
+            key: "actions",
+            label: "Actions",
+            render: (field) => (
+                <Group justify="flex-start" gap="1" wrap="nowrap">
+                    {canUpdate && (
+                        <Button
+                            variant="subtle"
+                            size="md"
+                            px="xs"
+                            style={actionButtonStyle}
+                            aria-label="Edit field"
+                            onClick={() => onUpdate(field)}
+                        >
+                            <IconEdit size={18} style={actionIconStyle} />
+                        </Button>
+                    )}
+                    {canDelete && (
+                        <Button
+                            variant="subtle"
+                            color="red"
+                            size="md"
+                            px="xs"
+                            style={actionButtonStyle}
+                            aria-label="Delete field"
+                            onClick={() => onDelete(field)}
+                        >
+                            <IconTrash size={18} style={actionIconStyle} />
+                        </Button>
+                    )}
+                </Group>
+            ),
+        },
+    ];
+
+    return (
+        <div style={{ 
+            width: "100%", 
+            position: "relative",
+            border: "1px solid var(--mantine-color-gray-3)",
+            borderRadius: 6,
+            overflow: "auto",
+            maxHeight: "100%"
+        }}>
+            <BaseTable
+                columns={columns}
+                data={fields}
+                isLoading={isLoading}
+                loadingText="Loading fields..."
+                emptyState={{
+                    title: "No Fields Found",
+                    description: "You haven't added any fields yet. Start by adding your first field to track and manage your farm's land.",
+                    iconColor: "var(--mantine-color-green-5)",
+                }}
+                stickyHeader={true}
+                minWidth={900}
+                tableLayout="fixed"
+                verticalSpacing="sm"
+                colgroup={[
+                    { width: "22%" },
+                    { width: "14%" },
+                    { width: "14%" },
+                    { width: "10%" },
+                    { width: "12%" },
+                    { width: "18%" },
+                    { width: "120px" },
+                ]}
+            />
         </div>
     );
 }

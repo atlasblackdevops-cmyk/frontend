@@ -332,6 +332,7 @@ export default function LivestockAnimalsSection() {
                             onSearch={handleSearch}
                             onClear={handleClearFilters}
                             isLoading={isLoading}
+                            onOpenFilters={() => {}}
                         />
                     )}
 

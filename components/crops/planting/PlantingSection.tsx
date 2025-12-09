@@ -188,7 +188,15 @@ export default function PlantingSection() {
 
     // Handle search change
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        filterForm.setFieldValue("search", event.target.value);
+        const searchValue = event.currentTarget.value;
+        filterForm.setFieldValue("search", searchValue);
+        void fetchPlantings(1, {
+            search: searchValue || undefined,
+            crop: filterForm.values.crop || undefined,
+            fieldId: filterForm.values.fieldId || undefined,
+            plantingDateFrom: filterForm.values.plantingDateFrom || undefined,
+            plantingDateTo: filterForm.values.plantingDateTo || undefined,
+        });
     };
 
     // Handle filter apply
@@ -225,64 +233,122 @@ export default function PlantingSection() {
     }
 
     return (
-        <Stack gap="lg">
-            {/* Header */}
-            <Group justify="space-between" align="center">
-                <div>
-                    <Title order={3}>Planting Records</Title>
-                    <Text c="dimmed" size="sm">
-                        Manage planting records and track currently planted crops per field
-                    </Text>
+        <Paper 
+            p={26} 
+            radius="none" 
+            withBorder={false} 
+            style={{ 
+                height: "100%", 
+                display: "flex", 
+                flexDirection: "column",
+                overflow: "hidden"
+            }}
+        >
+            <Stack gap="lg" style={{ flex: 1, minHeight: 0, overflow: "hidden", alignItems: "stretch" }}>
+                {/* Header */}
+                <Group justify="space-between" align="center" style={{ flexShrink: 0 }}>
+                    <div>
+                        <Title order={2}>Planting Records</Title>
+                        <Text c="dimmed" size="sm">
+                            Manage planting records and track currently planted crops per field
+                        </Text>
+                    </div>
+                    {canCreate && (
+                        <Button
+                            leftSection={<IconPlus size={16} />}
+                            onClick={() => setModalOpen(true)}
+                        >
+                            Add Planting
+                        </Button>
+                    )}
+                </Group>
+
+                {/* Toast */}
+                <div style={{ flexShrink: 0 }}>
+                    <Toast />
                 </div>
 
-                {canCreate && (
-                    <Button
-                        leftSection={<IconPlus size={18} />}
-                        onClick={() => setModalOpen(true)}
-                    >
-                        Add Planting
-                    </Button>
-                )}
-            </Group>
-
-            <Toast />
-
-            {/* Filters */}
-            <Group align="stretch" gap="md">
-                <TextInput
-                    placeholder="Search by crop name, seed type..."
-                    leftSection={<IconSearch size={16} />}
-                    value={filterForm.values.search}
-                    onChange={handleSearchChange}
-                    style={{ flex: 1 }}
-                />
-                <div style={{ display: "flex", alignItems: "stretch" }}>
+                {/* Search and Filters */}
+                <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
+                    <TextInput
+                        size={"md"}
+                        placeholder="Search by crop name, seed type..."
+                        leftSection={<IconSearch size={16} />}
+                        style={{ 
+                            width: "100%",
+                            maxWidth: 500,
+                            flex: "1 1 0",
+                            minWidth: 0
+                        }}
+                        radius={6}
+                        value={filterForm.values.search}
+                        onChange={handleSearchChange}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                void fetchPlantings(1, {
+                                    search: filterForm.values.search || undefined,
+                                    crop: filterForm.values.crop || undefined,
+                                    fieldId: filterForm.values.fieldId || undefined,
+                                    plantingDateFrom: filterForm.values.plantingDateFrom || undefined,
+                                    plantingDateTo: filterForm.values.plantingDateTo || undefined,
+                                });
+                            }
+                        }}
+                    />
                     <PlantingFilters
                         onOpenFilters={() => setFiltersDrawerOpen(true)}
                     />
-                </div>
-            </Group>
-
-            {/* Table */}
-            <PlantingTable
-                plantings={plantings}
-                isLoading={isLoading}
-                canUpdate={canUpdate}
-                canDelete={canDelete}
-                onUpdate={handleEditClick}
-                onDelete={handleDeleteClick}
-            />
-
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <Group justify="center">
-                    <Pagination
-                        value={pagination.page}
-                        onChange={(page) => setPagination({ ...pagination, page })}
-                        total={pagination.totalPages}
-                    />
                 </Group>
-            )}
+
+                {/* Table - Scrollable container */}
+                <div 
+                    style={{ 
+                        flex: "1 1 0",
+                        minHeight: 0,
+                        width: "100%",
+                        maxHeight: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden"
+                    }}
+                >
+                    <div style={{ 
+                        width: "100%",
+                        flex: "1 1 0",
+                        minHeight: 0,
+                        maxHeight: "100%",
+                        overflow: "auto"
+                    }}>
+                        <PlantingTable
+                            plantings={plantings}
+                            isLoading={isLoading}
+                            canUpdate={canUpdate}
+                            canDelete={canDelete}
+                            onUpdate={handleEditClick}
+                            onDelete={handleDeleteClick}
+                        />
+                    </div>
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                    <Group 
+                        justify="center"
+                        style={{
+                            flexShrink: 0,
+                            paddingTop: 16,
+                            paddingBottom: 16,
+                        }}
+                    >
+                        <Pagination
+                            value={pagination.page}
+                            onChange={(page) => setPagination({ ...pagination, page })}
+                            total={pagination.totalPages}
+                            size="sm"
+                        />
+                    </Group>
+                )}
+            </Stack>
 
             {/* Modals */}
             {canCreate && (
@@ -332,7 +398,7 @@ export default function PlantingSection() {
                 itemName={plantingToDelete?.crop || ""}
                 itemType="planting record"
             />
-        </Stack>
+        </Paper>
     );
 }
 

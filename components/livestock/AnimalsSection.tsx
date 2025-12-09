@@ -17,42 +17,52 @@ import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { useToast } from "@/components/ui/useToast";
-import type { FieldRecord, FilterValues } from "./types";
-import { useFields } from "./hooks";
-import { AddFieldModal, UpdateFieldModal } from "./modals";
-import { FieldTable, FieldFilters, FieldFiltersDrawer } from "./components";
+import type { AnimalRecord, FilterValues } from "./types";
+import { useAnimals } from "./hooks";
+import { AddAnimalModal, UpdateAnimalModal } from "./modals";
+import {
+  HealthRecordsDrawer,
+  WeightRecordsDrawer,
+  FeedRecordsDrawer,
+  AnimalFiltersDrawer,
+} from "./drawers";
+import { AnimalTable, AnimalFilters } from "./components";
 
-export default function FieldsSection() {
+export default function AnimalsSection() {
   const { farmId, permissions, role } = useAuth();
 
-  // Permission checks - Using CROPS module permissions for now, can be changed to FIELDS later
+  // Permission checks
   const canList =
-    hasPermission("CROPS", "LIST", permissions, role) ||
-    hasPermission("CROPS", "READ", permissions, role);
-  const canCreate = hasPermission("CROPS", "CREATE", permissions, role);
-  const canUpdate = hasPermission("CROPS", "UPDATE", permissions, role);
-  const canDelete = hasPermission("CROPS", "DELETE", permissions, role);
+    hasPermission("LIVESTOCK", "LIST", permissions, role) ||
+    hasPermission("LIVESTOCK", "READ", permissions, role);
+  const canCreate = hasPermission("LIVESTOCK", "CREATE", permissions, role);
+  const canUpdate = hasPermission("LIVESTOCK", "UPDATE", permissions, role);
+  const canDelete = hasPermission("LIVESTOCK", "DELETE", permissions, role);
 
   // Hooks
   const {
-    fields,
+    animals,
     isLoading,
     pagination,
-    error: fieldsError,
-    fetchFields,
-    createField,
-    updateField,
-    deleteField,
+    error: animalsError,
+    fetchAnimals,
+    createAnimal,
+    updateAnimal,
+    deleteAnimal,
     setPagination,
-  } = useFields();
+  } = useAnimals();
 
   // Modal/Drawer states
   const [modalOpen, setModalOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [healthRecordDrawerOpen, setHealthRecordDrawerOpen] = useState(false);
+  const [weightRecordDrawerOpen, setWeightRecordDrawerOpen] = useState(false);
+  const [feedRecordDrawerOpen, setFeedRecordDrawerOpen] = useState(false);
+  const [selectedAnimal, setSelectedAnimal] = useState<AnimalRecord | null>(null);
+  const [animalForRecord, setAnimalForRecord] = useState<AnimalRecord | null>(null);
+  const [animalToDelete, setAnimalToDelete] = useState<AnimalRecord | null>(null);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
-  const [selectedField, setSelectedField] = useState<FieldRecord | null>(null);
-  const [fieldToDelete, setFieldToDelete] = useState<FieldRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -63,123 +73,86 @@ export default function FieldsSection() {
   const filterForm = useForm<FilterValues>({
     initialValues: {
       search: "",
-      soilType: "all",
-      isActive: "all",
+      gender: "all",
+      birthdateFrom: "",
+      birthdateTo: "",
     },
   });
 
-  // Load fields on mount and when farmId changes
+  // Load animals on mount and when farmId changes
   useEffect(() => {
     if (farmId && canList) {
-      fetchFields(1);
+      fetchAnimals(1);
     }
   }, [farmId, canList]);
 
   // Surface fetch errors as toast
   useEffect(() => {
-    if (fieldsError) {
-      showToast(fieldsError, "red");
+    if (animalsError) {
+      showToast(animalsError, "red");
     }
-  }, [fieldsError]);
+  }, [animalsError]);
 
   // Handle search change
   const handleSearchChange = (searchValue: string) => {
     filterForm.setFieldValue("search", searchValue);
-    const isActiveValue =
-      filterForm.values.isActive !== "all"
-        ? filterForm.values.isActive === "true"
-          ? true
-          : false
-        : undefined;
-    fetchFields(1, {
+    fetchAnimals(1, {
       search: searchValue || undefined,
-      soilType:
-        filterForm.values.soilType !== "all"
-          ? filterForm.values.soilType
-          : undefined,
-      isActive: isActiveValue,
+      gender: filterForm.values.gender !== "all" ? filterForm.values.gender : undefined,
+      birthdateFrom: filterForm.values.birthdateFrom || undefined,
+      birthdateTo: filterForm.values.birthdateTo || undefined,
     });
   };
 
-  // Handle filter changes from drawer
+  // Handle filter changes
   const handleApplyFilters = (newFilters: FilterValues) => {
     filterForm.setValues(newFilters);
-    const isActiveValue =
-      newFilters.isActive !== "all"
-        ? newFilters.isActive === "true"
-          ? true
-          : false
-        : undefined;
-    fetchFields(1, {
+    fetchAnimals(1, {
       search: newFilters.search || undefined,
-      soilType: newFilters.soilType !== "all" ? newFilters.soilType : undefined,
-      isActive: isActiveValue,
+      gender: newFilters.gender !== "all" ? newFilters.gender : undefined,
+      birthdateFrom: newFilters.birthdateFrom || undefined,
+      birthdateTo: newFilters.birthdateTo || undefined,
     });
   };
 
   // Handle clear filters
   const handleClearFilters = () => {
     const clearedFilters: FilterValues = {
-      search: filterForm.values.search, // Keep search
-      soilType: "all",
-      isActive: "all",
+      search: "",
+      gender: "all",
+      birthdateFrom: "",
+      birthdateTo: "",
     };
     filterForm.setValues(clearedFilters);
-    fetchFields(1, {
-      search: clearedFilters.search || undefined,
-      soilType: undefined,
-      isActive: undefined,
-    });
+    fetchAnimals(1);
   };
 
   // Handle pagination
   const handlePageChange = (page: number) => {
     setPagination({ ...pagination, page });
-    const isActiveValue =
-      filterForm.values.isActive !== "all"
-        ? filterForm.values.isActive === "true"
-          ? true
-          : false
-        : undefined;
-    fetchFields(page, {
+    fetchAnimals(page, {
       search: filterForm.values.search || undefined,
-      soilType:
-        filterForm.values.soilType !== "all"
-          ? filterForm.values.soilType
-          : undefined,
-      isActive: isActiveValue,
+      gender: filterForm.values.gender !== "all" ? filterForm.values.gender : undefined,
+      birthdateFrom: filterForm.values.birthdateFrom || undefined,
+      birthdateTo: filterForm.values.birthdateTo || undefined,
     });
   };
 
-  // Handle add field
-  const handleAddField = async (values: any) => {
+  // Handle add animal
+  const handleAddAnimal = async (values: any) => {
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const success = await createField({
-        fieldName: values.fieldName,
-        fieldSize: values.fieldSize,
-        sizeUnit: values.sizeUnit,
-        soilType: values.soilType,
-        isActive: values.isActive,
-        notes: values.notes,
-      });
-
-      if (success) {
-        showToast("Field added successfully!", "green");
-        setModalOpen(false);
-      } else {
-        const message = "Failed to add field";
-        setError(message);
-        showToast(message, "red");
-      }
+      await createAnimal(values);
+      showToast("Animal added successfully!", "green");
+      setModalOpen(false);
     } catch (err: any) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to add field"
+        err?.response?.data?.message || err?.message || "Failed to add animal"
       );
       showToast(
-        err?.response?.data?.message || err?.message || "Failed to add field",
+        err?.response?.data?.message || err?.message || "Failed to add animal",
         "red"
       );
     } finally {
@@ -187,40 +160,24 @@ export default function FieldsSection() {
     }
   };
 
-  // Handle update field
-  const handleUpdateField = async (values: any) => {
-    if (!selectedField) return;
+  // Handle update animal
+  const handleUpdateAnimal = async (values: any) => {
+    if (!selectedAnimal) return;
 
     setIsUpdating(true);
     setError(null);
 
     try {
-      const success = await updateField(selectedField.id, {
-        fieldName: values.fieldName,
-        fieldSize: values.fieldSize,
-        sizeUnit: values.sizeUnit,
-        soilType: values.soilType,
-        isActive: values.isActive,
-        notes: values.notes,
-      });
-
-      if (success) {
-        showToast("Field updated successfully!", "green");
-        setUpdateModalOpen(false);
-        setSelectedField(null);
-      } else {
-        const message = "Failed to update field";
-        setError(message);
-        showToast(message, "red");
-      }
+      await updateAnimal(selectedAnimal.id, values);
+      showToast("Animal updated successfully!", "green");
+      setUpdateModalOpen(false);
+      setSelectedAnimal(null);
     } catch (err: any) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to update field"
+        err?.response?.data?.message || err?.message || "Failed to update animal"
       );
       showToast(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to update field",
+        err?.response?.data?.message || err?.message || "Failed to update animal",
         "red"
       );
     } finally {
@@ -228,33 +185,24 @@ export default function FieldsSection() {
     }
   };
 
-  // Handle delete field
-  const handleDeleteField = async () => {
-    if (!fieldToDelete) return;
+  // Handle delete animal
+  const handleDeleteAnimal = async () => {
+    if (!animalToDelete) return;
 
     setIsDeleting(true);
     setError(null);
 
     try {
-      const success = await deleteField(fieldToDelete.id);
-
-      if (success) {
-        showToast("Field deleted successfully!", "green");
-        setDeleteModalOpen(false);
-        setFieldToDelete(null);
-      } else {
-        const message = "Failed to delete field";
-        setError(message);
-        showToast(message, "red");
-      }
+      await deleteAnimal(animalToDelete.id);
+      showToast("Animal deleted successfully!", "green");
+      setDeleteModalOpen(false);
+      setAnimalToDelete(null);
     } catch (err: any) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to delete field"
+        err?.response?.data?.message || err?.message || "Failed to delete animal"
       );
       showToast(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to delete field",
+        err?.response?.data?.message || err?.message || "Failed to delete animal",
         "red"
       );
     } finally {
@@ -266,7 +214,7 @@ export default function FieldsSection() {
     return (
       <Paper withBorder p="xl" radius="md">
         <Text c="dimmed" ta="center">
-          You don't have permission to view fields.
+          You don't have permission to view animals.
         </Text>
       </Paper>
     );
@@ -288,9 +236,9 @@ export default function FieldsSection() {
         {/* Header */}
         <Group justify="space-between" align="center" style={{ flexShrink: 0 }}>
           <div>
-            <Title order={2}>Fields</Title>
+            <Title order={2}>Animals</Title>
             <Text c="dimmed" size="sm">
-              Manage your farm fields and their properties
+              Manage your livestock animals and their records
             </Text>
           </div>
           {canCreate && (
@@ -298,7 +246,7 @@ export default function FieldsSection() {
               leftSection={<IconPlus size={16} />}
               onClick={() => setModalOpen(true)}
             >
-              Add Field
+              Add Animal
             </Button>
           )}
         </Group>
@@ -312,7 +260,7 @@ export default function FieldsSection() {
         <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
           <TextInput
             size={"md"}
-            placeholder="Search by field name"
+            placeholder="Search by animal name"
             leftSection={<IconSearch size={16} />}
             style={{ 
               width: "100%",
@@ -329,7 +277,7 @@ export default function FieldsSection() {
               }
             }}
           />
-          <FieldFilters onOpenFilters={() => setFiltersDrawerOpen(true)} />
+          <AnimalFilters onOpenFilters={() => setFiltersDrawerOpen(true)} />
         </Group>
 
         {/* Table - Scrollable container */}
@@ -351,18 +299,30 @@ export default function FieldsSection() {
             maxHeight: "100%",
             overflow: "auto"
           }}>
-            <FieldTable
-              fields={fields}
+            <AnimalTable
+              animals={animals}
               isLoading={isLoading}
               canUpdate={canUpdate}
               canDelete={canDelete}
-              onUpdate={(field) => {
-                setSelectedField(field);
+              onUpdate={(animal) => {
+                setSelectedAnimal(animal);
                 setUpdateModalOpen(true);
               }}
-              onDelete={(field) => {
-                setFieldToDelete(field);
+              onDelete={(animal) => {
+                setAnimalToDelete(animal);
                 setDeleteModalOpen(true);
+              }}
+              onOpenHealthRecords={(animal) => {
+                setAnimalForRecord(animal);
+                setHealthRecordDrawerOpen(true);
+              }}
+              onOpenWeightRecords={(animal) => {
+                setAnimalForRecord(animal);
+                setWeightRecordDrawerOpen(true);
+              }}
+              onOpenFeedRecords={(animal) => {
+                setAnimalForRecord(animal);
+                setFeedRecordDrawerOpen(true);
               }}
             />
           </div>
@@ -389,41 +349,69 @@ export default function FieldsSection() {
       </Stack>
 
       {/* Modals */}
-      <AddFieldModal
+      <AddAnimalModal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSubmit={handleAddField}
+        onSubmit={handleAddAnimal}
         isSubmitting={isSubmitting}
       />
 
-      <UpdateFieldModal
+      <UpdateAnimalModal
         opened={updateModalOpen}
         onClose={() => {
           setUpdateModalOpen(false);
-          setSelectedField(null);
+          setSelectedAnimal(null);
         }}
-        onSubmit={handleUpdateField}
+        onSubmit={handleUpdateAnimal}
         isSubmitting={isUpdating}
-        field={selectedField}
+        animal={selectedAnimal}
       />
 
       <DeleteConfirmationModal
         opened={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false);
-          setFieldToDelete(null);
+          setAnimalToDelete(null);
         }}
         onConfirm={() => {
-          void handleDeleteField();
+          void handleDeleteAnimal();
         }}
-                title="Delete Field"
-                subtitle={`Are you sure you want to delete "${fieldToDelete?.fieldName || "this field"}"? This action cannot be undone.`}
-                confirmLabel="Delete"
-                isDeleting={isDeleting}
+        title="Delete Animal"
+        subtitle={`Are you sure you want to delete "${animalToDelete?.name || "this animal"}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        isDeleting={isDeleting}
+      />
+
+      {/* Drawers */}
+      <HealthRecordsDrawer
+        opened={healthRecordDrawerOpen}
+        onClose={() => {
+          setHealthRecordDrawerOpen(false);
+          setAnimalForRecord(null);
+        }}
+        animal={animalForRecord}
+      />
+
+      <WeightRecordsDrawer
+        opened={weightRecordDrawerOpen}
+        onClose={() => {
+          setWeightRecordDrawerOpen(false);
+          setAnimalForRecord(null);
+        }}
+        animal={animalForRecord}
+      />
+
+      <FeedRecordsDrawer
+        opened={feedRecordDrawerOpen}
+        onClose={() => {
+          setFeedRecordDrawerOpen(false);
+          setAnimalForRecord(null);
+        }}
+        animal={animalForRecord}
       />
 
       {/* Filters Drawer */}
-      <FieldFiltersDrawer
+      <AnimalFiltersDrawer
         opened={filtersDrawerOpen}
         onClose={() => setFiltersDrawerOpen(false)}
         filters={filterForm.values}
@@ -433,3 +421,4 @@ export default function FieldsSection() {
     </Paper>
   );
 }
+
