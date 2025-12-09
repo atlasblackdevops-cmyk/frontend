@@ -197,7 +197,7 @@ export default function CreateFarmPage() {
               error={touched.address && errors.address}
             />
 
-            <BaseButton onClick={handleSubmit} loading={submitting} disabled={!isValid}>
+            <BaseButton type="button" onClick={handleSubmit} loading={submitting} disabled={!isValid}>
               Create farm
             </BaseButton>
           </Stack>

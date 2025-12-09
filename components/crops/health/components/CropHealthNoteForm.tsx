@@ -19,7 +19,12 @@ import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { IconAlertCircle, IconPhoto, IconInfoCircle, IconArrowLeft } from "@tabler/icons-react";
+import {
+    IconAlertCircle,
+    IconPhoto,
+    IconInfoCircle,
+    IconArrowLeft,
+} from "@tabler/icons-react";
 import type {
     AddCropHealthNoteValues,
     CropHealthNoteRecord,
@@ -45,9 +50,17 @@ const BASE_VALUES: AddCropHealthNoteValues = {
 
 const MAX_IMAGES = 10;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+const ALLOWED_FORMATS = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+];
 
-const mapNoteToValues = (note: CropHealthNoteRecord): AddCropHealthNoteValues => {
+const mapNoteToValues = (
+    note: CropHealthNoteRecord
+): AddCropHealthNoteValues => {
     return {
         fieldId: note.fieldId,
         noteDate: note.noteDate,
@@ -64,24 +77,32 @@ interface CropHealthNoteFormProps {
     noteId?: string;
 }
 
-export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormProps) {
+export default function CropHealthNoteForm({
+    mode,
+    noteId,
+}: CropHealthNoteFormProps) {
     const router = useRouter();
     const { farmId } = useAuth();
     const { Toast, showToast } = useToast();
-    const { options: fieldOptions, loading: loadingFields } = useActiveFieldsOptions(true);
+    const { options: fieldOptions, loading: loadingFields } =
+        useActiveFieldsOptions(true);
     const { fetchNoteDetails, createNote, updateNote } = useCropHealthNotes();
 
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imageNotes, setImageNotes] = useState<string[]>([]);
     const [existingImages, setExistingImages] = useState<CropHealthImage[]>([]);
-    const [existingImageNotes, setExistingImageNotes] = useState<Record<string, string>>({}); // Track edited notes for existing images
+    const [existingImageNotes, setExistingImageNotes] = useState<
+        Record<string, string>
+    >({}); // Track edited notes for existing images
     const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
     const [imageErrors, setImageErrors] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLButtonElement>(null);
 
-    const form = useForm<Omit<AddCropHealthNoteValues, "images" | "imageNotes">>({
+    const form = useForm<
+        Omit<AddCropHealthNoteValues, "images" | "imageNotes">
+    >({
         initialValues: {
             fieldId: "",
             noteDate: "",
@@ -96,7 +117,8 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
         },
     });
 
-    const title = mode === "create" ? "Crop Health Note" : "Edit Crop Health Note";
+    const title =
+        mode === "create" ? "Crop Health Note" : "Edit Crop Health Note";
     const submitLabel = mode === "create" ? "Save Note" : "Update Note";
 
     // Load note data for edit mode
@@ -138,7 +160,8 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
         const newErrors: string[] = [];
         const newNotes: string[] = [];
 
-        const totalImages = imageFiles.length + existingImages.length - imagesToDelete.length;
+        const totalImages =
+            imageFiles.length + existingImages.length - imagesToDelete.length;
 
         files.forEach((file, idx) => {
             // Check total count
@@ -233,7 +256,8 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                 existingImages
                     .filter((img) => !imagesToDelete.includes(img.key))
                     .forEach((img) => {
-                        const currentNote = existingImageNotes[img.key] ?? img.note ?? "";
+                        const currentNote =
+                            existingImageNotes[img.key] ?? img.note ?? "";
                         const originalNote = img.note ?? "";
                         // Only include if note was actually changed
                         if (currentNote !== originalNote) {
@@ -249,8 +273,12 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                     actionTaken: values.actionTaken || undefined,
                     images: imageFiles.length > 0 ? imageFiles : undefined,
                     imageNotes: imageFiles.length > 0 ? imageNotes : undefined,
-                    existingImageNotes: Object.keys(editedExistingImageNotes).length > 0 ? editedExistingImageNotes : undefined,
-                    deletedImageKeys: imagesToDelete.length > 0 ? imagesToDelete : undefined,
+                    existingImageNotes:
+                        Object.keys(editedExistingImageNotes).length > 0
+                            ? editedExistingImageNotes
+                            : undefined,
+                    deletedImageKeys:
+                        imagesToDelete.length > 0 ? imagesToDelete : undefined,
                 });
 
                 if (success) {
@@ -260,7 +288,9 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
             }
         } catch (err) {
             const message =
-                err instanceof Error ? err.message : "Failed to save crop health note";
+                err instanceof Error
+                    ? err.message
+                    : "Failed to save crop health note";
             showToast(message, "red");
         } finally {
             setIsSubmitting(false);
@@ -270,7 +300,8 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
     const requiredFilled = !!form.values.fieldId && !!form.values.noteDate;
     const submitDisabled = isSubmitting || !requiredFilled || isLoading;
 
-    const totalImages = imageFiles.length + existingImages.length - imagesToDelete.length;
+    const totalImages =
+        imageFiles.length + existingImages.length - imagesToDelete.length;
     const canAddMore = totalImages < MAX_IMAGES;
 
     if (isLoading) {
@@ -285,7 +316,7 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
         <Paper p="xl" radius="md" withBorder>
             <Stack gap="lg">
                 <Toast />
-                
+
                 {/* Breadcrumbs */}
                 <Breadcrumbs>
                     <Anchor onClick={() => router.push("/crops/health-notes")}>
@@ -312,7 +343,9 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                         <Select
                             label="Field"
                             placeholder={
-                                loadingFields ? "Loading fields..." : "Select field"
+                                loadingFields
+                                    ? "Loading fields..."
+                                    : "Select field"
                             }
                             data={fieldOptions}
                             disabled={loadingFields}
@@ -333,7 +366,9 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                                         : null
                                 }
                                 onChange={(value) => {
-                                    const d = value ? new Date(value as string) : null;
+                                    const d = value
+                                        ? new Date(value as string)
+                                        : null;
                                     form.setFieldValue(
                                         "noteDate",
                                         d ? d.toISOString().split("T")[0] : ""
@@ -341,12 +376,14 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                                 }}
                                 required
                                 clearable={false}
-                                {...form.getInputProps("noteDate")}
+                                error={form.errors.noteDate}
                             />
                             <Select
                                 label="Health Status"
                                 placeholder="Select status (optional)"
-                                data={HEALTH_STATUS_OPTIONS.filter((opt) => opt.value !== "")}
+                                data={HEALTH_STATUS_OPTIONS.filter(
+                                    (opt) => opt.value !== ""
+                                )}
                                 clearable
                                 {...form.getInputProps("healthStatus")}
                             />
@@ -368,7 +405,10 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                             {...form.getInputProps("actionTaken")}
                         />
 
-                        <Divider label="Images (Optional)" labelPosition="center" />
+                        <Divider
+                            label="Images (Optional)"
+                            labelPosition="center"
+                        />
 
                         {/* Image Errors */}
                         {imageErrors.length > 0 && (
@@ -390,18 +430,30 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                         {/* Existing Images (Update Mode) */}
                         {mode === "update" &&
                             existingImages
-                                .filter((img) => !imagesToDelete.includes(img.key))
+                                .filter(
+                                    (img) => !imagesToDelete.includes(img.key)
+                                )
                                 .map((img, idx) => (
                                     <ImagePreviewCard
                                         key={img.key}
                                         image={img}
                                         index={idx}
-                                        note={existingImageNotes[img.key] !== undefined ? existingImageNotes[img.key] : (img.note || "")}
+                                        note={
+                                            existingImageNotes[img.key] !==
+                                            undefined
+                                                ? existingImageNotes[img.key]
+                                                : img.note || ""
+                                        }
                                         onNoteChange={(index, note) => {
                                             // index is not used for existing images, we use the key
-                                            handleExistingImageNoteChange(img.key, note);
+                                            handleExistingImageNoteChange(
+                                                img.key,
+                                                note
+                                            );
                                         }}
-                                        onRemove={() => handleRemoveExistingImage(img.key)}
+                                        onRemove={() =>
+                                            handleRemoveExistingImage(img.key)
+                                        }
                                         isUploading={isSubmitting}
                                     />
                                 ))}
@@ -448,7 +500,8 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                         <Group gap="xs" c="dimmed">
                             <IconInfoCircle size={16} />
                             <Text size="xs">
-                                You can save without images. Supported formats: JPG, PNG, GIF, WEBP
+                                You can save without images. Supported formats:
+                                JPG, PNG, GIF, WEBP
                             </Text>
                         </Group>
 
@@ -456,7 +509,9 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
                         <Group justify="flex-end" mt="md">
                             <Button
                                 variant="subtle"
-                                onClick={() => router.push("/crops/health-notes")}
+                                onClick={() =>
+                                    router.push("/crops/health-notes")
+                                }
                                 disabled={isSubmitting}
                             >
                                 Cancel
@@ -475,4 +530,3 @@ export default function CropHealthNoteForm({ mode, noteId }: CropHealthNoteFormP
         </Paper>
     );
 }
-
