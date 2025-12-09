@@ -229,9 +229,11 @@ export function AuthenticationForm({
             p={{ base: "xl", sm: "xl" }}
             withBorder={false}
             style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e0e0e0",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(4px)",
+                WebkitBackdropFilter: "blur(4px)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
                 width: "100%",
                 maxHeight: "calc(100dvh - 200px)",
                 display: "flex",
@@ -248,14 +250,14 @@ export function AuthenticationForm({
                 label="Or continue with email"
                 labelPosition="center"
                 my="lg"
-                color="#e0e0e0"
+                color="rgba(255, 255, 255, 0.2)"
                 styles={{
                     label: {
-                        color: "#757575",
+                        color: "rgba(255, 255, 255, 0.9)",
                         fontSize: "13px",
                         padding: "0 16px",
                         fontWeight: 500,
-                        backgroundColor: "#ffffff",
+                        backgroundColor: "transparent",
                     },
                 }}
             />
@@ -469,13 +471,14 @@ export function AuthenticationForm({
                         radius={6}
                         style={{ 
                             flexShrink: 0,
-                            border: "1px solid #ffcdd2",
-                            backgroundColor: "#ffebee",
+                            border: "1px solid rgba(255, 87, 87, 0.3)",
+                            backgroundColor: "rgba(255, 87, 87, 0.15)",
+                            backdropFilter: "blur(4px)",
                         }}
                         styles={{
                             message: {
                                 fontSize: "14px",
-                                color: "#c62828",
+                                color: "rgba(255, 255, 255, 0.95)",
                             },
                         }}
                     >
@@ -496,6 +499,23 @@ export function AuthenticationForm({
                             label="Name"
                             placeholder="Enter your full name"
                             required
+                            styles={{
+                                label: {
+                                    color: "rgba(255, 255, 255, 0.9)",
+                                },
+                                input: {
+                                    color: "rgba(255, 255, 255, 0.95)",
+                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                                    "&::placeholder": {
+                                        color: "rgba(255, 255, 255, 0.6)",
+                                    },
+                                    "&:focus": {
+                                        backgroundColor: "rgba(255, 255, 255, 0.15)",
+                                        borderColor: "rgba(255, 255, 255, 0.3)",
+                                    },
+                                },
+                            }}
                             {...form.getInputProps("name")}
                         />
                     )}
@@ -504,6 +524,23 @@ export function AuthenticationForm({
                         required
                         label="Email"
                         placeholder="Enter your email"
+                        styles={{
+                            label: {
+                                color: "rgba(255, 255, 255, 0.9)",
+                            },
+                            input: {
+                                color: "rgba(255, 255, 255, 0.95)",
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                "&::placeholder": {
+                                    color: "rgba(255, 255, 255, 0.6)",
+                                },
+                                "&:focus": {
+                                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                                    borderColor: "rgba(255, 255, 255, 0.3)",
+                                },
+                            },
+                        }}
                         {...form.getInputProps("email")}
                     />
 
@@ -511,6 +548,23 @@ export function AuthenticationForm({
                         required
                         label="Password"
                         placeholder="Enter your password"
+                        styles={{
+                            label: {
+                                color: "rgba(255, 255, 255, 0.9)",
+                            },
+                            input: {
+                                color: "rgba(255, 255, 255, 0.95)",
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                "&::placeholder": {
+                                    color: "rgba(255, 255, 255, 0.6)",
+                                },
+                                "&:focus": {
+                                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                                    borderColor: "rgba(255, 255, 255, 0.3)",
+                                },
+                            },
+                        }}
                         {...form.getInputProps("password")}
                     />
 
@@ -519,16 +573,17 @@ export function AuthenticationForm({
                             label="I accept terms and conditions"
                             {...form.getInputProps("terms", { type: "checkbox" })}
                             error={form.errors.terms}
-                            color="green"
+                            color="lime"
                             radius={6}
                             styles={{
                                 label: {
-                                    color: "#424242",
+                                    color: "rgba(255, 255, 255, 0.9)",
                                     fontSize: "14px",
                                     fontWeight: 400,
                                 },
                                 input: {
-                                    borderColor: "#e0e0e0",
+                                    borderColor: "rgba(255, 255, 255, 0.3)",
+                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
                                     "&:checked": {
                                         backgroundColor: "#4caf50",
                                         borderColor: "#4caf50",
@@ -537,6 +592,7 @@ export function AuthenticationForm({
                                 error: {
                                     fontSize: "12px",
                                     marginTop: "4px",
+                                    color: "rgba(255, 255, 255, 0.9)",
                                 },
                             }}
                         />
@@ -575,7 +631,7 @@ export function AuthenticationForm({
                     <Anchor
                         component="button"
                         type="button"
-                        c="#4caf50"
+                        c="lime.3"
                         onClick={() => {
                             form.reset();
                             toggle();
@@ -591,7 +647,7 @@ export function AuthenticationForm({
                             root: {
                                 "&:hover": {
                                     textDecoration: "underline",
-                                    color: "#45a049",
+                                    color: "lime.2",
                                 },
                             },
                         }}
