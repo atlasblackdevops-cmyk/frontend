@@ -89,10 +89,14 @@ export async function getCropHealthNoteDetails(
         throw new Error("Crop health note not found");
     }
 
+    // Handle both nested field object and flat fieldId/fieldName
+    // The API might return field as nested object or flat fieldId/fieldName
+    const noteDataAny = noteData as any;
+    
     return {
         id: noteData.id,
-        fieldId: noteData.field?.id || noteData.fieldId,
-        fieldName: noteData.field?.fieldName || noteData.fieldName,
+        fieldId: noteDataAny.field?.id || noteData.fieldId,
+        fieldName: noteDataAny.field?.fieldName || noteData.fieldName,
         noteDate: noteData.noteDate,
         healthStatus: noteData.healthStatus,
         description: noteData.description,
@@ -103,8 +107,8 @@ export async function getCropHealthNoteDetails(
             note: img.notes || img.note,
             createdAt: img.createdAt,
         })),
-        createdBy: noteData.notedBy || noteData.createdBy,
-        updatedBy: noteData.updatedBy,
+        createdBy: noteDataAny.notedBy || noteDataAny.createdBy,
+        updatedBy: noteDataAny.updatedBy,
         createdAt: noteData.createdAt,
         updatedAt: noteData.updatedAt,
     };

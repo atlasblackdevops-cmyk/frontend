@@ -15,7 +15,7 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { IconAlertCircle, IconPhoto, IconInfoCircle } from "@tabler/icons-react";
 import type {
     AddCropHealthNoteValues,
@@ -72,7 +72,6 @@ export function CropHealthNoteModal({
     const [existingImages, setExistingImages] = useState<CropHealthImage[]>([]);
     const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
     const [imageErrors, setImageErrors] = useState<string[]>([]);
-    const fileInputRef = useRef<HTMLButtonElement>(null);
 
     const form = useForm<Omit<AddCropHealthNoteValues, "images" | "imageNotes">>({
         initialValues: {
@@ -257,7 +256,7 @@ export function CropHealthNoteModal({
                             }}
                             required
                             clearable={false}
-                            {...form.getInputProps("noteDate")}
+                            error={form.errors.noteDate}
                         />
 
                         {/* Health Status */}
@@ -335,7 +334,6 @@ export function CropHealthNoteModal({
 
                         {/* Add Image Button */}
                         <FileButton
-                            ref={fileInputRef}
                             onChange={handleImageSelect}
                             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                             multiple

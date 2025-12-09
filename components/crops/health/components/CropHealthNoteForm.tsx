@@ -17,7 +17,7 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     IconAlertCircle,
@@ -98,7 +98,6 @@ export default function CropHealthNoteForm({
     const [imageErrors, setImageErrors] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const fileInputRef = useRef<HTMLButtonElement>(null);
 
     const form = useForm<
         Omit<AddCropHealthNoteValues, "images" | "imageNotes">
@@ -476,7 +475,6 @@ export default function CropHealthNoteForm({
 
                         {/* Add Image Button */}
                         <FileButton
-                            ref={fileInputRef}
                             onChange={handleImageSelect}
                             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                             multiple

@@ -112,7 +112,7 @@ function NoteCard({
     onUpdate,
     onDelete,
 }: {
-    note: typeof notes[0];
+    note: CropHealthNoteRecord;
     canUpdate: boolean;
     canDelete: boolean;
     onView: () => void;
