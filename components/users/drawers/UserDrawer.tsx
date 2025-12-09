@@ -12,10 +12,10 @@ import {
     Select,
     Stack,
     Text,
-    TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconUserPlus } from "@tabler/icons-react";
+import { BaseInput } from "@/components/ui";
 import type { ManagedUser, ModuleDefinition, PermissionMatrix } from "../types";
 import { PermissionTable, PermissionPreview } from "../components";
 
@@ -127,13 +127,13 @@ export default function UserDrawer({
         >
             <form onSubmit={handleSubmit}>
                 <Stack>
-                    <TextInput
+                    <BaseInput
                         label="Full name"
                         placeholder="Ex: John Doe"
                         withAsterisk
                         {...form.getInputProps("name")}
                     />
-                    <TextInput
+                    <BaseInput
                         label="Email"
                         placeholder="johndoe@gmail.com"
                         withAsterisk

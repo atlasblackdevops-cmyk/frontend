@@ -29,7 +29,7 @@ export function GoogleButton({
                     });
                 }
             }}
-            radius={0}
+            radius={6}
             size="md"
             styles={{
                 root: {

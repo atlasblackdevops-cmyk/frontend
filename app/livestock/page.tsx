@@ -1,16 +1,5 @@
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import FarmGate from "@/components/guards/FarmGate";
-import LivestockAnimalsSection from "@/components/livestock/LivestockAnimalsSection";
-import DashboardLayoutWrapper from "@/components/layouts/DashboardLayoutWrapper";
+import { redirect } from "next/navigation";
 
 export default function LivestockPage() {
-    return (
-        <RequireAuth>
-            <FarmGate>
-                <DashboardLayoutWrapper>
-                    <LivestockAnimalsSection />
-                </DashboardLayoutWrapper>
-            </FarmGate>
-        </RequireAuth>
-    );
+    redirect("/livestock/dashboard");
 }

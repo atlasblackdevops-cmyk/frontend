@@ -14,7 +14,6 @@ import {
     Stack,
     Table,
     Text,
-    TextInput,
     Image,
     Tooltip,
     Badge,
@@ -22,6 +21,7 @@ import {
     Box,
 } from "@mantine/core";
 import { IconEdit, IconPlus, IconX, IconPhoto } from "@tabler/icons-react";
+import { BaseDateInput } from "@/components/ui";
 import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import type { AnimalRecord, HealthRecord, PaginationInfo } from "../types";
@@ -279,21 +279,29 @@ export default function HealthRecordsDrawer({
                     <Paper withBorder p="md" radius="md">
                         <Stack gap="md">
                             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                <TextInput
+                                <BaseDateInput
                                     label="Date From"
-                                    type="date"
-                                    value={dateFrom}
-                                    onChange={(e) =>
-                                        setDateFrom(e.currentTarget.value)
-                                    }
+                                    placeholder="Select start date"
+                                    value={dateFrom ? new Date(dateFrom) : null}
+                                    onChange={(date) => {
+                                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                                            setDateFrom((date as Date).toISOString().split('T')[0]);
+                                        } else {
+                                            setDateFrom("");
+                                        }
+                                    }}
                                 />
-                                <TextInput
+                                <BaseDateInput
                                     label="Date To"
-                                    type="date"
-                                    value={dateTo}
-                                    onChange={(e) =>
-                                        setDateTo(e.currentTarget.value)
-                                    }
+                                    placeholder="Select end date"
+                                    value={dateTo ? new Date(dateTo) : null}
+                                    onChange={(date) => {
+                                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                                            setDateTo((date as Date).toISOString().split('T')[0]);
+                                        } else {
+                                            setDateTo("");
+                                        }
+                                    }}
                                 />
                             </SimpleGrid>
                             <Group justify="flex-end">

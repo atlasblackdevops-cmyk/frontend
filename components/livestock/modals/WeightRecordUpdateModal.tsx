@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, Group, Modal, NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Group, Modal, NumberInput, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { BaseDateInput, BaseTextarea } from "@/components/ui";
 import type { WeightRecordValues, AnimalRecord, WeightRecord } from "../types";
 
 interface WeightRecordUpdateModalProps {
@@ -99,11 +100,18 @@ export default function WeightRecordUpdateModal({
                 })}
             >
                 <Stack gap="md">
-                    <TextInput
+                    <BaseDateInput
                         label="Measured at (date)"
-                        type="date"
+                        placeholder="Select date"
                         required
-                        {...form.getInputProps("measuredAt")}
+                        value={form.values.measuredAt ? new Date(form.values.measuredAt) : null}
+                        onChange={(date) => {
+                            if (date && typeof date === 'object' && 'toISOString' in date) {
+                                form.setFieldValue("measuredAt", (date as Date).toISOString().split('T')[0]);
+                            } else {
+                                form.setFieldValue("measuredAt", "");
+                            }
+                        }}
                     />
                     <NumberInput
                         label="Weight"
@@ -119,7 +127,7 @@ export default function WeightRecordUpdateModal({
                         required
                         {...form.getInputProps("weightUnit")}
                     />
-                    <Textarea
+                    <BaseTextarea
                         label="Notes"
                         placeholder="Enter notes (optional)"
                         rows={4}

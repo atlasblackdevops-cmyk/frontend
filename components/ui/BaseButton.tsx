@@ -1,34 +1,19 @@
-'use client';
+"use client";
 
-import React, { forwardRef } from 'react';
-import { Button, ButtonProps } from '@mantine/core';
-
-export type BaseButtonIntent = 'primary' | 'secondary';
+import { Button, type ButtonProps } from "@mantine/core";
+import { forwardRef } from "react";
 
 export interface BaseButtonProps extends ButtonProps {
-  intent?: BaseButtonIntent;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    type?: "button" | "submit" | "reset";
 }
 
-export const BaseButton = forwardRef<HTMLButtonElement, BaseButtonProps>(
-  (
-    { intent = 'primary', color, radius = 'md', size = 'md', variant = 'filled', ...props },
-    ref
-  ) => {
-    const resolvedColor = color ?? (intent === 'secondary' ? 'brandOrange' : 'brandGreen');
-    return (
-      <Button
-        ref={ref}
-        color={resolvedColor}
-        radius={radius}
-        size={size}
-        variant={variant}
-        {...props}
-      />
-    );
-  }
+const BaseButton = forwardRef<HTMLButtonElement, BaseButtonProps>(
+    ({ radius = 6, ...props }, ref) => {
+        return <Button ref={ref} radius={radius} {...props} />;
+    }
 );
 
-BaseButton.displayName = 'BaseButton';
+BaseButton.displayName = "BaseButton";
 
 export default BaseButton;

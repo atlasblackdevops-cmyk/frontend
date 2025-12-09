@@ -21,7 +21,8 @@ export default function DashboardLayoutWrapper({
                 <div
                     style={{
                         flex: 1,
-                        padding: 16,
+                        // padding: 16,
+                        height: "100dvh",
                         overflow: "auto",
                         backgroundColor: "#f9fafb",
                     }}

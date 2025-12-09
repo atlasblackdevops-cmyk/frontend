@@ -253,3 +253,43 @@ export type RemoveAnimalsResponse = {
         requested: number;
     };
 };
+
+// Component Prop Types
+export interface AnimalFiltersProps {
+    onOpenFilters: () => void;
+    // Optional props for legacy usage; component currently only uses onOpenFilters
+    form?: any;
+    onSearch?: () => void;
+    onClear?: () => void;
+    isLoading?: boolean;
+}
+
+export interface AnimalFiltersDrawerProps {
+    opened: boolean;
+    onClose: () => void;
+    filters: FilterValues;
+    onApplyFilters: (filters: FilterValues) => void;
+    onClearFilters: () => void;
+}
+
+export interface AnimalTableProps {
+    animals: AnimalRecord[];
+    isLoading: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    onUpdate: (animal: AnimalRecord) => void;
+    onDelete: (animal: AnimalRecord) => void;
+    onOpenHealthRecords: (animal: AnimalRecord) => void;
+    onOpenWeightRecords: (animal: AnimalRecord) => void;
+    onOpenFeedRecords: (animal: AnimalRecord) => void;
+}
+
+export interface GroupsTableProps {
+    groups: AnimalGroup[];
+    isLoading: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    onUpdate: (group: AnimalGroup) => void;
+    onDelete: (group: AnimalGroup) => void;
+    onAssignAnimals: (group: AnimalGroup) => void;
+}

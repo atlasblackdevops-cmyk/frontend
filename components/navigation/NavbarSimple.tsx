@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -15,8 +15,15 @@ import {
     IconShoppingCart,
     IconSwitchHorizontal,
     IconUsersGroup,
+    IconMapPin,
+    IconChevronDown,
+    IconChevronRight,
+    IconSeeding,
+    IconCircleCheck,
+    IconChevronLeft,
+    IconChartBar,
 } from "@tabler/icons-react";
-import { Group, Text } from "@mantine/core";
+import { Group, Text, Collapse, Paper, ActionIcon, Tooltip, Avatar } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import FarmSwitcherModal from "@/components/farm/FarmSwitcherModal";
 import { api } from "@/lib/api";
@@ -25,10 +32,35 @@ import { hasRoutePermission } from "@/lib/permissions";
 import { UserButton } from "./UserButton";
 import classes from "./NavbarSimple.module.css";
 
-const data = [
+interface NavItem {
+    link: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string; stroke?: number }>;
+    children?: NavItem[];
+}
+
+const data: NavItem[] = [
     { link: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
-    { link: "/livestock", label: "Livestock", icon: IconDeer },
-    { link: "/crops", label: "Crops", icon: IconPlant2 },
+    { link: "/fields", label: "Fields", icon: IconMapPin },
+    {
+        link: "/livestock",
+        label: "Livestock",
+        icon: IconDeer,
+        children: [
+            { link: "/livestock/dashboard", label: "Dashboard", icon: IconChartBar },
+            { link: "/livestock/animals", label: "Animals", icon: IconDeer },
+            { link: "/livestock/groups", label: "Groups", icon: IconUsersGroup },
+        ],
+    },
+    {
+        link: "/crops",
+        label: "Crops",
+        icon: IconPlant2,
+        children: [
+            { link: "/crops/planting", label: "Planting", icon: IconSeeding },
+            { link: "/crops/health-notes", label: "Crop Health Notes", icon: IconCircleCheck },
+        ],
+    },
     { link: "/finance", label: "Finance", icon: IconCurrencyDollar },
     { link: "/marketplace", label: "Marketplace", icon: IconShoppingCart },
     { link: "/ai", label: "AI", icon: IconCpu },
@@ -56,9 +88,20 @@ export function NavbarSimple() {
         farmName,
         role,
         permissions,
+        userName,
+        userEmail,
+        userProfilePicture,
     } = useAuth();
     const [switcherOpen, setSwitcherOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
+    const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+    const [collapsed, setCollapsed] = useState(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("sidebarCollapsed");
+            return saved === "true";
+        }
+        return false;
+    });
 
     // Fetch farms list (for switch farm modal)
     const { data: farmsData } = useQuery({
@@ -122,104 +165,460 @@ export function NavbarSimple() {
         }
     }
 
+    // Check if pathname matches a route (including nested routes)
+    const isRouteActive = (link: string, children?: NavItem[]) => {
+        if (pathname === link) return true;
+        if (children) {
+            return children.some((child) => pathname === child.link || pathname.startsWith(child.link + "/"));
+        }
+        return pathname.startsWith(link + "/");
+    };
+
+    // Toggle menu expansion
+    const toggleMenu = (link: string) => {
+        setExpandedMenus((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(link)) {
+                newSet.delete(link);
+            } else {
+                newSet.add(link);
+            }
+            return newSet;
+        });
+    };
+
+    // Auto-expand menus if current path matches
+    useEffect(() => {
+        data.forEach((item) => {
+            if (item.children && isRouteActive(item.link, item.children)) {
+                setExpandedMenus((prev) => new Set(prev).add(item.link));
+            }
+        });
+    }, [pathname]);
+
+    // Save collapsed state to localStorage
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("sidebarCollapsed", collapsed.toString());
+        }
+    }, [collapsed]);
+
+    const toggleCollapse = () => {
+        setCollapsed(!collapsed);
+        // Close all expanded menus when collapsing
+        if (!collapsed) {
+            setExpandedMenus(new Set());
+        }
+    };
+
     // Filter links based on permissions (OWNER/SUPER_ADMIN see all)
     const filteredLinks = data.filter((item) =>
         hasRoutePermission(item.link, permissions, role)
     );
 
-    const links = filteredLinks.map((item) => {
-        const isActive = pathname === item.link;
-        return (
+    const renderNavItem = (item: NavItem) => {
+        const hasChildren = item.children && item.children.length > 0;
+        const isExpanded = expandedMenus.has(item.link);
+        const isActive = isRouteActive(item.link, item.children);
+        const hasActiveChild = item.children?.some((child) => pathname === child.link || pathname.startsWith(child.link + "/"));
+
+        if (hasChildren) {
+            const linkContent = (
+                <a
+                    href="#"
+                    className={`${classes.link} ${collapsed ? classes.linkCollapsed : ""}`}
+                    data-active={isActive || undefined}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        if (!collapsed) {
+                            toggleMenu(item.link);
+                        }
+                    }}
+                >
+                    <item.icon className={classes.linkIcon} stroke={1.5} />
+                    {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+                    {!collapsed && (
+                        isExpanded ? (
+                            <IconChevronDown size={16} className={classes.linkIcon} />
+                        ) : (
+                            <IconChevronRight size={16} className={classes.linkIcon} />
+                        )
+                    )}
+                </a>
+            );
+
+            return (
+                <div key={item.label}>
+                    {collapsed ? (
+                        <Tooltip label={item.label} position="right" withArrow>
+                            {linkContent}
+                        </Tooltip>
+                    ) : (
+                        linkContent
+                    )}
+                    {!collapsed && (
+                        <Collapse in={isExpanded}>
+                            <div className={classes.submenu}>
+                                {item.children?.map((child) => {
+                                    const isChildActive = pathname === child.link || pathname.startsWith(child.link + "/");
+                                    return (
+                                        <Link
+                                            href={child.link}
+                                            key={child.label}
+                                            className={classes.sublink}
+                                            data-active={isChildActive || undefined}
+                                        >
+                                            <child.icon className={classes.linkIcon} stroke={1.5} />
+                                            <span>{child.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </Collapse>
+                    )}
+                </div>
+            );
+        }
+
+        const linkContent = (
             <Link
                 href={item.link}
                 key={item.label}
-                className={classes.link}
+                className={`${classes.link} ${collapsed ? classes.linkCollapsed : ""}`}
                 data-active={isActive || undefined}
             >
                 <item.icon className={classes.linkIcon} stroke={1.5} />
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
             </Link>
         );
-    });
+
+        return collapsed ? (
+            <Tooltip key={item.label} label={item.label} position="right" withArrow>
+                {linkContent}
+            </Tooltip>
+        ) : (
+            linkContent
+        );
+    };
+
+    const links = filteredLinks.map((item) => renderNavItem(item));
 
     return (
-        <nav className={classes.navbar}>
+        <nav className={`${classes.navbar} ${collapsed ? classes.navbarCollapsed : ""}`}>
+            <div className={classes.collapseButtonWrapper}>
+                <Tooltip 
+                    label={collapsed ? "Expand sidebar" : "Collapse sidebar"} 
+                    position="right" 
+                    withArrow
+                    withinPortal
+                >
+                    <ActionIcon
+                        variant="filled"
+                        color="green"
+                        onClick={toggleCollapse}
+                        size="md"
+                        radius="xl"
+                        className={classes.collapseButton}
+                    >
+                        {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
+                    </ActionIcon>
+                </Tooltip>
+            </div>
             <div className={classes.navbarMain}>
                 <div className={classes.brandSection}>
-                    <Text
-                        size="lg"
-                        fw={600}
-                        c="dark.8"
-                        style={{
-                            marginBottom: "4px",
-                            letterSpacing: "-0.3px",
-                        }}
-                    >
-                        Farm Management
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                        {farmName || "Agriculture Platform"}
-                    </Text>
+                    
+                    {!collapsed && (
+                        <Paper
+                            withBorder
+                            radius="md"
+                            p={14}
+                            style={{
+                                background: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+                                borderColor: "#86efac",
+                                borderWidth: "2px",
+                                boxShadow: "0 2px 8px rgba(22, 163, 74, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.05)",
+                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                cursor: "pointer",
+                                position: "relative",
+                                overflow: "hidden",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "translateY(-2px)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(22, 163, 74, 0.2), 0 0 0 1px rgba(22, 163, 74, 0.1)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow = "0 2px 8px rgba(22, 163, 74, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.05)";
+                            }}
+                            onClick={() => setSwitcherOpen(true)}
+                        >
+                            {/* Decorative background pattern */}
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: -10,
+                                    right: -10,
+                                    width: 60,
+                                    height: 60,
+                                    background: "radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%)",
+                                    borderRadius: "50%",
+                                }}
+                            />
+                            
+                            <Group gap={12} align="center" wrap="nowrap">
+                                <div
+                                    style={{
+                                        background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                        borderRadius: "10px",
+                                        padding: "10px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)",
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    <IconCircleCheck
+                                        size={20}
+                                        color="white"
+                                        strokeWidth={2.5}
+                                    />
+                                </div>
+                                <div style={{ lineHeight: 1.4, flex: 1, minWidth: 0, position: "relative", zIndex: 1 }}>
+                                    <Text 
+                                        size="xs" 
+                                        fw={700} 
+                                        style={{ 
+                                            textTransform: "uppercase", 
+                                            letterSpacing: "1px", 
+                                            fontSize: "9px",
+                                            color: "#15803d",
+                                            marginBottom: "4px",
+                                            opacity: 0.9,
+                                        }}
+                                    >
+                                        My Active Farm
+                                    </Text>
+                                    <Text 
+                                        size="md" 
+                                        fw={800}
+                                        style={{
+                                            color: "#14532d",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            fontSize: "15px",
+                                            lineHeight: "1.2",
+                                        }}
+                                    >
+                                        {farmName || "Agriculture Platform"}
+                                    </Text>
+                                </div>
+                                <ActionIcon
+                                    variant="subtle"
+                                    color="green"
+                                    size="sm"
+                                    radius="md"
+                                    style={{
+                                        flexShrink: 0,
+                                        background: "rgba(255, 255, 255, 0.6)",
+                                        color: "#15803d",
+                                    }}
+                                >
+                                    <IconChevronRight size={16} />
+                                </ActionIcon>
+                            </Group>
+                        </Paper>
+                    )}
+                    {collapsed && (
+                        <Tooltip 
+                            label={
+                                <div>
+                                    <Text size="xs" fw={700} style={{ textTransform: "uppercase", marginBottom: 4 }}>
+                                        My Active Farm
+                                    </Text>
+                                    <Text size="sm" fw={600}>
+                                        {farmName || "Agriculture Platform"}
+                                    </Text>
+                                </div>
+                            } 
+                            position="right" 
+                            withArrow
+                        >
+                            <ActionIcon
+                                variant="filled"
+                                color="green"
+                                size="xl"
+                                radius="md"
+                                onClick={() => setSwitcherOpen(true)}
+                                style={{
+                                    width: "100%",
+                                    marginTop: 8,
+                                    background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                    boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)",
+                                }}
+                            >
+                                <IconCircleCheck size={22} strokeWidth={2.5} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
                 </div>
                 <Group className={classes.header} justify="space-between">
-                    <UserButton />
+                    {collapsed ? (
+                        <Tooltip label={`${userName || "User"}\n${userEmail || ""}`} position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="lg"
+                                radius="md"
+                                onClick={() => router.push("/settings")}
+                                style={{ width: "100%" }}
+                            >
+                                <Avatar
+                                    src={userProfilePicture}
+                                    radius="xl"
+                                    size={28}
+                                />
+                            </ActionIcon>
+                        </Tooltip>
+                    ) : (
+                        <UserButton />
+                    )}
                 </Group>
                 <div className={classes.linksSection}>{links}</div>
             </div>
 
             <div className={classes.footer}>
-                <a
-                    href="#"
-                    className={classes.link}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        setSwitcherOpen(true);
-                    }}
-                    style={{
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                    }}
-                >
-                    <Group gap="xs" style={{ flex: 1 }}>
-                        <IconSwitchHorizontal
-                            className={classes.linkIcon}
-                            stroke={1.8}
-                        />
-                        <span>Switch Farm</span>
-                    </Group>
-                    {farmName && (
-                        <Text
-                            size="xs"
-                            c="dimmed"
+                {collapsed ? (
+                    <>
+                        <Tooltip label="Switch Farm" position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size="lg"
+                                radius="md"
+                                onClick={() => setSwitcherOpen(true)}
+                                style={{ width: "100%", marginBottom: 8 }}
+                            >
+                                <IconSwitchHorizontal size={18} />
+                            </ActionIcon>
+                        </Tooltip>
+                        <Tooltip label="Logout" position="right" withArrow>
+                            <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                size="lg"
+                                radius="md"
+                                onClick={() => void handleLogout()}
+                                loading={logoutLoading}
+                                style={{ width: "100%" }}
+                            >
+                                <IconLogout size={18} />
+                            </ActionIcon>
+                        </Tooltip>
+                    </>
+                ) : (
+                    <>
+                        <a
+                            href="#"
+                            className={classes.link}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                setSwitcherOpen(true);
+                            }}
                             style={{
-                                marginLeft: "8px",
-                                padding: "2px 8px",
-                                borderRadius: "4px",
-                                background: "#f3f4f6",
-                                color: "#6b7280",
-                                fontWeight: 500,
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                color: "#374151",
+                                padding: "10px 12px",
+                                borderRadius: "8px",
+                                transition: "all 0.2s ease",
+                                marginTop: "8px",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "rgba(34, 197, 94, 0.05)";
+                                e.currentTarget.style.color = "#15803d";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "transparent";
+                                e.currentTarget.style.color = "#374151";
                             }}
                         >
-                            {farmName}
-                        </Text>
-                    )}
-                </a>
-                <a
-                    href="#"
-                    className={classes.link}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        void handleLogout();
-                    }}
-                    style={{
-                        opacity: logoutLoading ? 0.6 : 1,
-                        cursor: logoutLoading ? "wait" : "pointer",
-                        color: logoutLoading ? "#9ca3af" : "#dc2626",
-                    }}
-                >
-                    <IconLogout className={classes.linkIcon} stroke={1.8} />
-                    <span>{logoutLoading ? "Logging out..." : "Logout"}</span>
-                </a>
+                            <Group gap="xs" style={{ flex: 1, alignItems: "center" }}>
+                                <IconSwitchHorizontal
+                                    className={classes.linkIcon}
+                                    stroke={2}
+                                    style={{ flexShrink: 0 }}
+                                />
+                                <span style={{ fontWeight: 500, flex: 1 }}>Switch Farm</span>
+                            </Group>
+                            {farmName && (
+                                <Text
+                                    size="xs"
+                                    style={{
+                                        marginLeft: "8px",
+                                        padding: "5px 12px",
+                                        borderRadius: "6px",
+                                        background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                                        color: "#15803d",
+                                        fontWeight: 700,
+                                        border: "1px solid #bbf7d0",
+                                        fontSize: "11px",
+                                        boxShadow: "0 1px 2px rgba(22, 163, 74, 0.1)",
+                                        flexShrink: 0,
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {farmName}
+                                </Text>
+                            )}
+                        </a>
+                        <a
+                            href="#"
+                            className={classes.link}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleLogout();
+                            }}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                opacity: logoutLoading ? 0.6 : 1,
+                                cursor: logoutLoading ? "wait" : "pointer",
+                                color: logoutLoading ? "#9ca3af" : "#dc2626",
+                                padding: "10px 12px",
+                                borderRadius: "8px",
+                                transition: "all 0.2s ease",
+                                fontWeight: 500,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!logoutLoading) {
+                                    e.currentTarget.style.background = "rgba(220, 38, 38, 0.1)";
+                                    e.currentTarget.style.color = "#b91c1c";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!logoutLoading) {
+                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.color = "#dc2626";
+                                }
+                            }}
+                        >
+                            <Group gap="xs" style={{ alignItems: "center" }}>
+                                <IconLogout 
+                                    className={classes.linkIcon} 
+                                    stroke={2}
+                                    style={{ 
+                                        color: logoutLoading ? "#9ca3af" : "#dc2626",
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <span style={{ fontWeight: 600 }}>{logoutLoading ? "Logging out..." : "Logout"}</span>
+                            </Group>
+                        </a>
+                    </>
+                )}
             </div>
 
             <FarmSwitcherModal

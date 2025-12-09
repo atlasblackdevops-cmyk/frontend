@@ -5,26 +5,13 @@ import {
     Badge,
     Button,
     Group,
-    Loader,
-    Table,
     Text,
 } from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
-import type { AnimalRecord } from "../types";
+import { IconEdit, IconTrash, IconDeer } from "@tabler/icons-react";
+import BaseTable, { type BaseTableColumn } from "@/components/ui/BaseTable";
+import type { AnimalRecord, AnimalTableProps } from "../types";
 import { formatDate } from "@/lib/livestock/utils";
 import AnimalActionsMenu from "./AnimalActionsMenu";
-
-interface AnimalTableProps {
-    animals: AnimalRecord[];
-    isLoading: boolean;
-    canUpdate: boolean;
-    canDelete: boolean;
-    onUpdate: (animal: AnimalRecord) => void;
-    onDelete: (animal: AnimalRecord) => void;
-    onOpenHealthRecords: (animal: AnimalRecord) => void;
-    onOpenWeightRecords: (animal: AnimalRecord) => void;
-    onOpenFeedRecords: (animal: AnimalRecord) => void;
-}
 
 export default function AnimalTable({
     animals,
@@ -37,155 +24,146 @@ export default function AnimalTable({
     onOpenWeightRecords,
     onOpenFeedRecords,
 }: AnimalTableProps) {
+    const columns: BaseTableColumn<AnimalRecord>[] = [
+        {
+            key: "animal",
+            label: "Animal",
+            render: (animal) => (
+                <Group gap="sm">
+                    <Avatar
+                        src={animal.photo}
+                        radius="xl"
+                        size={28}
+                    >
+                        {!animal.photo &&
+                            animal.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <div>
+                        <Text fw={600}>{animal.name}</Text>
+                    </div>
+                </Group>
+            ),
+        },
+        {
+            key: "species",
+            label: "Species",
+            render: (animal) => <Text size="sm">{animal.species}</Text>,
+        },
+        {
+            key: "breed",
+            label: "Breed",
+            render: (animal) => <Text size="sm">{animal.breed}</Text>,
+        },
+        {
+            key: "gender",
+            label: "Sex",
+            render: (animal) => (
+                <Badge
+                    color={
+                        animal.gender === "Female"
+                            ? "pink"
+                            : animal.gender === "Male"
+                              ? "blue"
+                              : "gray"
+                    }
+                >
+                    {animal.gender}
+                </Badge>
+            ),
+        },
+        {
+            key: "birthdate",
+            label: "Birthdate",
+            render: (animal) => (
+                <Text size="sm">{formatDate(animal.birthdate)}</Text>
+            ),
+        },
+        {
+            key: "actions",
+            label: "Actions",
+            width: "150px",
+            render: (animal) => {
+                const actionButtonStyle = {
+                    minWidth: 36,
+                    minHeight: 32,
+                    paddingLeft: 8,
+                    paddingRight: 8,
+                    flexShrink: 0,
+                };
+                const actionIconStyle = { width: 18, height: 18, flexShrink: 0 };
+
+                return (
+                    <Group justify="flex-start" gap="1" wrap="nowrap" >
+                        {canUpdate && (
+                            <Button
+                                variant="subtle"
+                                size="md"
+                                px="xs"
+                                style={actionButtonStyle}
+                                aria-label="Edit animal"
+                                onClick={() => onUpdate(animal)}
+                            >
+                                <IconEdit size={18} style={actionIconStyle} />
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                variant="subtle"
+                                color="red"
+                                size="md"
+                                px="xs"
+                                style={actionButtonStyle}
+                                aria-label="Delete animal"
+                                onClick={() => onDelete(animal)}
+                            >
+                                <IconTrash size={18} style={actionIconStyle} />
+                            </Button>
+                        )}
+                        <AnimalActionsMenu
+                            animal={animal}
+                            onOpenHealthRecords={() => onOpenHealthRecords(animal)}
+                            onOpenWeightRecords={() => onOpenWeightRecords(animal)}
+                            onOpenFeedRecords={() => onOpenFeedRecords(animal)}
+                        />
+                    </Group>
+                );
+            },
+        },
+    ];
+
     return (
-        <div style={{ width: "100%", overflowX: "auto" }}>
-            <Table
-                verticalSpacing="sm"
-                highlightOnHover
-                style={{
-                    width: "100%",
-                    minWidth: 720,
-                    tableLayout: "fixed",
+        <div style={{ 
+            width: "100%", 
+            position: "relative",
+            border: "1px solid var(--mantine-color-gray-3)",
+            borderRadius: 6,
+            overflow: "auto",
+            maxHeight: "100%"
+        }}>
+            <BaseTable
+                columns={columns}
+                data={animals}
+                isLoading={isLoading}
+                loadingText="Loading animals..."
+                emptyState={{
+                    icon: IconDeer,
+                    title: "No Animals Found",
+                    description: "You haven't added any animals yet. Start by adding your first animal to track and manage your livestock.",
+                    iconColor: "var(--mantine-color-green-5)",
                 }}
-            >
-                <colgroup>
-                    <col style={{ width: "20%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "15%" }} />
-                    <col style={{ width: "25%" }} />
-                </colgroup>
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Animal</Table.Th>
-                        <Table.Th>Species</Table.Th>
-                        <Table.Th>Breed</Table.Th>
-                        <Table.Th>Sex</Table.Th>
-                        <Table.Th>Birthdate</Table.Th>
-                        <Table.Th
-                            style={{
-                                textAlign: "right",
-                            }}
-                        >
-                            Actions
-                        </Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {isLoading ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={6}>
-                                <Group justify="center" p="xl">
-                                    <Loader size="sm" />
-                                    <Text c="dimmed">Loading animals...</Text>
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                    ) : animals.length === 0 ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={6}>
-                                <Text c="dimmed" ta="center">
-                                    No animals found. Use "Add animal" to create
-                                    your first entry or adjust your search
-                                    filters.
-                                </Text>
-                            </Table.Td>
-                        </Table.Tr>
-                    ) : (
-                        animals.map((animal) => (
-                            <Table.Tr key={animal.id}>
-                                <Table.Td>
-                                    <Group gap="sm">
-                                        <Avatar
-                                            src={animal.photo}
-                                            radius="xl"
-                                            size={42}
-                                        >
-                                            {!animal.photo &&
-                                                animal.name.charAt(0).toUpperCase()}
-                                        </Avatar>
-                                        <div>
-                                            <Text fw={600}>{animal.name}</Text>
-                                        </div>
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td>{animal.species}</Table.Td>
-                                <Table.Td>{animal.breed}</Table.Td>
-                                <Table.Td>
-                                    <Badge
-                                        color={
-                                            animal.gender === "Female"
-                                                ? "pink"
-                                                : animal.gender === "Male"
-                                                  ? "blue"
-                                                  : "gray"
-                                        }
-                                    >
-                                        {animal.gender}
-                                    </Badge>
-                                </Table.Td>
-                                <Table.Td>
-                                    {formatDate(animal.birthdate)}
-                                </Table.Td>
-                                <Table.Td
-                                    style={{
-                                        textAlign: "right",
-                                    }}
-                                >
-                                    <Group gap="xs" justify="flex-end">
-                                        {(canUpdate || canDelete) && (
-                                            <>
-                                                {canUpdate && (
-                                                    <Button
-                                                        variant="subtle"
-                                                        size="xs"
-                                                        leftSection={
-                                                            <IconEdit size={14} />
-                                                        }
-                                                        onClick={() =>
-                                                            onUpdate(animal)
-                                                        }
-                                                    >
-                                                        Update
-                                                    </Button>
-                                                )}
-                                                {canDelete && (
-                                                    <Button
-                                                        variant="subtle"
-                                                        color="red"
-                                                        size="xs"
-                                                        leftSection={
-                                                            <IconTrash size={14} />
-                                                        }
-                                                        onClick={() =>
-                                                            onDelete(animal)
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                )}
-                                            </>
-                                        )}
-                                        <AnimalActionsMenu
-                                            animal={animal}
-                                            onOpenHealthRecords={() =>
-                                                onOpenHealthRecords(animal)
-                                            }
-                                            onOpenWeightRecords={() =>
-                                                onOpenWeightRecords(animal)
-                                            }
-                                            onOpenFeedRecords={() =>
-                                                onOpenFeedRecords(animal)
-                                            }
-                                        />
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))
-                    )}
-                </Table.Tbody>
-            </Table>
+                stickyHeader={true}
+                minWidth={720}
+                tableLayout="fixed"
+                verticalSpacing="sm"
+                colgroup={[
+                    { width: "20%" },
+                    { width: "15%" },
+                    { width: "15%" },
+                    { width: "15%" },
+                    { width: "18%" },
+                    { width: "150px" },
+                ]}
+            />
         </div>
     );
 }

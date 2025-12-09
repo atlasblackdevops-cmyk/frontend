@@ -18,11 +18,13 @@ import {
     IconUserPlus,
     IconUsersGroup,
     IconX,
+    IconSearch,
 } from "@tabler/icons-react";
+import { BaseInput } from "@/components/ui";
 import type { ManagedUser, PermissionMatrix } from "./types";
 import { useUsers, useRoles, usePermissions } from "./hooks";
 import { UserStats, UserFilters, UserTable } from "./components";
-import { UserDrawer, PermissionsDrawer, ExistingUserDrawer } from "./drawers";
+import { UserDrawer, PermissionsDrawer, ExistingUserDrawer, UserFiltersDrawer } from "./drawers";
 import { normalizePermissions, toTitleCase } from "@/lib/users/utils";
 import { updateUser } from "@/lib/users/api";
 
@@ -76,6 +78,7 @@ export function UserManagementPage() {
         useState(false);
     const [permissionsDrawerOpened, setPermissionsDrawerOpened] =
         useState(false);
+    const [filtersDrawerOpened, setFiltersDrawerOpened] = useState(false);
     const [drawerMode, setDrawerMode] = useState<"create" | "edit">("create");
     const [activeUser, setActiveUser] = useState<ManagedUser | null>(null);
     const [permissionDraft, setPermissionDraft] =
@@ -95,6 +98,7 @@ export function UserManagementPage() {
     }, [
         filters.role,
         filters.status,
+        filters.search,
         pagination.page,
         pagination.limit,
         moduleDefinitions.length,
@@ -539,74 +543,153 @@ export function UserManagementPage() {
         [users]
     );
 
+    const handleSearchChange = (searchValue: string) => {
+        setFilters((prev) => ({ ...prev, search: searchValue }));
+        setPagination((prev) => ({ ...prev, page: 1 }));
+    };
+
+    const handleApplyFilters = (newFilters: typeof filters) => {
+        setFilters(newFilters);
+        setPagination((prev) => ({ ...prev, page: 1 }));
+    };
+
+    const handleClearFilters = () => {
+        setFilters({ search: "", role: "all", status: "all" });
+        setPagination((prev) => ({ ...prev, page: 1 }));
+    };
+
     return (
-        <Stack gap="xl">
-            {notification && (
-                <Notification
-                    icon={
-                        notification.type === "success" ? (
-                            <IconCheck size={18} />
-                        ) : (
-                            <IconX size={18} />
-                        )
-                    }
-                    color={notification.type === "success" ? "teal" : "red"}
-                    title={
-                        notification.type === "success" ? "Success" : "Error"
-                    }
-                    onClose={() => setNotification(null)}
-                    withCloseButton
-                >
-                    {notification.message}
-                </Notification>
-            )}
-            <Group justify="space-between" align="flex-start">
-                <div>
-                    <Title order={2}>Users & Permissions</Title>
-                </div>
-                <Group>
-                    <Button
-                        leftSection={<IconUserPlus size={16} />}
-                        onClick={() => openUserDrawer()}
+        <Paper 
+            p={26} 
+            radius="none" 
+            withBorder={false} 
+            style={{ 
+                height: "100%", 
+                display: "flex", 
+                flexDirection: "column",
+                overflow: "hidden"
+            }}
+        >
+            <Stack gap="lg" style={{ flex: 1, minHeight: 0, overflow: "hidden", alignItems: "stretch" }}>
+                {notification && (
+                    <Notification
+                        icon={
+                            notification.type === "success" ? (
+                                <IconCheck size={18} />
+                            ) : (
+                                <IconX size={18} />
+                            )
+                        }
+                        color={notification.type === "success" ? "teal" : "red"}
+                        title={
+                            notification.type === "success" ? "Success" : "Error"
+                        }
+                        onClose={() => setNotification(null)}
+                        withCloseButton
+                        style={{ flexShrink: 0 }}
                     >
-                        Add user
-                    </Button>
-                    <Button
-                        variant="light"
-                        leftSection={<IconUsersGroup size={16} />}
-                        onClick={openExistingUserDrawer}
-                    >
-                        Add existing user
-                    </Button>
-                </Group>
-            </Group>
+                        {notification.message}
+                    </Notification>
+                )}
 
-            <UserStats users={users} pagination={pagination} />
-
-            <Paper withBorder radius="lg" p="lg" shadow="xs">
-                <UserFilters
-                    filters={filters}
-                    roleOptions={roleOptions}
-                    onFilterChange={setFilters}
-                    onPageReset={() =>
-                        setPagination((prev) => ({ ...prev, page: 1 }))
-                    }
-                />
-
-                <UserTable
-                    users={users}
-                    isLoading={isLoadingUsers}
-                    getRoleLabel={getRoleLabel}
-                    onStatusToggle={handleStatusToggle}
-                    onUpdateUser={openUserDrawer}
-                    onUpdatePermissions={openPermissionsDrawer}
-                />
-
-                {pagination.totalPages > 1 && (
-                    <Group justify="space-between" align="center" mt="md">
-                        <Text size="sm" c="dimmed">
-                            Showing {users.length} of {pagination.total} users
+                {/* Header */}
+                <Group justify="space-between" align="center" style={{ flexShrink: 0 }}>
+                    <div>
+                        <Title order={2}>Users & Permissions</Title>
+                        <Text c="dimmed" size="sm">
+                            Manage users and their permissions
                         </Text>
+                    </div>
+                    <Group>
+                        <Button
+                            leftSection={<IconUserPlus size={16} />}
+                            onClick={() => openUserDrawer()}
+                        >
+                            Add user
+                        </Button>
+                        <Button
+                            variant="light"
+                            leftSection={<IconUsersGroup size={16} />}
+                            onClick={openExistingUserDrawer}
+                        >
+                            Add existing user
+                        </Button>
+                    </Group>
+                </Group>
+
+                {/* User Stats */}
+                <div style={{ flexShrink: 0 }}>
+                    <UserStats users={users} pagination={pagination} />
+                </div>
+
+                {/* Search and Filters */}
+                <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
+                    <BaseInput
+                        placeholder="Search users by name or email..."
+                        leftSection={<IconSearch size={16} />}
+                        style={{ 
+                            width: "100%",
+                            maxWidth: 500,
+                            flex: "1 1 0",
+                            minWidth: 0
+                        }}
+                        styles={{
+                            input: {
+                                height: "42px",
+                                minHeight: "42px",
+                            },
+                        }}
+                        value={filters.search}
+                        onChange={(e) => handleSearchChange(e.currentTarget.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                handleSearchChange(filters.search);
+                            }
+                        }}
+                    />
+                    <UserFilters onOpenFilters={() => setFiltersDrawerOpened(true)} />
+                </Group>
+
+                {/* Table - Scrollable container */}
+                <div 
+                    style={{ 
+                        flex: "1 1 0",
+                        minHeight: 0,
+                        width: "100%",
+                        maxHeight: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden"
+                    }}
+                >
+                    <div style={{ 
+                        width: "100%",
+                        flex: "1 1 0",
+                        minHeight: 0,
+                        maxHeight: "100%",
+                        overflow: "auto"
+                    }}>
+                        <UserTable
+                            users={users}
+                            isLoading={isLoadingUsers}
+                            getRoleLabel={getRoleLabel}
+                            onStatusToggle={handleStatusToggle}
+                            onUpdateUser={openUserDrawer}
+                            onUpdatePermissions={openPermissionsDrawer}
+                        />
+                    </div>
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                    <Group 
+                        justify="center"
+                        style={{
+                            flexShrink: 0,
+                            paddingTop: 16,
+                            paddingBottom: 16,
+                        }}
+                    >
                         <Pagination
                             value={pagination.page}
                             onChange={(page) => {
@@ -618,7 +701,7 @@ export function UserManagementPage() {
                         />
                     </Group>
                 )}
-            </Paper>
+            </Stack>
 
             <UserDrawer
                 opened={userDrawerOpened}
@@ -666,7 +749,17 @@ export function UserManagementPage() {
                 onSubmit={handleExistingUserSubmit}
                 isSubmitting={isSubmitting}
             />
-        </Stack>
+
+            {/* Filters Drawer */}
+            <UserFiltersDrawer
+                opened={filtersDrawerOpened}
+                onClose={() => setFiltersDrawerOpened(false)}
+                filters={filters}
+                roleOptions={roleOptions}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
+            />
+        </Paper>
     );
 }
 

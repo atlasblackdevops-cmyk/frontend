@@ -1,7 +1,6 @@
 .user {
   display: block;
   width: 100%;
-  padding: 12px;
   border-radius: 8px;
   color: #111827;
   transition: background-color 0.15s ease;
