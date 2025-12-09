@@ -1,8 +1,9 @@
 "use client";
 
-import { Drawer, Stack, Select, Group, Button, ActionIcon, TextInput } from "@mantine/core";
+import { Drawer, Stack, Select, Group, Button, ActionIcon } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconFilter, IconX } from "@tabler/icons-react";
+import { BaseDateInput } from "@/components/ui";
 import type { FilterValues } from "../types";
 import { GENDER_OPTIONS } from "../types";
 
@@ -76,16 +77,30 @@ export default function AnimalFiltersDrawer({
                     {...form.getInputProps("gender")}
                 />
 
-                <TextInput
+                <BaseDateInput
                     label="Birthdate From"
-                    type="date"
-                    {...form.getInputProps("birthdateFrom")}
+                    placeholder="Select start date"
+                    value={form.values.birthdateFrom ? new Date(form.values.birthdateFrom) : null}
+                    onChange={(date) => {
+                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                            form.setFieldValue("birthdateFrom", (date as Date).toISOString().split('T')[0]);
+                        } else {
+                            form.setFieldValue("birthdateFrom", "");
+                        }
+                    }}
                 />
 
-                <TextInput
+                <BaseDateInput
                     label="Birthdate To"
-                    type="date"
-                    {...form.getInputProps("birthdateTo")}
+                    placeholder="Select end date"
+                    value={form.values.birthdateTo ? new Date(form.values.birthdateTo) : null}
+                    onChange={(date) => {
+                        if (date && typeof date === 'object' && 'toISOString' in date) {
+                            form.setFieldValue("birthdateTo", (date as Date).toISOString().split('T')[0]);
+                        } else {
+                            form.setFieldValue("birthdateTo", "");
+                        }
+                    }}
                 />
 
                 <Group justify="flex-end" gap="sm" mt="md">

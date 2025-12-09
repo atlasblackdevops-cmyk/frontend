@@ -1,15 +1,25 @@
 "use client";
 
 import { Button, type ButtonProps } from "@mantine/core";
+import { forwardRef } from "react";
 
-export type BaseButtonProps = ButtonProps;
-
-export default function BaseButton(props: BaseButtonProps) {
-    const { radius = 6, ...restProps } = props;
-    return (
-        <Button
-            radius={radius}
-            {...restProps}
-        />
-    );
+export interface BaseButtonProps extends ButtonProps {
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    type?: "button" | "submit" | "reset";
 }
+
+const BaseButton = forwardRef<HTMLButtonElement, BaseButtonProps>(
+    ({ radius = 6, ...props }, ref) => {
+        return (
+            <Button
+                ref={ref}
+                radius={radius}
+                {...props}
+            />
+        );
+    }
+);
+
+BaseButton.displayName = "BaseButton";
+
+export default BaseButton;

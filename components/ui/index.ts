@@ -9,6 +9,12 @@ export { default as BaseDateInput } from "./BaseDateInput";
 export type { BaseDateInputProps } from "./BaseDateInput";
 export { default as BaseTextarea } from "./BaseTextarea";
 export type { BaseTextareaProps } from "./BaseTextarea";
+export { default as BaseNumberInput } from "./BaseNumberInput";
+export type { BaseNumberInputProps } from "./BaseNumberInput";
+export { default as BaseSelect } from "./BaseSelect";
+export type { BaseSelectProps } from "./BaseSelect";
+export { default as BasePasswordInput } from "./BasePasswordInput";
+export type { BasePasswordInputProps } from "./BasePasswordInput";
 export { default as DeleteConfirmationModal } from "./DeleteConfirmationModal";
 export { useToast } from "./useToast";
 

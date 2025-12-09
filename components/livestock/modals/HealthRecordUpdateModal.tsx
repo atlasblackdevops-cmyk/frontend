@@ -7,8 +7,6 @@ import {
     Modal,
     NumberInput,
     Stack,
-    Textarea,
-    TextInput,
     FileButton,
     SimpleGrid,
     Image,
@@ -19,6 +17,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPhoto, IconX } from "@tabler/icons-react";
+import { BaseInput, BaseDateInput, BaseTextarea } from "@/components/ui";
 import type { HealthRecordValues, AnimalRecord, HealthRecord } from "../types";
 
 const MAX_IMAGES = 10;
@@ -258,13 +257,13 @@ export default function HealthRecordUpdateModal({
                 })}
             >
                 <Stack gap="md">
-                    <TextInput
+                    <BaseInput
                         label="Type"
                         placeholder="e.g. Vaccination, Treatment"
                         required
                         {...form.getInputProps("type")}
                     />
-                    <TextInput
+                    <BaseInput
                         label="Name"
                         placeholder="e.g. Annual Checkup"
                         required
@@ -277,12 +276,19 @@ export default function HealthRecordUpdateModal({
                         decimalScale={2}
                         {...form.getInputProps("cost")}
                     />
-                    <TextInput
+                    <BaseDateInput
                         label="Next due date"
-                        type="date"
-                        {...form.getInputProps("nextDueDate")}
+                        placeholder="Select date"
+                        value={form.values.nextDueDate ? new Date(form.values.nextDueDate) : null}
+                        onChange={(date) => {
+                            if (date && typeof date === 'object' && 'toISOString' in date) {
+                                form.setFieldValue("nextDueDate", (date as Date).toISOString().split('T')[0]);
+                            } else {
+                                form.setFieldValue("nextDueDate", "");
+                            }
+                        }}
                     />
-                    <Textarea
+                    <BaseTextarea
                         label="Description"
                         placeholder="Enter description"
                         rows={4}

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Group, Paper, Pagination, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Group, Paper, Pagination, Stack, Text, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { useToast } from "@/components/ui/useToast";
+import { BaseInput } from "@/components/ui";
 import type { PlantingRecord, FilterValues, CreatePlantingData } from "../types";
 import { usePlantings } from "../hooks";
 import { PlantingModal } from "../modals";
@@ -270,8 +271,7 @@ export default function PlantingSection() {
 
                 {/* Search and Filters */}
                 <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-                    <TextInput
-                        size={"md"}
+                    <BaseInput
                         placeholder="Search by crop name, seed type..."
                         leftSection={<IconSearch size={16} />}
                         style={{ 
@@ -280,7 +280,12 @@ export default function PlantingSection() {
                             flex: "1 1 0",
                             minWidth: 0
                         }}
-                        radius={6}
+                        styles={{
+                            input: {
+                                height: "42px",
+                                minHeight: "42px",
+                            },
+                        }}
                         value={filterForm.values.search}
                         onChange={handleSearchChange}
                         onKeyDown={(e) => {

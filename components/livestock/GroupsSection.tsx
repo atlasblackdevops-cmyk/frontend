@@ -8,7 +8,6 @@ import {
   Pagination,
   Stack,
   Text,
-  TextInput,
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -17,6 +16,7 @@ import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { useToast } from "@/components/ui/useToast";
+import { BaseInput } from "@/components/ui";
 import type { AnimalGroup, AddGroupValues, AssignAnimalsValues, UpdateGroupValues, AnimalRecord } from "./types";
 import {
   getGroups,
@@ -364,8 +364,7 @@ export default function GroupsSection() {
 
         {/* Search */}
         <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-          <TextInput
-            size={"md"}
+          <BaseInput
             placeholder="Search by group name"
             leftSection={<IconSearch size={16} />}
             style={{ 
@@ -374,7 +373,12 @@ export default function GroupsSection() {
               flex: "1 1 0",
               minWidth: 0
             }}
-            radius={6}
+            styles={{
+              input: {
+                height: "42px",
+                minHeight: "42px",
+              },
+            }}
             value={searchForm.values.search}
             onChange={(e) => handleSearchChange(e.currentTarget.value)}
             onKeyDown={(e) => {

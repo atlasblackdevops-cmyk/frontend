@@ -11,7 +11,6 @@ import {
     Paper,
     Stack,
     Text,
-    TextInput,
     Title,
 } from "@mantine/core";
 import {
@@ -21,6 +20,7 @@ import {
     IconX,
     IconSearch,
 } from "@tabler/icons-react";
+import { BaseInput } from "@/components/ui";
 import type { ManagedUser, PermissionMatrix } from "./types";
 import { useUsers, useRoles, usePermissions } from "./hooks";
 import { UserStats, UserFilters, UserTable } from "./components";
@@ -624,8 +624,7 @@ export function UserManagementPage() {
 
                 {/* Search and Filters */}
                 <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-                    <TextInput
-                        size={"md"}
+                    <BaseInput
                         placeholder="Search users by name or email..."
                         leftSection={<IconSearch size={16} />}
                         style={{ 
@@ -634,7 +633,12 @@ export function UserManagementPage() {
                             flex: "1 1 0",
                             minWidth: 0
                         }}
-                        radius={6}
+                        styles={{
+                            input: {
+                                height: "42px",
+                                minHeight: "42px",
+                            },
+                        }}
                         value={filters.search}
                         onChange={(e) => handleSearchChange(e.currentTarget.value)}
                         onKeyDown={(e) => {

@@ -1,8 +1,9 @@
 'use client';
 
-import { Button, Group, Paper, Stack, Text, TextInput, Title, Pagination } from '@mantine/core';
+import { Button, Group, Paper, Stack, Text, Title, Pagination } from '@mantine/core';
 import { IconPlus, IconSearch, IconDatabaseExclamation, IconEdit, IconTrash } from '@tabler/icons-react';
 import BaseTable, { BaseTableColumn } from '@/components/ui/BaseTable';
+import { BaseInput } from '@/components/ui';
 import { useState } from 'react';
 
 interface ListingPageProps {
@@ -150,8 +151,7 @@ export default function ListingPage({
 
         {/* Search */}
         <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-          <TextInput
-            size={"md"}
+          <BaseInput
             placeholder="Search..."
             leftSection={<IconSearch size={16} />}
             style={{ 
@@ -160,7 +160,12 @@ export default function ListingPage({
               flex: "1 1 0",
               minWidth: 0
             }}
-            radius={6}
+            styles={{
+              input: {
+                height: "42px",
+                minHeight: "42px",
+              },
+            }}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.currentTarget.value);

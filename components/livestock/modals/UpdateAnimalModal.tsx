@@ -9,10 +9,10 @@ import {
     Modal,
     Select,
     Stack,
-    TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPhoto, IconUpload } from "@tabler/icons-react";
+import { BaseInput, BaseDateInput } from "@/components/ui";
 import type { AddAnimalValues, AnimalRecord } from "../types";
 import { GENDER_OPTIONS } from "../types";
 
@@ -147,19 +147,19 @@ export default function UpdateAnimalModal({
                             clearable
                         />
                     </Group>
-                    <TextInput
+                    <BaseInput
                         label="Name"
                         placeholder="e.g. Daisy"
                         required
                         {...form.getInputProps("name")}
                     />
-                    <TextInput
+                    <BaseInput
                         label="Species"
                         placeholder="e.g. Cattle"
                         required
                         {...form.getInputProps("species")}
                     />
-                    <TextInput
+                    <BaseInput
                         label="Breed"
                         placeholder="e.g. Jersey"
                         required
@@ -174,11 +174,18 @@ export default function UpdateAnimalModal({
                         required
                         {...form.getInputProps("gender")}
                     />
-                    <TextInput
+                    <BaseDateInput
                         label="Birthdate"
-                        type="date"
+                        placeholder="Select birthdate"
                         required
-                        {...form.getInputProps("birthdate")}
+                        value={form.values.birthdate ? new Date(form.values.birthdate) : null}
+                        onChange={(date) => {
+                            if (date && typeof date === 'object' && 'toISOString' in date) {
+                                form.setFieldValue("birthdate", (date as Date).toISOString().split('T')[0]);
+                            } else {
+                                form.setFieldValue("birthdate", "");
+                            }
+                        }}
                     />
                     <Group justify="flex-end" mt="sm">
                         <Button

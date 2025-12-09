@@ -1,20 +1,20 @@
 "use client";
 
-import { TextInput, TextInputProps } from "@mantine/core";
+import { PasswordInput, PasswordInputProps } from "@mantine/core";
 import { forwardRef } from "react";
 
-export interface BaseInputProps extends TextInputProps {
+export interface BasePasswordInputProps extends PasswordInputProps {
     // Add any custom props here if needed
 }
 
 /**
- * Common Input component used across all modules
+ * Common Password Input component used across all modules
  * Provides consistent styling and behavior
  */
-const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
+const BasePasswordInput = forwardRef<HTMLInputElement, BasePasswordInputProps>(
     ({ styles, ...props }, ref) => {
         return (
-            <TextInput
+            <PasswordInput
                 ref={ref}
                 size="md"
                 radius={6}
@@ -38,7 +38,7 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
     }
 );
 
-BaseInput.displayName = "BaseInput";
+BasePasswordInput.displayName = "BasePasswordInput";
 
-export default BaseInput;
+export default BasePasswordInput;
 

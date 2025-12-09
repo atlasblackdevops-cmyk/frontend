@@ -7,11 +7,9 @@ import {
   ScrollArea,
   Stack,
   Select,
-  TextInput,
   NumberInput,
-  Textarea,
 } from "@mantine/core";
-import { DateInput } from "@mantine/dates";
+import { BaseInput, BaseDateInput, BaseTextarea } from "@/components/ui";
 import { useForm } from "@mantine/form";
 import { useEffect, useMemo } from "react";
 import type {
@@ -25,7 +23,6 @@ import {
   CROP_OPTIONS,
   QUANTITY_UNIT_OPTIONS,
 } from "../types";
-import "@mantine/dates/styles.css";
 
 const BASE_VALUES: AddPlantingValues = {
   fieldId: "",
@@ -158,43 +155,53 @@ export default function PlantingModal({
               {...form.getInputProps("crop")}
             />
 
-            <TextInput
+            <BaseInput
               label="Seed Type"
               placeholder="e.g., Hybrid Corn, Organic Wheat"
               key={form.key("seedType")}
               {...form.getInputProps("seedType")}
             />
 
-            <DateInput
+            <BaseDateInput
               label="Planting Date"
-              placeholder="DD/MM/YYYY"
-              valueFormat="DD/MM/YYYY"
+              placeholder="Select date"
               clearable
               value={
                 form.values.plantingDate
                   ? new Date(form.values.plantingDate)
                   : null
               }
+              onChange={(date) => {
+                if (date && typeof date === 'object' && 'toISOString' in date) {
+                  form.setFieldValue(
+                    "plantingDate",
+                    (date as Date).toISOString().split("T")[0]
+                  );
+                } else {
+                  form.setFieldValue("plantingDate", "");
+                }
+              }}
               key={form.key("plantingDate")}
-              {...form.getInputProps("plantingDate")}
             />
 
-            <DateInput
+            <BaseDateInput
               label="Expected Harvest Date (Optional)"
-              placeholder="DD/MM/YYYY"
-              valueFormat="DD/MM/YYYY"
+              placeholder="Select date"
               clearable
               value={
                 form.values.expectedHarvestDate
                   ? new Date(form.values.expectedHarvestDate)
                   : null
               }
-              onChange={(value) => {
-                const d = value ? new Date(value as string) : null;
-                form.setFieldValue(
-                  "expectedHarvestDate",
-                  d ? d.toISOString().split("T")[0] : ""
-                );
+              onChange={(date) => {
+                if (date && typeof date === 'object' && 'toISOString' in date) {
+                  form.setFieldValue(
+                    "expectedHarvestDate",
+                    (date as Date).toISOString().split("T")[0]
+                  );
+                } else {
+                  form.setFieldValue("expectedHarvestDate", "");
+                }
               }}
               key={form.key("expectedHarvestDate")}
             />
@@ -243,7 +250,7 @@ export default function PlantingModal({
               />
             </Group>
 
-            <Textarea
+            <BaseTextarea
               label="Notes (Optional)"
               placeholder="Additional notes about this planting"
               minRows={3}

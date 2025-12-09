@@ -11,13 +11,13 @@ import {
     ScrollArea,
     Stack,
     Text,
-    TextInput,
     Paper,
     Badge,
     Loader,
     Center,
 } from "@mantine/core";
 import { Button } from "@mantine/core";
+import { BaseInput } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/stores/use-auth-store";
 import CreateFarmModal from "./CreateFarmModal";
@@ -230,15 +230,15 @@ export default function FarmSwitcherModal({
 
                     {/* Search Input - Only show if there are farms */}
                     {farms.length > 3 && (
-                        <TextInput
+                        <BaseInput
                             placeholder="Search farms by name..."
                             leftSection={<IconSearch size={16} />}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                            size="md"
-                            radius="md"
                             styles={{
                                 input: {
+                                    height: "42px",
+                                    minHeight: "42px",
                                     border: "1px solid var(--mantine-color-gray-3)",
                                 },
                             }}
