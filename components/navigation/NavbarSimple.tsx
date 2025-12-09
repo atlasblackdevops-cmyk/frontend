@@ -58,6 +58,7 @@ const data: NavItem[] = [
         icon: IconPlant2,
         children: [
             { link: "/crops/planting", label: "Planting", icon: IconSeeding },
+            { link: "/crops/health-notes", label: "Crop Health Notes", icon: IconCircleCheck },
         ],
     },
     { link: "/finance", label: "Finance", icon: IconCurrencyDollar },
