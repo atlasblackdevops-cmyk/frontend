@@ -59,7 +59,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <Stack gap="xl" w="100%" maw={440} align="center" style={{ maxHeight: '100%' }}>
           {/* Modern flat logo/title */}
           <Stack gap="xs" align="center" mb="md">
-            <Text
+            {/* <Text
               fw={700}
               ta="center"
               style={{ 
@@ -100,7 +100,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               }}
             >
               Manage your farm efficiently
-            </Text>
+            </Text> */}
           </Stack>
 
           {/* Form Card */}
