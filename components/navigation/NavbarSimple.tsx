@@ -22,6 +22,9 @@ import {
     IconCircleCheck,
     IconChevronLeft,
     IconChartBar,
+    IconBasket,
+    IconDroplet,
+    IconFlask,
 } from "@tabler/icons-react";
 import { Group, Text, Collapse, Paper, ActionIcon, Tooltip, Avatar } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
@@ -58,6 +61,9 @@ const data: NavItem[] = [
         icon: IconPlant2,
         children: [
             { link: "/crops/planting", label: "Planting", icon: IconSeeding },
+            { link: "/crops/harvests", label: "Harvests", icon: IconBasket },
+            { link: "/crops/irrigation", label: "Irrigation", icon: IconDroplet },
+            { link: "/crops/fertilizer", label: "Fertilizer", icon: IconFlask },
             { link: "/crops/health-notes", label: "Crop Health Notes", icon: IconCircleCheck },
         ],
     },

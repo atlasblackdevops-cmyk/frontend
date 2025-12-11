@@ -2,12 +2,16 @@ import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "./globals.css";
 
+// Initialize dayjs locale before Mantine dates components are used
+import "@/lib/dayjs";
+
 import React from "react";
 import {
     ColorSchemeScript,
     mantineHtmlProps,
     MantineProvider,
 } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
 import { QueryProvider } from "@/providers/query-provider";
 import AuthSessionProvider from "@/providers/session-provider";
 import { theme } from "@/theme";
@@ -91,7 +95,9 @@ export default function RootLayout({ children }: { children: any }) {
                             defaultColorScheme="light"
                             theme={theme}
                         >
-                            {children}
+                            <DatesProvider settings={{ firstDayOfWeek: 0 }}>
+                                {children}
+                            </DatesProvider>
                         </MantineProvider>
                     </QueryProvider>
                 </AuthSessionProvider>

@@ -12,6 +12,15 @@ import type {
     CreateSeedPurchaseData,
     CreateSeedUsageData,
 } from "@/components/crops/types";
+import type {
+    HarvestsApiResponse,
+    HarvestDetailsResponse,
+    HarvestRecord,
+    ApiHarvestResponse,
+    YieldBySeasonResponse,
+    GetHarvestsParams,
+    CreateHarvestData,
+} from "@/components/crops/harvests/types";
 
 /**
  * Get list of plantings with filters and pagination
@@ -65,7 +74,7 @@ export async function getPlantingDetails(
 
     const responseData = response.data?.data ?? response.data;
     const plantingData = responseData?.planting;
-    
+
     if (!plantingData) {
         throw new Error("Planting data not found");
     }
@@ -196,7 +205,7 @@ export async function getSeedPurchases(params?: {
             pagination?: PaginationInfo;
         };
     }>(`/api/v1/crops/seed-purchases?${queryParams.toString()}`);
-    
+
     const responseData = response.data?.data;
     const records = responseData?.seedPurchases ?? [];
     const pagination = responseData?.pagination ?? {
@@ -265,7 +274,7 @@ export async function getSeedUsage(params?: {
             pagination?: PaginationInfo;
         };
     }>(`/api/v1/crops/seed-usage?${queryParams.toString()}`);
-    
+
     const responseData = response.data?.data;
     const records = responseData?.seedUsage ?? [];
     const pagination = responseData?.pagination ?? {
@@ -284,7 +293,9 @@ export async function getSeedUsage(params?: {
 /**
  * Create a seed usage record
  */
-export async function createSeedUsage(data: CreateSeedUsageData): Promise<void> {
+export async function createSeedUsage(
+    data: CreateSeedUsageData
+): Promise<void> {
     const payload: any = {
         seedType: data.seedType,
         crop: data.crop,
@@ -301,3 +312,190 @@ export async function createSeedUsage(data: CreateSeedUsageData): Promise<void> 
     await api.post("/api/v1/crops/seed-usage", payload);
 }
 
+/**
+ * Get list of harvests with filters and pagination
+ */
+export async function getHarvests(
+    params: GetHarvestsParams = {}
+): Promise<HarvestsApiResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params.page) {
+        queryParams.append("page", params.page.toString());
+    }
+    if (params.limit) {
+        queryParams.append("limit", params.limit.toString());
+    }
+    if (params.search?.trim()) {
+        queryParams.append("search", params.search.trim());
+    }
+    if (params.cropType && params.cropType !== "all") {
+        queryParams.append("cropType", params.cropType);
+    }
+    if (params.fieldId && params.fieldId !== "all") {
+        queryParams.append("fieldId", params.fieldId);
+    }
+    if (params.harvestDateFrom) {
+        queryParams.append("harvestDateFrom", params.harvestDateFrom);
+    }
+    if (params.harvestDateTo) {
+        queryParams.append("harvestDateTo", params.harvestDateTo);
+    }
+
+    const response = await api.get<HarvestsApiResponse>(
+        `/api/v1/harvests?${queryParams.toString()}`
+    );
+
+    return response.data;
+}
+
+/**
+ * Get single harvest details by ID
+ */
+export async function getHarvestDetails(
+    harvestId: string
+): Promise<HarvestRecord> {
+    const response = await api.get<HarvestDetailsResponse>(
+        `/api/v1/harvests/${harvestId}`
+    );
+
+    const responseData = response.data?.data ?? response.data;
+    const harvestData = responseData?.harvest;
+
+    if (!harvestData) {
+        throw new Error("Harvest data not found");
+    }
+
+    // Convert API response to HarvestRecord format
+    return {
+        id: harvestData.id,
+        fieldId: harvestData.field?.id || "",
+        fieldName: harvestData.field?.fieldName,
+        harvestDate: harvestData.harvestDate,
+        yieldAmount:
+            typeof harvestData.yieldAmount === "string"
+                ? parseFloat(harvestData.yieldAmount)
+                : harvestData.yieldAmount,
+        yieldUnit: harvestData.yieldUnit,
+        cropType: harvestData.cropType,
+        notes: harvestData.notes,
+        plantingRecordId: harvestData.plantingRecord?.id || null,
+        plantingRecord: harvestData.plantingRecord
+            ? {
+                  id: harvestData.plantingRecord.id || "",
+                  crop: harvestData.plantingRecord.crop || "",
+                  plantingDate: harvestData.plantingRecord.plantingDate || "",
+              }
+            : null,
+        createdAt: harvestData.createdAt,
+        updatedAt: harvestData.updatedAt,
+    };
+}
+
+/**
+ * Create a new harvest record
+ */
+export async function createHarvest(data: CreateHarvestData): Promise<void> {
+    const payload: any = {
+        fieldId: data.fieldId,
+        harvestDate: data.harvestDate,
+        cropType: data.cropType,
+        yieldAmount: data.yieldAmount.toString(), // Convert to string as API expects
+        yieldUnit: data.yieldUnit,
+    };
+
+    if (data.notes?.trim()) {
+        payload.notes = data.notes.trim();
+    }
+    if (data.plantingRecordId) {
+        payload.plantingRecordId = data.plantingRecordId;
+    }
+
+    await api.post("/api/v1/harvests", payload);
+}
+
+/**
+ * Update an existing harvest record
+ */
+export async function updateHarvest(
+    harvestId: string,
+    data: CreateHarvestData
+): Promise<void> {
+    const payload: any = {
+        fieldId: data.fieldId,
+        harvestDate: data.harvestDate,
+        cropType: data.cropType,
+        yieldAmount: data.yieldAmount.toString(), // Convert to string as API expects
+        yieldUnit: data.yieldUnit,
+    };
+
+    if (data.notes?.trim()) {
+        payload.notes = data.notes.trim();
+    }
+    if (data.plantingRecordId) {
+        payload.plantingRecordId = data.plantingRecordId;
+    }
+
+    await api.put(`/api/v1/harvests/${harvestId}`, payload);
+}
+
+/**
+ * Delete a harvest record
+ */
+export async function deleteHarvest(harvestId: string): Promise<void> {
+    await api.delete(`/api/v1/harvests/${harvestId}`);
+}
+
+/**
+ * Get yield by season data for chart
+ */
+export async function getYieldBySeason(
+    farmId?: string,
+    cropType?: string
+): Promise<YieldBySeasonResponse> {
+    const queryParams = new URLSearchParams();
+    if (cropType && cropType !== "all") {
+        queryParams.append("cropType", cropType);
+    }
+
+    const response = await api.get<YieldBySeasonResponse>(
+        `/api/v1/harvests/yield-by-season?${queryParams.toString()}`
+    );
+
+    return response.data;
+}
+
+/**
+ * Export harvests to CSV
+ * Note: This endpoint may need to be implemented on the backend
+ */
+export async function exportHarvestsToCSV(
+    params: GetHarvestsParams = {}
+): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+
+    if (params.search?.trim()) {
+        queryParams.append("search", params.search.trim());
+    }
+    if (params.cropType && params.cropType !== "all") {
+        queryParams.append("cropType", params.cropType);
+    }
+    if (params.fieldId && params.fieldId !== "all") {
+        queryParams.append("fieldId", params.fieldId);
+    }
+    if (params.harvestDateFrom) {
+        queryParams.append("harvestDateFrom", params.harvestDateFrom);
+    }
+    if (params.harvestDateTo) {
+        queryParams.append("harvestDateTo", params.harvestDateTo);
+    }
+
+    const response = await api.get(
+        `/api/v1/harvests/export?${queryParams.toString()}`,
+        {
+            responseType: "blob",
+        }
+    );
+
+    return response.data;
+}
