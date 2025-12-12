@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useMemo, useCallback } from "react";
+import { FormEvent, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/stores/use-auth-store";
 import {
     Button,
@@ -88,47 +88,85 @@ export function UserManagementPage() {
         message: string;
     } | null>(null);
 
-    // Fetch users when filters or pagination changes
-    useEffect(() => {
-        if (moduleDefinitions.length > 0) {
-            fetchUsers(pagination.page, pagination.limit);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        filters.role,
-        filters.status,
-        filters.search,
-        pagination.page,
-        pagination.limit,
-        moduleDefinitions.length,
-    ]);
+    // Track initialization state
+    const modulesReady = moduleDefinitions.length > 0;
+    const hasInitializedRef = useRef(false);
+    const lastFarmIdRef = useRef<string | null>(null);
+    const isResettingRef = useRef(false);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Debounced search effect
+    // Initial load and farm change: Reset filters and pagination, trigger single fetch
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (moduleDefinitions.length > 0) {
-                setPagination((prev) => ({ ...prev, page: 1 }));
-                fetchUsers(1, pagination.limit);
+        if (!farmId || !modulesReady) return;
+        
+        const farmChanged = lastFarmIdRef.current !== null && lastFarmIdRef.current !== farmId;
+        
+        if (!hasInitializedRef.current || farmChanged) {
+            hasInitializedRef.current = true;
+            lastFarmIdRef.current = farmId;
+            isResettingRef.current = true;
+            
+            // Clear any pending search debounce
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+                searchTimeoutRef.current = null;
             }
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters.search, moduleDefinitions.length]);
-
-    // Refetch users when farm changes
-    useEffect(() => {
-        if (farmId && moduleDefinitions.length > 0) {
-            setPagination((prev) => ({ ...prev, page: 1 }));
+            
+            // Reset filters and pagination
             setFilters({
                 search: "",
                 role: "all",
                 status: "all",
             });
-            fetchUsers(1, pagination.limit);
+            setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
+            
+            // Fetch immediately after reset (single fetch for initial load/farm change)
+            fetchUsers(1, 10);
+            
+            // Mark reset as complete after state update cycle
+            setTimeout(() => {
+                isResettingRef.current = false;
+            }, 0);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [farmId, moduleDefinitions.length]);
+    }, [farmId, modulesReady]);
+
+    // Debounced search effect - only for search changes (not during reset)
+    useEffect(() => {
+        if (!modulesReady || !farmId || !hasInitializedRef.current || isResettingRef.current) return;
+        
+        // Clear existing timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        
+        // Set new timeout for debounced search
+        searchTimeoutRef.current = setTimeout(() => {
+            setPagination((prev) => ({ ...prev, page: 1 }));
+            fetchUsers(1, pagination.limit);
+            searchTimeoutRef.current = null;
+        }, 500);
+
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+                searchTimeoutRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.search]);
+
+    // Main fetch effect: handles filters (role, status) and pagination changes
+    // Skips if search timeout is active (search will handle its own fetch) or during reset
+    useEffect(() => {
+        if (!modulesReady || !farmId || !hasInitializedRef.current || isResettingRef.current) return;
+        
+        // Skip if search is being debounced (search effect will handle it)
+        if (searchTimeoutRef.current) return;
+        
+        fetchUsers(pagination.page, pagination.limit);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.role, filters.status, pagination.page, pagination.limit]);
 
     // Permission management functions
     const togglePermission = useCallback(
@@ -278,17 +316,10 @@ export function UserManagementPage() {
                         updatePayload.password = values.password;
                     }
 
-                    const updatedUser = await updateUserHook(
+                    await updateUserHook(
                         activeUser.id,
                         updatePayload
                     );
-
-                    setUsers((prev) =>
-                        prev.map((u) =>
-                            u.id === activeUser.id ? updatedUser : u
-                        )
-                    );
-                    setActiveUser(updatedUser);
 
                     setNotification({
                         type: "success",
@@ -296,17 +327,16 @@ export function UserManagementPage() {
                     });
                     setTimeout(() => setNotification(null), 5000);
                     closeUserDrawer();
+                    fetchUsers(pagination.page, pagination.limit);
                 } else {
                     const permissionIds = getPermissionIds(permissionDraft);
-                    const newUser = await createUserHook({
+                    await createUserHook({
                         name: values.name.trim(),
                         email: values.email.trim().toLowerCase(),
                         password: values.password,
                         roleId: values.roleId,
                         permissionIds,
                     });
-
-                    setUsers((prev) => [...prev, newUser]);
                     setNotification({
                         type: "success",
                         message: "User created successfully",
@@ -351,13 +381,12 @@ export function UserManagementPage() {
 
             try {
                 const permissionIds = getPermissionIds(permissionDraft);
-                const newUser = await addExistingUserHook({
+                addExistingUserHook({
                     userId: values.userId,
                     roleId: values.roleId,
                     permissionIds,
                 });
 
-                setUsers((prev) => [...prev, newUser]);
                 setNotification({
                     type: "success",
                     message: "User added to farm successfully",

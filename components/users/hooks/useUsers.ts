@@ -46,7 +46,6 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
                     }
                 });
             }
-
             return {
                 id: apiUser.user.id,
                 name: apiUser.user.name,
@@ -94,7 +93,6 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
                 };
 
                 const managedUsers = apiUsers.map(convertApiUserToManagedUser);
-
                 // Apply client-side search filter if needed
                 let finalUsers = managedUsers;
                 if (filters.search.length > 0) {
@@ -124,27 +122,24 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
     );
 
     const handleCreateUser = useCallback(
-        async (data: CreateUserData): Promise<ManagedUser> => {
-            const response = await createUser(data);
-            return convertApiUserToManagedUser(response);
+        async (data: CreateUserData): Promise<ApiUserResponse> => {
+            return await createUser(data);
         },
-        [convertApiUserToManagedUser]
+        []
     );
 
     const handleUpdateUser = useCallback(
-        async (userId: string, data: UpdateUserData): Promise<ManagedUser> => {
-            const response = await updateUser(userId, data);
-            return convertApiUserToManagedUser(response);
+        async (userId: string, data: UpdateUserData): Promise<ApiUserResponse> => {
+            return await updateUser(userId, data);
         },
-        [convertApiUserToManagedUser]
+        []
     );
 
     const handleAddExistingUser = useCallback(
-        async (data: AddExistingUserData): Promise<ManagedUser> => {
-            const response = await addExistingUser(data);
-            return convertApiUserToManagedUser(response);
+        async (data: AddExistingUserData): Promise<ApiUserResponse> => {
+            return await addExistingUser(data);
         },
-        [convertApiUserToManagedUser]
+        []
     );
 
     return {

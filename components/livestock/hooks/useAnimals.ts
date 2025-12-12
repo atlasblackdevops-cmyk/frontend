@@ -62,7 +62,6 @@ export function useAnimals() {
                 total: 0,
                 totalPages: 0,
             };
-            console.log(animalsData);
             // Map API response to AnimalRecord format
             const mappedAnimals: AnimalRecord[] = animalsData.map((animal) => ({
                 id: animal.id,

@@ -29,6 +29,10 @@ export interface ApiUserResponse {
         emailVerified: boolean;
         createdAt: string;
         updatedAt?: string;
+        role: {
+            id: string;
+            roleName: string;
+        };
     };
     role: {
         id: string;
