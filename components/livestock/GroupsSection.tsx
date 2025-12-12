@@ -5,7 +5,6 @@ import {
   Button,
   Group,
   Paper,
-  Pagination,
   Stack,
   Text,
   Title,
@@ -132,8 +131,8 @@ export default function GroupsSection() {
       const mapToAnimalRecord = (animal: any): AnimalRecord => ({
         id: animal.id,
         name: animal.name,
-        species: animal.species,
-        breed: animal.breed,
+        species: animal.speciesRelation.name,
+        breed: animal.breedRelation.name,
         gender: animal.gender as "Male" | "Female" | "Unknown",
         birthdate: animal.birthdate,
         photo: animal.photo,
@@ -410,6 +409,7 @@ export default function GroupsSection() {
           }}>
             <GroupsTable
               groups={groups}
+              pagination={pagination}
               isLoading={isLoading}
               canUpdate={canUpdate}
               canDelete={canDelete}
@@ -422,28 +422,11 @@ export default function GroupsSection() {
                 setDeleteModalOpen(true);
               }}
               onAssignAnimals={handleAssignAnimals}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <Group 
-            justify="center" 
-            style={{ 
-              flexShrink: 0,
-              paddingTop: 16,
-              paddingBottom: 16,
-            }}
-          >
-            <Pagination
-              value={pagination.page}
-              onChange={handlePageChange}
-              total={pagination.totalPages}
-              size="sm"
-            />
-          </Group>
-        )}
       </Stack>
 
       {/* Modals */}

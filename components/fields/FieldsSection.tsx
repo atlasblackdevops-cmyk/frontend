@@ -5,7 +5,6 @@ import {
   Button,
   Group,
   Paper,
-  Pagination,
   Stack,
   Text,
   Title,
@@ -357,6 +356,7 @@ export default function FieldsSection() {
           }}>
             <FieldTable
               fields={fields}
+              pagination={pagination}
               isLoading={isLoading}
               canUpdate={canUpdate}
               canDelete={canDelete}
@@ -368,28 +368,11 @@ export default function FieldsSection() {
                 setFieldToDelete(field);
                 setDeleteModalOpen(true);
               }}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <Group 
-            justify="center" 
-            style={{ 
-              flexShrink: 0,
-              paddingTop: 16,
-              paddingBottom: 16,
-            }}
-          >
-            <Pagination
-              value={pagination.page}
-              onChange={handlePageChange}
-              total={pagination.totalPages}
-              size="sm"
-            />
-          </Group>
-        )}
       </Stack>
 
       {/* Modals */}

@@ -140,11 +140,13 @@ export interface HarvestModalProps {
 
 export interface HarvestTableProps {
     harvests: HarvestRecord[];
+    pagination?: PaginationInfo;
     isLoading: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     onUpdate: (harvest: HarvestRecord) => void;
     onDelete: (harvest: HarvestRecord) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export interface HarvestFiltersProps {

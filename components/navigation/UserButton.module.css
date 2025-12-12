@@ -9,3 +9,23 @@
     background-color: #f9fafb;
   }
 }
+
+.profileButton {
+  padding: 8px 10px;
+}
+
+.profileInfo {
+  flex: 1;
+}
+
+.collapsedMenuGroup {
+  padding: 8px;
+}
+
+.collapsedMenuInfo {
+  flex: 1;
+}
+
+.capitalizeText {
+  text-transform: capitalize;
+}

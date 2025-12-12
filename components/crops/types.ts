@@ -215,11 +215,13 @@ export interface PlantingModalProps {
 
 export interface PlantingTableProps {
     plantings: PlantingRecord[];
+    pagination?: PaginationInfo;
     isLoading: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     onUpdate: (planting: PlantingRecord) => void;
     onDelete: (planting: PlantingRecord) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export interface PlantingFiltersProps {

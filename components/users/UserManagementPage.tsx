@@ -7,7 +7,6 @@ import {
     Group,
     Loader,
     Notification,
-    Pagination,
     Paper,
     Stack,
     Text,
@@ -548,6 +547,11 @@ export function UserManagementPage() {
         setPagination((prev) => ({ ...prev, page: 1 }));
     };
 
+    const handlePageChange = (page: number) => {
+        setPagination((prev) => ({ ...prev, page }));
+        fetchUsers(page, pagination.limit);
+    };
+
     const handleApplyFilters = (newFilters: typeof filters) => {
         setFilters(newFilters);
         setPagination((prev) => ({ ...prev, page: 1 }));
@@ -671,36 +675,16 @@ export function UserManagementPage() {
                     }}>
                         <UserTable
                             users={users}
+                            pagination={pagination}
                             isLoading={isLoadingUsers}
                             getRoleLabel={getRoleLabel}
                             onStatusToggle={handleStatusToggle}
                             onUpdateUser={openUserDrawer}
                             onUpdatePermissions={openPermissionsDrawer}
+                            onPageChange={handlePageChange}
                         />
                     </div>
                 </div>
-
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                    <Group 
-                        justify="center"
-                        style={{
-                            flexShrink: 0,
-                            paddingTop: 16,
-                            paddingBottom: 16,
-                        }}
-                    >
-                        <Pagination
-                            value={pagination.page}
-                            onChange={(page) => {
-                                setPagination((prev) => ({ ...prev, page }));
-                                fetchUsers(page, pagination.limit);
-                            }}
-                            total={pagination.totalPages}
-                            size="sm"
-                        />
-                    </Group>
-                )}
             </Stack>
 
             <UserDrawer

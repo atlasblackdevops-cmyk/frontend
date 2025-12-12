@@ -340,6 +340,7 @@ export default function LivestockAnimalsSection() {
                         <Paper withBorder p="md" radius="md">
                             <AnimalTable
                                 animals={animals}
+                                pagination={pagination}
                                 isLoading={isLoading}
                                 canUpdate={canUpdate}
                                 canDelete={canDelete}
@@ -356,6 +357,20 @@ export default function LivestockAnimalsSection() {
                                 onOpenFeedRecords={(animal) => {
                                     setAnimalForRecord(animal);
                                     setFeedRecordDrawerOpen(true);
+                                }}
+                                onPageChange={(page) => {
+                                    setPagination((prev) => ({
+                                        ...prev,
+                                        page,
+                                    }));
+                                    fetchAnimals(page, {
+                                        search: filterForm.values.search,
+                                        gender: filterForm.values.gender,
+                                        birthdateFrom:
+                                            filterForm.values.birthdateFrom,
+                                        birthdateTo:
+                                            filterForm.values.birthdateTo,
+                                    });
                                 }}
                             />
                         </Paper>

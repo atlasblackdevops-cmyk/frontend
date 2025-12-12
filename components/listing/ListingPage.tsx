@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Group, Paper, Stack, Text, Title, Pagination } from '@mantine/core';
+import { Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { IconPlus, IconSearch, IconDatabaseExclamation, IconEdit, IconTrash } from '@tabler/icons-react';
 import BaseTable, { BaseTableColumn } from '@/components/ui/BaseTable';
 import { BaseInput } from '@/components/ui';
@@ -222,29 +222,20 @@ export default function ListingPage({
                   if (col === 'Actions') return { width: '20%' };
                   return { width: '15%' };
                 })}
+              pagination={
+                totalPages > 0
+                  ? {
+                      page,
+                      totalPages,
+                      onPageChange: setPage,
+                    }
+                  : undefined
+              }
               />
             </div>
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Group 
-            justify="center"
-            style={{
-              flexShrink: 0,
-              paddingTop: 16,
-              paddingBottom: 16,
-            }}
-          >
-            <Pagination
-              value={page}
-              onChange={setPage}
-              total={totalPages}
-              size="sm"
-            />
-          </Group>
-        )}
       </Stack>
     </Paper>
   );

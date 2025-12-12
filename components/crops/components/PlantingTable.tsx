@@ -7,11 +7,13 @@ import type { PlantingTableProps, PlantingRecord } from "../types";
 
 export default function PlantingTable({
     plantings,
+    pagination,
     isLoading,
     canUpdate,
     canDelete,
     onUpdate,
     onDelete,
+    onPageChange,
 }: PlantingTableProps) {
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return "N/A";
@@ -152,6 +154,15 @@ export default function PlantingTable({
             colgroup={[
                 { width: "15%" }, { width: "15%" }, { width: "15%" }, { width: "12%" }, { width: "12%" }, { width: "15%" }, { width: "16%" }
             ]}
+            pagination={
+                pagination
+                    ? {
+                          page: pagination.page,
+                          totalPages: pagination.totalPages,
+                          onPageChange: onPageChange ?? (() => {}),
+                      }
+                    : undefined
+            }
         />
     );
 }

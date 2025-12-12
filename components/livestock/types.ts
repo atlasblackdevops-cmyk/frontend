@@ -14,8 +14,14 @@ export type AnimalRecord = {
 export type ApiAnimalResponse = {
     id: string;
     name: string;
-    species: string;
-    breed: string;
+    speciesRelation: {
+        id: string;
+        name: string;
+    };
+    breedRelation: {
+        id: string;
+        name: string;
+    };
     gender: string;
     birthdate: string;
     photo: string | null;
@@ -274,6 +280,7 @@ export interface AnimalFiltersDrawerProps {
 
 export interface AnimalTableProps {
     animals: AnimalRecord[];
+    pagination: PaginationInfo;
     isLoading: boolean;
     canUpdate: boolean;
     canDelete: boolean;
@@ -282,14 +289,17 @@ export interface AnimalTableProps {
     onOpenHealthRecords: (animal: AnimalRecord) => void;
     onOpenWeightRecords: (animal: AnimalRecord) => void;
     onOpenFeedRecords: (animal: AnimalRecord) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export interface GroupsTableProps {
     groups: AnimalGroup[];
+    pagination?: PaginationInfo;
     isLoading: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     onUpdate: (group: AnimalGroup) => void;
     onDelete: (group: AnimalGroup) => void;
     onAssignAnimals: (group: AnimalGroup) => void;
+    onPageChange?: (page: number) => void;
 }

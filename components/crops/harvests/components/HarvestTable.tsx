@@ -7,11 +7,13 @@ import type { HarvestTableProps, HarvestRecord } from "../types";
 
 export default function HarvestTable({
     harvests,
+    pagination,
     isLoading,
     canUpdate,
     canDelete,
     onUpdate,
     onDelete,
+    onPageChange,
 }: HarvestTableProps) {
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return "N/A";
@@ -144,6 +146,15 @@ export default function HarvestTable({
             }}
             stickyHeader={true}
             minWidth={1000}
+            pagination={
+                pagination
+                    ? {
+                          page: pagination.page,
+                          totalPages: pagination.totalPages,
+                          onPageChange: onPageChange ?? (() => {}),
+                      }
+                    : undefined
+            }
         />
     );
 }

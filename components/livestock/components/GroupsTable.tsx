@@ -22,12 +22,14 @@ import { formatDate } from "@/lib/livestock/utils";
 
 export default function GroupsTable({
     groups,
+    pagination,
     isLoading,
     canUpdate,
     canDelete,
     onUpdate,
     onDelete,
     onAssignAnimals,
+    onPageChange,
 }: GroupsTableProps) {
     const formatWeight = (weight: number | null) => {
         if (weight === null) return "N/A";
@@ -187,6 +189,15 @@ export default function GroupsTable({
                     { width: "14%" },
                     { width: "20%" },
                 ]}
+                pagination={
+                    pagination
+                        ? {
+                              page: pagination.page,
+                              totalPages: pagination.totalPages,
+                              onPageChange: onPageChange ?? (() => {}),
+                          }
+                        : undefined
+                }
             />
         </div>
     );

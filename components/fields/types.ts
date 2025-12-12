@@ -112,11 +112,13 @@ export interface UpdateFieldModalProps {
 
 export interface FieldTableProps {
     fields: FieldRecord[];
+    pagination?: PaginationInfo;
     isLoading: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     onUpdate: (field: FieldRecord) => void;
     onDelete: (field: FieldRecord) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export interface FieldFiltersProps {

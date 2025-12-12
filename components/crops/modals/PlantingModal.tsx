@@ -166,20 +166,9 @@ export default function PlantingModal({
               label="Planting Date"
               placeholder="Select date"
               clearable
-              value={
-                form.values.plantingDate
-                  ? new Date(form.values.plantingDate)
-                  : null
-              }
+              value={form.values.plantingDate}
               onChange={(date) => {
-                if (date && typeof date === 'object' && 'toISOString' in date) {
-                  form.setFieldValue(
-                    "plantingDate",
-                    (date as Date).toISOString().split("T")[0]
-                  );
-                } else {
-                  form.setFieldValue("plantingDate", "");
-                }
+                form.setFieldValue("plantingDate", date || "");
               }}
               key={form.key("plantingDate")}
             />
@@ -188,20 +177,9 @@ export default function PlantingModal({
               label="Expected Harvest Date (Optional)"
               placeholder="Select date"
               clearable
-              value={
-                form.values.expectedHarvestDate
-                  ? new Date(form.values.expectedHarvestDate)
-                  : null
-              }
+              value={form.values.expectedHarvestDate}
               onChange={(date) => {
-                if (date && typeof date === 'object' && 'toISOString' in date) {
-                  form.setFieldValue(
-                    "expectedHarvestDate",
-                    (date as Date).toISOString().split("T")[0]
-                  );
-                } else {
-                  form.setFieldValue("expectedHarvestDate", "");
-                }
+                form.setFieldValue("expectedHarvestDate", date || "");
               }}
               key={form.key("expectedHarvestDate")}
             />

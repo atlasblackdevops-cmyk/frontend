@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-    Button,
-    Group,
-    Paper,
-    Pagination,
-    Stack,
-    Text,
-    Title,
-} from "@mantine/core";
+import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPlus, IconSearch, IconDownload } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
@@ -253,6 +245,11 @@ export default function HarvestsSection() {
         setFiltersDrawerOpen(false);
     };
 
+    // Handle pagination change
+    const handlePageChange = (page: number) => {
+        setPagination({ ...pagination, page });
+    };
+
     // Handle edit click
     const handleEditClick = (harvest: HarvestRecord) => {
         setHarvestToUpdate(harvest);
@@ -448,35 +445,17 @@ export default function HarvestsSection() {
                     >
                         <HarvestTable
                             harvests={harvests}
+                            pagination={pagination}
                             isLoading={isLoading}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             onUpdate={handleEditClick}
                             onDelete={handleDeleteClick}
+                            onPageChange={handlePageChange}
                         />
                     </div>
                 </div>
 
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                    <Group
-                        justify="center"
-                        style={{
-                            flexShrink: 0,
-                            paddingTop: 16,
-                            paddingBottom: 16,
-                        }}
-                    >
-                        <Pagination
-                            value={pagination.page}
-                            onChange={(page) =>
-                                setPagination({ ...pagination, page })
-                            }
-                            total={pagination.totalPages}
-                            size="sm"
-                        />
-                    </Group>
-                )}
             </Stack>
 
             {/* Modals */}

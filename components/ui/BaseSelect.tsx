@@ -5,6 +5,7 @@ import { forwardRef } from "react";
 
 export interface BaseSelectProps extends SelectProps {
     // Add any custom props here if needed
+    loading?: boolean;
 }
 
 /**

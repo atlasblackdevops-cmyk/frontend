@@ -17,24 +17,28 @@ import {
     IconUsers,
 } from "@tabler/icons-react";
 import BaseTable, { BaseTableColumn } from "@/components/ui/BaseTable";
-import type { ManagedUser } from "../types";
+import type { ManagedUser, PaginationInfo } from "../types";
 
 interface UserTableProps {
     users: ManagedUser[];
+    pagination?: PaginationInfo;
     isLoading: boolean;
     getRoleLabel: (roleId: string) => string;
     onStatusToggle: (userId: string, checked: boolean) => void;
     onUpdateUser: (user: ManagedUser) => void;
     onUpdatePermissions: (user: ManagedUser) => void;
+    onPageChange?: (page: number) => void;
 }
 
 export default function UserTable({
     users,
+    pagination,
     isLoading,
     getRoleLabel,
     onStatusToggle,
     onUpdateUser,
     onUpdatePermissions,
+    onPageChange,
 }: UserTableProps) {
     const columns: BaseTableColumn<ManagedUser>[] = [
         {
@@ -175,6 +179,15 @@ export default function UserTable({
             colgroup={[
                 { width: "30%" }, { width: "15%" }, { width: "25%" }, { width: "15%" }, { width: "15%" }
             ]}
+            pagination={
+                pagination
+                    ? {
+                          page: pagination.page,
+                          totalPages: pagination.totalPages,
+                          onPageChange: onPageChange ?? (() => {}),
+                      }
+                    : undefined
+            }
         />
     );
 }

@@ -62,13 +62,13 @@ export function useAnimals() {
                 total: 0,
                 totalPages: 0,
             };
-
+            console.log(animalsData);
             // Map API response to AnimalRecord format
             const mappedAnimals: AnimalRecord[] = animalsData.map((animal) => ({
                 id: animal.id,
                 name: animal.name,
-                species: animal.species,
-                breed: animal.breed,
+                species: animal.speciesRelation.name,
+                breed: animal.breedRelation.name,
                 gender: animal.gender as "Male" | "Female" | "Unknown",
                 birthdate: animal.birthdate,
                 photo: animal.photo,

@@ -3,6 +3,8 @@
 import {
     Group,
     Loader,
+    Pagination,
+    Skeleton,
     Stack,
     Table,
     Text,
@@ -36,6 +38,11 @@ export interface BaseTableProps<T = any> {
     verticalSpacing?: "xs" | "sm" | "md" | "lg" | "xl";
     highlightOnHover?: boolean;
     colgroup?: Array<{ width?: string | number }>;
+    pagination?: {
+        page: number;
+        totalPages: number;
+        onPageChange: (page: number) => void;
+    };
 }
 
 export default function BaseTable<T = any>({
@@ -51,6 +58,7 @@ export default function BaseTable<T = any>({
     verticalSpacing = "sm",
     highlightOnHover = true,
     colgroup,
+    pagination,
 }: BaseTableProps<T>) {
     const EmptyIcon = emptyState?.icon || IconDatabaseExclamation;
     const iconColor = emptyState?.iconColor || "var(--mantine-color-gray-5)";
@@ -117,14 +125,15 @@ export default function BaseTable<T = any>({
                 </Table.Thead>
                 <Table.Tbody>
                     {isLoading ? (
-                        <Table.Tr>
-                            <Table.Td colSpan={columns.length}>
-                                <Group justify="center" p="xl">
-                                    <Loader size="sm" />
-                                    <Text c="dimmed">{loadingText}</Text>
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
+                        Array.from({ length: 5 }).map((_, index) => (
+                            <Table.Tr key={`skeleton-${index}`}>
+                                {columns.map((column) => (
+                                    <Table.Td key={column.key}>
+                                        <Skeleton height={20} radius="sm" />
+                                    </Table.Td>
+                                ))}
+                            </Table.Tr>
+                        ))
                     ) : data.length === 0 ? (
                         <Table.Tr>
                             <Table.Td colSpan={columns.length}>
@@ -217,6 +226,22 @@ export default function BaseTable<T = any>({
                     )}
                 </Table.Tbody>
             </Table>
+            {pagination  && (
+                <Group 
+                    justify="center" 
+                    style={{ 
+                        paddingTop: 16,
+                        paddingBottom: 16,
+                    }}
+                >
+                    <Pagination
+                        value={pagination.page}
+                        onChange={pagination.onPageChange}
+                        total={pagination.totalPages}
+                        size="md"
+                    />
+                </Group>
+            )}
         </div>
     );
 }

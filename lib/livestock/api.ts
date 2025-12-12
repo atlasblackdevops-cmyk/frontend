@@ -123,8 +123,8 @@ export async function getAnimalDetails(
     return {
         id: animalData.id,
         name: animalData.name,
-        species: animalData.species,
-        breed: animalData.breed,
+        species: animalData.speciesRelation.name,
+        breed: animalData.breedRelation.name,
         gender: animalData.gender as "Male" | "Female" | "Unknown",
         birthdate: animalData.birthdate,
         photo: animalData.photo,
@@ -140,8 +140,8 @@ export async function getAnimalDetails(
 export async function createAnimal(data: CreateAnimalData): Promise<void> {
     const formData = new FormData();
     formData.append("name", data.name);
-    formData.append("species", data.species);
-    formData.append("breed", data.breed);
+    formData.append("speciesId", data.species);
+    formData.append("breedId", data.breed);
     formData.append("gender", data.gender);
     formData.append("birthdate", data.birthdate);
 
@@ -165,8 +165,8 @@ export async function updateAnimal(
 ): Promise<void> {
     const formData = new FormData();
     formData.append("name", data.name);
-    formData.append("species", data.species);
-    formData.append("breed", data.breed);
+    formData.append("speciesId", data.species);
+    formData.append("breedId", data.breed);
     formData.append("gender", data.gender);
     formData.append("birthdate", data.birthdate);
 
@@ -841,6 +841,69 @@ export async function removeAnimalsFromGroup(
 
     if (!responseData) {
         throw new Error("Failed to remove animals");
+    }
+
+    return responseData;
+}
+
+/**
+ * Species and Breeds API
+ */
+
+export interface Species {
+    id: string;
+    name: string;
+}
+
+export interface Breed {
+    id: string;
+    name: string;
+    speciesId: string;
+}
+
+export interface SpeciesResponse {
+    message?: string;
+    data?: {
+        species: Species[];
+    };
+}
+
+export interface BreedsResponse {
+    message?: string;
+    data?: {
+        breeds: Breed[];
+    };
+}
+
+/**
+ * Get all species
+ */
+export async function getSpecies(): Promise<Species[]> {
+    const response = await api.get<SpeciesResponse>(
+        "/api/v1/species-breeds/species"
+    );
+
+    const responseData = response.data?.data?.species;
+    
+    if (!responseData || !Array.isArray(responseData)) {
+        throw new Error("Species data not found");
+    }
+
+    return responseData;
+}
+
+/**
+ * Get breeds for a specific species
+ */
+export async function getBreeds(speciesId: string): Promise<Breed[]> {
+    const response = await api.get<BreedsResponse>(
+        `/api/v1/species-breeds/breeds/${speciesId}`
+    );
+
+    const responseData = response.data?.data?.breeds;
+
+    if (!responseData || !Array.isArray(responseData)) {
+        throw new Error("Breeds data not found");
     }
 
     return responseData;

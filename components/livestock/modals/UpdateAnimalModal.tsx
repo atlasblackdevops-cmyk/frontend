@@ -12,9 +12,10 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconPhoto, IconUpload } from "@tabler/icons-react";
-import { BaseInput, BaseDateInput } from "@/components/ui";
+import { BaseInput, BaseDateInput, BaseSelect } from "@/components/ui";
 import type { AddAnimalValues, AnimalRecord } from "../types";
 import { GENDER_OPTIONS } from "../types";
+import { getSpecies, getBreeds, type Species, type Breed } from "@/lib/livestock/api";
 
 interface UpdateAnimalModalProps {
     opened: boolean;
@@ -62,26 +63,109 @@ export default function UpdateAnimalModal({
     });
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [speciesList, setSpeciesList] = useState<Species[]>([]);
+    const [breedsList, setBreedsList] = useState<Breed[]>([]);
+    const [isLoadingSpecies, setIsLoadingSpecies] = useState(false);
+    const [isLoadingBreeds, setIsLoadingBreeds] = useState(false);
+    const [isInitialLoad, setIsInitialLoad] = useState(false);
 
-    // Load animal data when modal opens
+    // Fetch species on mount
     useEffect(() => {
-        if (opened && animal) {
-            form.setValues({
-                name: animal.name,
-                species: animal.species,
-                breed: animal.breed,
-                gender: animal.gender,
-                birthdate: animal.birthdate,
-                photo: null,
-            });
-            setPhotoPreview(animal.photo);
+        if (opened) {
+            fetchSpecies();
+        }
+    }, [opened]);
+
+    // Load animal data when modal opens and species are loaded
+    useEffect(() => {
+        if (opened && animal && speciesList.length > 0 && !isInitialLoad) {
+            setIsInitialLoad(true);
+            
+            // Find species by name
+            const foundSpecies = speciesList.find(
+                (s) => s.name.toLowerCase() === animal.species.toLowerCase()
+            );
+            
+            if (foundSpecies) {
+                form.setValues({
+                    name: animal.name,
+                    species: foundSpecies.id,
+                    breed: "", // Will be set after breeds are loaded
+                    gender: animal.gender,
+                    birthdate: animal.birthdate,
+                    photo: null,
+                });
+                setPhotoPreview(animal.photo);
+                
+                // Fetch breeds for the found species
+                fetchBreeds(foundSpecies.id, animal.breed);
+            } else {
+                // If species not found, set values as is (fallback)
+                form.setValues({
+                    name: animal.name,
+                    species: animal.species,
+                    breed: animal.breed,
+                    gender: animal.gender,
+                    birthdate: animal.birthdate,
+                    photo: null,
+                });
+                setPhotoPreview(animal.photo);
+            }
         } else if (!opened) {
             // Reset form when modal closes
             form.reset();
             setPhotoPreview(null);
+            setBreedsList([]);
+            setIsInitialLoad(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [opened, animal?.id]);
+    }, [opened, animal?.id, speciesList]);
+
+    // Fetch breeds when species changes (for manual changes only)
+    useEffect(() => {
+        const selectedSpecies = form.values.species;
+        if (selectedSpecies && opened && isInitialLoad) {
+            // Only fetch if species was manually changed (after initial load)
+            fetchBreeds(selectedSpecies);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.values.species]);
+
+    const fetchSpecies = async () => {
+        setIsLoadingSpecies(true);
+        try {
+            const species = await getSpecies();
+            setSpeciesList(species);
+        } catch (error) {
+            console.error("Failed to fetch species:", error);
+            setSpeciesList([]);
+        } finally {
+            setIsLoadingSpecies(false);
+        }
+    };
+
+    const fetchBreeds = async (speciesId: string, breedNameToMatch?: string) => {
+        setIsLoadingBreeds(true);
+        try {
+            const breeds = await getBreeds(speciesId);
+            setBreedsList(breeds);
+            
+            // If breedNameToMatch is provided, find and set the breed ID
+            if (breedNameToMatch && breeds.length > 0) {
+                const foundBreed = breeds.find(
+                    (b) => b.name.toLowerCase() === breedNameToMatch.toLowerCase()
+                );
+                if (foundBreed) {
+                    form.setFieldValue("breed", foundBreed.id);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch breeds:", error);
+            setBreedsList([]);
+        } finally {
+            setIsLoadingBreeds(false);
+        }
+    };
 
     const resetAndClose = () => {
         form.reset();
@@ -115,8 +199,8 @@ export default function UpdateAnimalModal({
                 onSubmit={form.onSubmit(async (values) => {
                     await onSubmit({
                         name: values.name.trim(),
-                        species: values.species.trim(),
-                        breed: values.breed.trim(),
+                        species: values.species,
+                        breed: values.breed,
                         gender: values.gender,
                         birthdate: values.birthdate,
                         photo: values.photo,
@@ -153,16 +237,38 @@ export default function UpdateAnimalModal({
                         required
                         {...form.getInputProps("name")}
                     />
-                    <BaseInput
+                    <BaseSelect
                         label="Species"
-                        placeholder="e.g. Cattle"
+                        placeholder="Select species"
+                        data={speciesList.map((species) => ({
+                            value: species.id,
+                            label: species.name,
+                        }))}
                         required
+                        loading={isLoadingSpecies}
+                        searchable
                         {...form.getInputProps("species")}
+                        onChange={(value) => {
+                            form.setFieldValue("species", value || "");
+                            form.setFieldValue("breed", "");
+                            if (value && isInitialLoad) {
+                                fetchBreeds(value);
+                            } else if (!value) {
+                                setBreedsList([]);
+                            }
+                        }}
                     />
-                    <BaseInput
+                    <BaseSelect
                         label="Breed"
-                        placeholder="e.g. Jersey"
+                        placeholder="Select breed"
+                        data={breedsList.map((breed) => ({
+                            value: breed.id,
+                            label: breed.name,
+                        }))}
                         required
+                        loading={isLoadingBreeds}
+                        disabled={!form.values.species || isLoadingBreeds}
+                        searchable
                         {...form.getInputProps("breed")}
                     />
                     <Select
@@ -178,13 +284,9 @@ export default function UpdateAnimalModal({
                         label="Birthdate"
                         placeholder="Select birthdate"
                         required
-                        value={form.values.birthdate ? new Date(form.values.birthdate) : null}
+                        value={form.values.birthdate || ""}
                         onChange={(date) => {
-                            if (date && typeof date === 'object' && 'toISOString' in date) {
-                                form.setFieldValue("birthdate", (date as Date).toISOString().split('T')[0]);
-                            } else {
-                                form.setFieldValue("birthdate", "");
-                            }
+                            form.setFieldValue("birthdate", date || "");
                         }}
                     />
                     <Group justify="flex-end" mt="sm">

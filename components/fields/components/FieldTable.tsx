@@ -12,11 +12,13 @@ import type { FieldTableProps, FieldRecord } from "../types";
 
 export default function FieldTable({
     fields,
+    pagination,
     isLoading,
     canUpdate,
     canDelete,
     onUpdate,
     onDelete,
+    onPageChange,
 }: FieldTableProps) {
     const nowrap = { whiteSpace: "nowrap" };
     const actionButtonStyle = {
@@ -182,6 +184,15 @@ export default function FieldTable({
                     { width: "18%" },
                     { width: "120px" },
                 ]}
+                pagination={
+                    pagination
+                        ? {
+                              page: pagination.page,
+                              totalPages: pagination.totalPages,
+                              onPageChange: onPageChange ?? (() => {}),
+                          }
+                        : undefined
+                }
             />
         </div>
     );
