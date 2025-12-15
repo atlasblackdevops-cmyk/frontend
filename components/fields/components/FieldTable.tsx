@@ -2,12 +2,10 @@
 
 import {
     Badge,
-    Button,
-    Group,
     Text,
 } from "@mantine/core";
-import { IconEdit, IconTrash, IconMapPin } from "@tabler/icons-react";
 import BaseTable, { type BaseTableColumn } from "@/components/ui/BaseTable";
+import { TableActionButtons } from "@/components/ui";
 import type { FieldTableProps, FieldRecord } from "../types";
 
 export default function FieldTable({
@@ -21,14 +19,6 @@ export default function FieldTable({
     onPageChange,
 }: FieldTableProps) {
     const nowrap = { whiteSpace: "nowrap" };
-    const actionButtonStyle = {
-        minWidth: 36,
-        minHeight: 32,
-        paddingLeft: 8,
-        paddingRight: 8,
-        flexShrink: 0,
-    };
-    const actionIconStyle = { width: 18, height: 18, flexShrink: 0 };
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return "N/A";
         try {
@@ -121,47 +111,21 @@ export default function FieldTable({
             key: "actions",
             label: "Actions",
             render: (field) => (
-                <Group justify="flex-start" gap="1" wrap="nowrap">
-                    {canUpdate && (
-                        <Button
-                            variant="subtle"
-                            size="md"
-                            px="xs"
-                            style={actionButtonStyle}
-                            aria-label="Edit field"
-                            onClick={() => onUpdate(field)}
-                        >
-                            <IconEdit size={18} style={actionIconStyle} />
-                        </Button>
-                    )}
-                    {canDelete && (
-                        <Button
-                            variant="subtle"
-                            color="red"
-                            size="md"
-                            px="xs"
-                            style={actionButtonStyle}
-                            aria-label="Delete field"
-                            onClick={() => onDelete(field)}
-                        >
-                            <IconTrash size={18} style={actionIconStyle} />
-                        </Button>
-                    )}
-                </Group>
+                <TableActionButtons
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    onUpdate={() => onUpdate(field)}
+                    onDelete={() => onDelete(field)}
+                    updateLabel="Edit field"
+                    deleteLabel="Delete field"
+                    justify="flex-start"
+                />
             ),
         },
     ];
 
     return (
-        <div style={{ 
-            width: "100%", 
-            position: "relative",
-            border: "1px solid var(--mantine-color-gray-3)",
-            borderRadius: 6,
-            overflow: "auto",
-            maxHeight: "100%"
-        }}>
-            <BaseTable
+        <BaseTable
                 columns={columns}
                 data={fields}
                 isLoading={isLoading}
@@ -194,7 +158,6 @@ export default function FieldTable({
                         : undefined
                 }
             />
-        </div>
     );
 }
 

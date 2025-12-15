@@ -1,8 +1,8 @@
 "use client";
 
-import { Drawer, Stack, Select, Group, Button, ActionIcon } from "@mantine/core";
+import { Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconFilter, IconX } from "@tabler/icons-react";
+import { TableFiltersDrawer } from "@/components/ui";
 
 interface UserFiltersDrawerProps {
     opened: boolean;
@@ -53,56 +53,35 @@ export default function UserFiltersDrawer({
     };
 
     return (
-        <Drawer
+        <TableFiltersDrawer
             opened={opened}
             onClose={onClose}
-            position="right"
-            size="md"
-            title={
-                <Group justify="space-between" align="center" wrap="nowrap">
-                    <Group gap="xs" align="center" wrap="nowrap">
-                        <IconFilter size={20} />
-                        <span style={{ fontWeight: 600, fontSize: 20 }}>Filters</span>
-                    </Group>
-                    <ActionIcon variant="subtle" color="gray" onClick={onClose} aria-label="Close filters">
-                        <IconX size={20} />
-                    </ActionIcon>
-                </Group>
-            }
-            padding="md"
+            onApply={handleApply}
+            onClear={handleClear}
         >
-            <Stack gap="md">
-                <Select
-                    label="Role"
-                    placeholder="All roles"
-                    data={[
-                        { value: "all", label: "All roles" },
-                        ...roleOptions,
-                    ]}
-                    value={form.values.role}
-                    onChange={(value) => form.setFieldValue("role", value || "all")}
-                />
+            <Select
+                label="Role"
+                placeholder="All roles"
+                data={[
+                    { value: "all", label: "All roles" },
+                    ...roleOptions,
+                ]}
+                value={form.values.role}
+                onChange={(value) => form.setFieldValue("role", value || "all")}
+            />
 
-                <Select
-                    label="Status"
-                    placeholder="All statuses"
-                    data={[
-                        { value: "all", label: "All statuses" },
-                        { value: "active", label: "Active" },
-                        { value: "inactive", label: "Inactive" },
-                    ]}
-                    value={form.values.status}
-                    onChange={(value) => form.setFieldValue("status", value || "all")}
-                />
-
-                <Group justify="flex-end" mt="md">
-                    <Button variant="default" onClick={handleClear}>
-                        Clear All
-                    </Button>
-                    <Button onClick={handleApply}>Apply Filters</Button>
-                </Group>
-            </Stack>
-        </Drawer>
+            <Select
+                label="Status"
+                placeholder="All statuses"
+                data={[
+                    { value: "all", label: "All statuses" },
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                ]}
+                value={form.values.status}
+                onChange={(value) => form.setFieldValue("status", value || "all")}
+            />
+        </TableFiltersDrawer>
     );
 }
 

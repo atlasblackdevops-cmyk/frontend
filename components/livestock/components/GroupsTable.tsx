@@ -6,17 +6,14 @@ import {
     Button,
     Group,
     Text,
-    Tooltip,
-    ActionIcon,
 } from "@mantine/core";
 import {
-    IconEdit,
-    IconTrash,
     IconUsersGroup,
     IconWeight,
     IconCalendar,
 } from "@tabler/icons-react";
 import BaseTable, { type BaseTableColumn } from "@/components/ui/BaseTable";
+import { TableActionButtons } from "@/components/ui";
 import type { AnimalGroup, GroupsTableProps } from "../types";
 import { formatDate } from "@/lib/livestock/utils";
 
@@ -120,53 +117,32 @@ export default function GroupsTable({
             key: "actions",
             label: "Actions",
             render: (group) => (
-                <Group gap="xs" justify="center">
-                    <Button
-                        variant="filled"
-                        color="blue"
-                        size="sm"
-                        leftSection={<IconUsersGroup size={16} />}
-                        onClick={() => onAssignAnimals(group)}
-                    >
-                        Assign Animals
-                    </Button>
-                    {canUpdate && (
-                        <Tooltip label="Edit Group">
-                            <ActionIcon
-                                variant="subtle"
-                                color="gray"
-                                onClick={() => onUpdate(group)}
-                            >
-                                <IconEdit size={16} />
-                            </ActionIcon>
-                        </Tooltip>
-                    )}
-                    {canDelete && (
-                        <Tooltip label="Delete Group">
-                            <ActionIcon
-                                variant="subtle"
-                                color="red"
-                                onClick={() => onDelete(group)}
-                            >
-                                <IconTrash size={16} />
-                            </ActionIcon>
-                        </Tooltip>
-                    )}
-                </Group>
+                <TableActionButtons
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    onUpdate={() => onUpdate(group)}
+                    onDelete={() => onDelete(group)}
+                    updateLabel="Edit group"
+                    deleteLabel="Delete group"
+                    justify="flex-start"
+                    customActions={
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            size="sm"
+                            leftSection={<IconUsersGroup size={16} />}
+                            onClick={() => onAssignAnimals(group)}
+                        >
+                            Assign Animals
+                        </Button>
+                    }
+                />
             ),
         },
     ];
 
     return (
-        <div style={{ 
-            width: "100%", 
-            position: "relative",
-            border: "1px solid var(--mantine-color-gray-3)",
-            borderRadius: 6,
-            overflow: "auto",
-            maxHeight: "100%"
-        }}>
-            <BaseTable
+        <BaseTable
                 columns={columns}
                 data={groups}
                 isLoading={isLoading}
@@ -199,7 +175,6 @@ export default function GroupsTable({
                         : undefined
                 }
             />
-        </div>
     );
 }
 

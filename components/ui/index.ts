@@ -18,4 +18,7 @@ export type { BasePasswordInputProps } from "./BasePasswordInput";
 export { default as DeleteConfirmationModal } from "./DeleteConfirmationModal";
 export { default as ImagePreviewModal } from "./ImagePreviewModal";
 export { useToast } from "./useToast";
+export { default as TableFiltersButton } from "./TableFiltersButton";
+export { default as TableFiltersDrawer } from "./TableFiltersDrawer";
+export { default as TableActionButtons, actionButtonStyle, actionIconStyle } from "./TableActionButtons";
 

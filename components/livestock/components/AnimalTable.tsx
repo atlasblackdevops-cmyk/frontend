@@ -1,8 +1,9 @@
 "use client";
 
-import { Avatar, Badge, Button, Group, Text } from "@mantine/core";
-import { IconEdit, IconTrash, IconDeer } from "@tabler/icons-react";
+import { Avatar, Badge, Group, Text } from "@mantine/core";
+import { IconDeer } from "@tabler/icons-react";
 import BaseTable, { type BaseTableColumn } from "@/components/ui/BaseTable";
+import { TableActionButtons } from "@/components/ui";
 import type { AnimalRecord, AnimalTableProps } from "../types";
 import { formatDate } from "@/lib/livestock/utils";
 import AnimalActionsMenu from "./AnimalActionsMenu";
@@ -71,66 +72,29 @@ export default function AnimalTable({
       key: "actions",
       label: "Actions",
       width: "150px",
-      render: (animal) => {
-        const actionButtonStyle = {
-          minWidth: 36,
-          minHeight: 32,
-          paddingLeft: 8,
-          paddingRight: 8,
-          flexShrink: 0,
-        };
-        const actionIconStyle = { width: 18, height: 18, flexShrink: 0 };
-
-        return (
-          <Group justify="flex-start" gap="1" wrap="nowrap">
-            {canUpdate && (
-              <Button
-                variant="subtle"
-                size="md"
-                px="xs"
-                style={actionButtonStyle}
-                aria-label="Edit animal"
-                onClick={() => onUpdate(animal)}
-              >
-                <IconEdit size={18} style={actionIconStyle} />
-              </Button>
-            )}
-            {canDelete && (
-              <Button
-                variant="subtle"
-                color="red"
-                size="md"
-                px="xs"
-                style={actionButtonStyle}
-                aria-label="Delete animal"
-                onClick={() => onDelete(animal)}
-              >
-                <IconTrash size={18} style={actionIconStyle} />
-              </Button>
-            )}
+      render: (animal) => (
+        <TableActionButtons
+          canUpdate={canUpdate}
+          canDelete={canDelete}
+          onUpdate={() => onUpdate(animal)}
+          onDelete={() => onDelete(animal)}
+          updateLabel="Edit animal"
+          deleteLabel="Delete animal"
+          justify="flex-start"
+          customActions={
             <AnimalActionsMenu
               animal={animal}
               onOpenHealthRecords={() => onOpenHealthRecords(animal)}
               onOpenWeightRecords={() => onOpenWeightRecords(animal)}
               onOpenFeedRecords={() => onOpenFeedRecords(animal)}
             />
-          </Group>
-        );
-      },
+          }
+        />
+      ),
     },
   ];
 
   return (
-    <div
-      style={{
-        width: "100%",
-        position: "relative",
-        border: "1px solid var(--mantine-color-gray-3)",
-        borderRadius: 6,
-        overflow: "auto",
-        maxHeight: "100%",
-      }}
-    >
       <BaseTable
         columns={columns}
         data={animals}
@@ -161,6 +125,5 @@ export default function AnimalTable({
           onPageChange: onPageChange ?? (() => {}),
         }}
       />
-    </div>
   );
 }

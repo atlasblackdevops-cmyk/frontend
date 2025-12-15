@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Group, Text } from "@mantine/core";
-import { IconEdit, IconTrash, IconEye } from "@tabler/icons-react";
+import { Text } from "@mantine/core";
 import BaseTable, { BaseTableColumn } from "@/components/ui/BaseTable";
+import { TableActionButtons } from "@/components/ui";
 import type { HarvestTableProps, HarvestRecord } from "../types";
 
 export default function HarvestTable({
@@ -28,10 +28,6 @@ export default function HarvestTable({
         }
     };
 
-    const actionButtonStyle = {
-        padding: "4px 8px",
-        minHeight: "auto",
-    };
 
     const columns: BaseTableColumn<HarvestRecord>[] = [
         {
@@ -103,34 +99,15 @@ export default function HarvestTable({
             label: "Actions",
             width: "12%",
             render: (harvest) => (
-                <Group gap={4} wrap="nowrap">
-                    {canUpdate && (
-                        <Button
-                            variant="subtle"
-                            color="blue"
-                            size="xs"
-                            px={8}
-                            style={actionButtonStyle}
-                            onClick={() => onUpdate(harvest)}
-                            leftSection={<IconEdit size={14} />}
-                        >
-                            Edit
-                        </Button>
-                    )}
-                    {canDelete && (
-                        <Button
-                            variant="subtle"
-                            color="red"
-                            size="xs"
-                            px={8}
-                            style={actionButtonStyle}
-                            onClick={() => onDelete(harvest)}
-                            leftSection={<IconTrash size={14} />}
-                        >
-                            Delete
-                        </Button>
-                    )}
-                </Group>
+                <TableActionButtons
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    onUpdate={() => onUpdate(harvest)}
+                    onDelete={() => onDelete(harvest)}
+                    updateLabel="Edit harvest"
+                    deleteLabel="Delete harvest"
+                    justify="flex-start"
+                />
             ),
         },
     ];

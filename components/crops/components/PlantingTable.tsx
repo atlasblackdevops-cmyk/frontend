@@ -1,8 +1,9 @@
 "use client";
 
-import { Button, Group, Text } from "@mantine/core";
-import { IconEdit, IconTrash, IconPlant } from "@tabler/icons-react";
+import { Text } from "@mantine/core";
+import { IconPlant } from "@tabler/icons-react";
 import BaseTable, { BaseTableColumn } from "@/components/ui/BaseTable";
+import { TableActionButtons } from "@/components/ui";
 import type { PlantingTableProps, PlantingRecord } from "../types";
 
 export default function PlantingTable({
@@ -28,14 +29,6 @@ export default function PlantingTable({
         }
     };
 
-    const actionButtonStyle = {
-        padding: "4px 8px",
-        minHeight: "auto",
-    };
-
-    const actionIconStyle = {
-        marginRight: "4px",
-    };
 
     const columns: BaseTableColumn<PlantingRecord>[] = [
         {
@@ -105,35 +98,16 @@ export default function PlantingTable({
         {
             key: "actions",
             label: "Actions",
-            width: "16%",
+            width: "100px",
             render: (planting) => (
-                <Group justify="flex-end" gap="xs" wrap="nowrap">
-                    {canUpdate && (
-                        <Button
-                            variant="subtle"
-                            size="md"
-                            px="xs"
-                            style={actionButtonStyle}
-                            aria-label="Edit planting"
-                            onClick={() => onUpdate(planting)}
-                        >
-                            <IconEdit size={18} style={actionIconStyle} />
-                        </Button>
-                    )}
-                    {canDelete && (
-                        <Button
-                            variant="subtle"
-                            color="red"
-                            size="md"
-                            px="xs"
-                            style={actionButtonStyle}
-                            aria-label="Delete planting"
-                            onClick={() => onDelete(planting)}
-                        >
-                            <IconTrash size={18} style={actionIconStyle} />
-                        </Button>
-                    )}
-                </Group>
+                <TableActionButtons
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    onUpdate={() => onUpdate(planting)}
+                    onDelete={() => onDelete(planting)}
+                    updateLabel="Edit planting"
+                    deleteLabel="Delete planting"
+                />
             ),
         },
     ];
