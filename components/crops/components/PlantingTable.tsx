@@ -139,6 +139,14 @@ export default function PlantingTable({
     ];
 
     return (
+        <div style={{ 
+            width: "100%", 
+            position: "relative",
+            border: "1px solid var(--mantine-color-gray-3)",
+            borderRadius: 6,
+            overflow: "auto",
+            maxHeight: "100%"
+        }}>
         <BaseTable
             columns={columns}
             data={plantings}
@@ -151,6 +159,8 @@ export default function PlantingTable({
             }}
             stickyHeader={true}
             minWidth={900}
+            tableLayout="fixed"
+            verticalSpacing="sm"
             colgroup={[
                 { width: "15%" }, { width: "15%" }, { width: "15%" }, { width: "12%" }, { width: "12%" }, { width: "15%" }, { width: "16%" }
             ]}
@@ -163,7 +173,7 @@ export default function PlantingTable({
                       }
                     : undefined
             }
-        />
+        /></div>
     );
 }
 

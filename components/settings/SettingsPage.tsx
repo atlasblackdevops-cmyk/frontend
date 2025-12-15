@@ -1,56 +1,72 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import BaseButton from "@/components/ui/BaseButton";
+import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
+import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
+import { api } from "@/lib/api";
+import { useAuth } from "@/stores/use-auth-store";
 import {
-  Stack,
-  TextInput,
+  Alert,
   Avatar,
-  FileButton,
   Button,
-  Text,
   Divider,
+  FileButton,
   Group,
   Paper,
-  Title,
-  Alert,
+  Stack,
+  Text,
   Textarea,
-} from '@mantine/core';
-import { IconUser, IconBuilding, IconAlertCircle, IconUpload, IconX } from '@tabler/icons-react';
-import { useAuth } from '@/stores/use-auth-store';
-import BaseButton from '@/components/ui/BaseButton';
-import { api } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
+  TextInput,
+  Title,
+  ActionIcon,
+} from "@mantine/core";
+import {
+  IconAlertCircle,
+  IconBuilding,
+  IconTrash,
+  IconUpload,
+  IconUser,
+  IconEye,
+} from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
 export default function SettingsPage() {
-  const { role, userName, userEmail, userProfilePicture, setUserData, farmId } = useAuth();
-  const isOwner = (role ?? '').toUpperCase() === 'OWNER';
+  const { role, userName, userEmail, userProfilePicture, setUserData, farmId } =
+    useAuth();
+  const isOwner = (role ?? "").toUpperCase() === "OWNER";
 
   // User details state
-  const [userNameValue, setUserNameValue] = useState(userName || '');
-  const [userEmailValue, setUserEmailValue] = useState(userEmail || '');
-  const [userProfilePictureFile, setUserProfilePictureFile] = useState<File | null>(null);
-  const [userProfilePicturePreview, setUserProfilePicturePreview] = useState<string | null>(
-    userProfilePicture || null
-  );
+  const [userNameValue, setUserNameValue] = useState(userName || "");
+  const [userEmailValue, setUserEmailValue] = useState(userEmail || "");
+  const [userProfilePictureFile, setUserProfilePictureFile] =
+    useState<File | null>(null);
+  const [userProfilePicturePreview, setUserProfilePicturePreview] = useState<
+    string | null
+  >(userProfilePicture || null);
   const [userSubmitting, setUserSubmitting] = useState(false);
   const [userError, setUserError] = useState<string | null>(null);
   const [userSuccess, setUserSuccess] = useState(false);
+  const [userDeleteModalOpen, setUserDeleteModalOpen] = useState(false);
+  const [userPreviewModalOpen, setUserPreviewModalOpen] = useState(false);
 
   // Farm details state
-  const [farmName, setFarmName] = useState('');
+  const [farmName, setFarmName] = useState("");
   const [farmLogoFile, setFarmLogoFile] = useState<File | null>(null);
   const [farmLogoPreview, setFarmLogoPreview] = useState<string | null>(null);
-  const [farmCity, setFarmCity] = useState('');
-  const [farmState, setFarmState] = useState('');
-  const [farmCountry, setFarmCountry] = useState('');
-  const [farmAddress, setFarmAddress] = useState('');
+  const [farmCity, setFarmCity] = useState("");
+  const [farmState, setFarmState] = useState("");
+  const [farmCountry, setFarmCountry] = useState("");
+  const [farmAddress, setFarmAddress] = useState("");
   const [farmSubmitting, setFarmSubmitting] = useState(false);
   const [farmError, setFarmError] = useState<string | null>(null);
   const [farmSuccess, setFarmSuccess] = useState(false);
+  const [farmDeleteModalOpen, setFarmDeleteModalOpen] = useState(false);
+  const [farmPreviewModalOpen, setFarmPreviewModalOpen] = useState(false);
 
   // Fetch farm details
   const { data: farmData, refetch: refetchFarm } = useQuery({
-    queryKey: ['farm-details', farmId],
+    queryKey: ["farm-details", farmId],
     queryFn: async () => {
       if (!farmId) return null;
       const res = await api.get(`/api/v1/farms/${farmId}`);
@@ -62,26 +78,26 @@ export default function SettingsPage() {
   // Update farm state when data is fetched
   useEffect(() => {
     if (farmData) {
-      setFarmName(farmData.farmName || farmData.name || '');
+      setFarmName(farmData.farmName || farmData.name || "");
       setFarmLogoPreview(farmData.farmLogo || farmData.logo || null);
-      setFarmCity(farmData.city || '');
-      setFarmState(farmData.state || '');
-      setFarmCountry(farmData.country || '');
-      setFarmAddress(farmData.address || '');
+      setFarmCity(farmData.city || "");
+      setFarmState(farmData.state || "");
+      setFarmCountry(farmData.country || "");
+      setFarmAddress(farmData.address || "");
     } else {
-      setFarmName('');
+      setFarmName("");
       setFarmLogoPreview(null);
-      setFarmCity('');
-      setFarmState('');
-      setFarmCountry('');
-      setFarmAddress('');
+      setFarmCity("");
+      setFarmState("");
+      setFarmCountry("");
+      setFarmAddress("");
     }
   }, [farmData]);
 
   // Update user state when auth store changes
   useEffect(() => {
-    setUserNameValue(userName || '');
-    setUserEmailValue(userEmail || '');
+    setUserNameValue(userName || "");
+    setUserEmailValue(userEmail || "");
     setUserProfilePicturePreview(userProfilePicture || null);
   }, [userName, userEmail, userProfilePicture]);
 
@@ -109,6 +125,20 @@ export default function SettingsPage() {
     }
   };
 
+  // Handle user profile picture deletion
+  const handleUserProfilePictureDelete = () => {
+    setUserProfilePictureFile(null);
+    setUserProfilePicturePreview(userProfilePicture || null);
+    setUserDeleteModalOpen(false);
+  };
+
+  // Handle farm logo deletion
+  const handleFarmLogoDelete = () => {
+    setFarmLogoFile(null);
+    setFarmLogoPreview(farmData?.farmLogo || farmData?.logo || null);
+    setFarmDeleteModalOpen(false);
+  };
+
   // User details validation
   const userErrors = useMemo(() => {
     const e: Record<string, string | null> = {
@@ -116,10 +146,10 @@ export default function SettingsPage() {
       email: null,
     };
     if (!userNameValue || userNameValue.trim().length < 2) {
-      e.name = 'Name is required (min 2 characters)';
+      e.name = "Name is required (min 2 characters)";
     }
     if (!userEmailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmailValue)) {
-      e.email = 'Valid email is required';
+      e.email = "Valid email is required";
     }
     return e;
   }, [userNameValue, userEmailValue]);
@@ -132,7 +162,7 @@ export default function SettingsPage() {
       farmName: null,
     };
     if (!farmName || farmName.trim().length < 2) {
-      e.farmName = 'Farm name is required (min 2 characters)';
+      e.farmName = "Farm name is required (min 2 characters)";
     }
     return e;
   }, [farmName]);
@@ -149,23 +179,23 @@ export default function SettingsPage() {
     try {
       const formData = new FormData();
       if (userNameValue.trim()) {
-        formData.append('name', userNameValue.trim());
+        formData.append("name", userNameValue.trim());
       }
       if (userEmailValue.trim()) {
-        formData.append('email', userEmailValue.trim().toLowerCase());
+        formData.append("email", userEmailValue.trim().toLowerCase());
       }
       if (userProfilePictureFile) {
-        formData.append('profilePicture', userProfilePictureFile);
+        formData.append("profilePicture", userProfilePictureFile);
       }
 
-      const { data } = await api.put('/api/v1/users/profile', formData, {
+      const { data } = await api.put("/api/v1/users/profile", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
       const updatedData = data?.data ?? data ?? {};
-      
+
       // Update auth store
       setUserData({
         name: updatedData.name ?? userNameValue.trim(),
@@ -177,7 +207,9 @@ export default function SettingsPage() {
       setUserSuccess(true);
       setTimeout(() => setUserSuccess(false), 3000);
     } catch (e: any) {
-      setUserError(e?.response?.data?.message ?? e?.message ?? 'Failed to update profile');
+      setUserError(
+        e?.response?.data?.message ?? e?.message ?? "Failed to update profile"
+      );
     } finally {
       setUserSubmitting(false);
     }
@@ -192,16 +224,16 @@ export default function SettingsPage() {
     setFarmSubmitting(true);
     try {
       const formData = new FormData();
-      if (farmName.trim()) formData.append('farmName', farmName.trim());
-      if (farmCity.trim()) formData.append('city', farmCity.trim());
-      if (farmState.trim()) formData.append('state', farmState.trim());
-      if (farmCountry.trim()) formData.append('country', farmCountry.trim());
-      if (farmAddress.trim()) formData.append('address', farmAddress.trim());
-      if (farmLogoFile) formData.append('farmLogo', farmLogoFile);
+      if (farmName.trim()) formData.append("farmName", farmName.trim());
+      if (farmCity.trim()) formData.append("city", farmCity.trim());
+      if (farmState.trim()) formData.append("state", farmState.trim());
+      if (farmCountry.trim()) formData.append("country", farmCountry.trim());
+      if (farmAddress.trim()) formData.append("address", farmAddress.trim());
+      if (farmLogoFile) formData.append("farmLogo", farmLogoFile);
 
       await api.put(`/api/v1/farms/${farmId}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
@@ -210,7 +242,11 @@ export default function SettingsPage() {
       setTimeout(() => setFarmSuccess(false), 3000);
       refetchFarm();
     } catch (e: any) {
-      setFarmError(e?.response?.data?.message ?? e?.message ?? 'Failed to update farm details');
+      setFarmError(
+        e?.response?.data?.message ??
+          e?.message ??
+          "Failed to update farm details"
+      );
     } finally {
       setFarmSubmitting(false);
     }
@@ -230,13 +266,21 @@ export default function SettingsPage() {
           <Divider />
 
           {userError && (
-            <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">
+            <Alert
+              icon={<IconAlertCircle size={16} />}
+              title="Error"
+              color="red"
+            >
               {userError}
             </Alert>
           )}
 
           {userSuccess && (
-            <Alert icon={<IconAlertCircle size={16} />} title="Success" color="green">
+            <Alert
+              icon={<IconAlertCircle size={16} />}
+              title="Success"
+              color="green"
+            >
               Profile updated successfully!
             </Alert>
           )}
@@ -248,12 +292,67 @@ export default function SettingsPage() {
                 Profile Picture
               </Text>
               <Group gap="md">
-                <Avatar
-                  src={userProfilePicturePreview}
-                  size={80}
-                  radius="md"
-                  alt="Profile picture"
-                />
+                {userProfilePicturePreview ? (
+                  <div
+                    style={{
+                      position: "relative",
+                      display: "inline-block",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      const overlay = e.currentTarget.querySelector(
+                        '[data-overlay]'
+                      ) as HTMLElement;
+                      if (overlay) overlay.style.opacity = "1";
+                    }}
+                    onMouseLeave={(e) => {
+                      const overlay = e.currentTarget.querySelector(
+                        '[data-overlay]'
+                      ) as HTMLElement;
+                      if (overlay) overlay.style.opacity = "0";
+                    }}
+                    onClick={() => setUserPreviewModalOpen(true)}
+                  >
+                    <Avatar
+                      src={userProfilePicturePreview}
+                      size={80}
+                      radius="md"
+                      alt="Profile picture"
+                    />
+                    <div
+                      data-overlay
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: 0,
+                        transition: "opacity 0.2s ease",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <ActionIcon
+                        variant="subtle"
+                        size="lg"
+                        radius="md"
+                        style={{
+                          color: "white",
+                          backgroundColor: "transparent",
+                        }}
+                      >
+                        <IconEye size={20} color="white" />
+                      </ActionIcon>
+                    </div>
+                  </div>
+                ) : (
+                  <Avatar size={80} radius="md" alt="Profile picture" />
+                )}
                 <Stack gap="xs">
                   <FileButton
                     onChange={handleUserProfilePictureChange}
@@ -271,18 +370,17 @@ export default function SettingsPage() {
                     )}
                   </FileButton>
                   {userProfilePicturePreview && (
-                    <Button
-                      variant="subtle"
-                      color="red"
-                      size="sm"
-                      leftSection={<IconX size={16} />}
-                      onClick={() => {
-                        setUserProfilePictureFile(null);
-                        setUserProfilePicturePreview(userProfilePicture || null);
-                      }}
+                    <Group
+                      onClick={() => setUserDeleteModalOpen(true)}
+                      gap="xs"
+                      style={{ cursor: "pointer", paddingLeft: 10 }}
+                      align="center"
                     >
-                      Remove
-                    </Button>
+                      <IconTrash size={16} color="red" />
+                      <Text size="sm" fw={500} color="red">
+                        Remove
+                      </Text>
+                    </Group>
                   )}
                 </Stack>
               </Group>
@@ -331,13 +429,21 @@ export default function SettingsPage() {
             <Divider />
 
             {farmError && (
-              <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red">
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                title="Error"
+                color="red"
+              >
                 {farmError}
               </Alert>
             )}
 
             {farmSuccess && (
-              <Alert icon={<IconAlertCircle size={16} />} title="Success" color="green">
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                title="Success"
+                color="green"
+              >
                 Farm details updated successfully!
               </Alert>
             )}
@@ -350,13 +456,64 @@ export default function SettingsPage() {
                 </Text>
                 <Group gap="md">
                   {farmLogoPreview ? (
-                    <Avatar
-                      src={farmLogoPreview}
-                      size={80}
-                      radius="md"
-                      alt="Farm logo"
-                      variant="light"
-                    />
+                    <div
+                      style={{
+                        position: "relative",
+                        display: "inline-block",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        const overlay = e.currentTarget.querySelector(
+                          '[data-overlay]'
+                        ) as HTMLElement;
+                        if (overlay) overlay.style.opacity = "1";
+                      }}
+                      onMouseLeave={(e) => {
+                        const overlay = e.currentTarget.querySelector(
+                          '[data-overlay]'
+                        ) as HTMLElement;
+                        if (overlay) overlay.style.opacity = "0";
+                      }}
+                      onClick={() => setFarmPreviewModalOpen(true)}
+                    >
+                      <Avatar
+                        src={farmLogoPreview}
+                        size={80}
+                        radius="md"
+                        alt="Farm logo"
+                        variant="light"
+                      />
+                      <div
+                        data-overlay
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: "rgba(0, 0, 0, 0.5)",
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: 0,
+                          transition: "opacity 0.2s ease",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <ActionIcon
+                          variant="subtle"
+                          size="lg"
+                          radius="md"
+                          style={{
+                            color: "white",
+                            backgroundColor: "transparent",
+                          }}
+                        >
+                          <IconEye size={20} color="white" />
+                        </ActionIcon>
+                      </div>
+                    </div>
                   ) : (
                     <Avatar size={80} radius="md" variant="light" color="gray">
                       <IconBuilding size={40} />
@@ -379,18 +536,17 @@ export default function SettingsPage() {
                       )}
                     </FileButton>
                     {farmLogoPreview && (
-                      <Button
-                        variant="subtle"
-                        color="red"
-                        size="sm"
-                        leftSection={<IconX size={16} />}
-                        onClick={() => {
-                          setFarmLogoFile(null);
-                          setFarmLogoPreview(farmData?.farmLogo || farmData?.logo || null);
-                        }}
+                      <Group
+                        onClick={() => setFarmDeleteModalOpen(true)}
+                        gap="xs"
+                        style={{ cursor: "pointer", paddingLeft: 10 }}
+                        align="center"
                       >
-                        Remove
-                      </Button>
+                        <IconTrash size={16} color="red" />
+                        <Text size="sm" fw={500} color="red">
+                          Remove
+                        </Text>
+                      </Group>
                     )}
                   </Stack>
                 </Group>
@@ -446,7 +602,48 @@ export default function SettingsPage() {
           </Stack>
         </Paper>
       )}
+
+      {/* User Profile Picture Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        opened={userDeleteModalOpen}
+        onClose={() => setUserDeleteModalOpen(false)}
+        onConfirm={handleUserProfilePictureDelete}
+        title="Remove Profile Picture"
+        message="Are you sure you want to remove your profile picture? This action cannot be undone."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        confirmColor="red"
+      />
+
+      {/* Farm Logo Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        opened={farmDeleteModalOpen}
+        onClose={() => setFarmDeleteModalOpen(false)}
+        onConfirm={handleFarmLogoDelete}
+        title="Remove Farm Logo"
+        message="Are you sure you want to remove the farm logo? This action cannot be undone."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        confirmColor="red"
+      />
+
+      {/* User Profile Picture Preview Modal */}
+      <ImagePreviewModal
+        opened={userPreviewModalOpen}
+        onClose={() => setUserPreviewModalOpen(false)}
+        imageUrl={userProfilePicturePreview}
+        title="Profile Picture Preview"
+        alt="Profile picture preview"
+      />
+
+      {/* Farm Logo Preview Modal */}
+      <ImagePreviewModal
+        opened={farmPreviewModalOpen}
+        onClose={() => setFarmPreviewModalOpen(false)}
+        imageUrl={farmLogoPreview}
+        title="Farm Logo Preview"
+        alt="Farm logo preview"
+      />
     </Stack>
   );
 }
-

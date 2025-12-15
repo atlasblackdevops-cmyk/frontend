@@ -16,5 +16,6 @@ export type { BaseSelectProps } from "./BaseSelect";
 export { default as BasePasswordInput } from "./BasePasswordInput";
 export type { BasePasswordInputProps } from "./BasePasswordInput";
 export { default as DeleteConfirmationModal } from "./DeleteConfirmationModal";
+export { default as ImagePreviewModal } from "./ImagePreviewModal";
 export { useToast } from "./useToast";
 
