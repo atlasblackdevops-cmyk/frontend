@@ -374,10 +374,7 @@ export function AuthenticationForm({
                                 payload?.currentFarm?.name ??
                                 null;
 
-                            // Persist to auth store (same as Google flow)
                             try {
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
                                 useAuth.getState().setRoleAndFarm({
                                     role: roleName ?? null,
                                     hasFarm:
@@ -499,6 +496,7 @@ export function AuthenticationForm({
                             label="Name"
                             placeholder="Enter your full name"
                             required
+                            error={form.errors.name}
                             styles={{
                                 label: {
                                     color: "rgba(255, 255, 255, 0.9)",
@@ -506,13 +504,15 @@ export function AuthenticationForm({
                                 input: {
                                     color: "rgba(255, 255, 255, 0.95)",
                                     backgroundColor: "rgba(255, 255, 255, 0.1)",
-                                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                                    border: form.errors.name 
+                                        ? "1px solid #fa5252" 
+                                        : "1px solid rgba(255, 255, 255, 0.2)",
                                     "&::placeholder": {
                                         color: "rgba(255, 255, 255, 0.6)",
                                     },
                                     "&:focus": {
                                         backgroundColor: "rgba(255, 255, 255, 0.15)",
-                                        borderColor: "rgba(255, 255, 255, 0.3)",
+                                        borderColor: form.errors.name ? "#fa5252" : "#22c55e",
                                     },
                                 },
                             }}
@@ -524,6 +524,7 @@ export function AuthenticationForm({
                         required
                         label="Email"
                         placeholder="Enter your email"
+                        error={form.errors.email}
                         styles={{
                             label: {
                                 color: "rgba(255, 255, 255, 0.9)",
@@ -531,13 +532,15 @@ export function AuthenticationForm({
                             input: {
                                 color: "rgba(255, 255, 255, 0.95)",
                                 backgroundColor: "rgba(255, 255, 255, 0.1)",
-                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                border: form.errors.email 
+                                    ? "1px solid #fa5252" 
+                                    : "1px solid rgba(255, 255, 255, 0.2)",
                                 "&::placeholder": {
                                     color: "rgba(255, 255, 255, 0.6)",
                                 },
                                 "&:focus": {
                                     backgroundColor: "rgba(255, 255, 255, 0.15)",
-                                    borderColor: "rgba(255, 255, 255, 0.3)",
+                                    borderColor: form.errors.email ? "#fa5252" : "#22c55e",
                                 },
                             },
                         }}
@@ -548,6 +551,7 @@ export function AuthenticationForm({
                         required
                         label="Password"
                         placeholder="Enter your password"
+                        error={form.errors.password}
                         styles={{
                             label: {
                                 color: "rgba(255, 255, 255, 0.9)",
@@ -555,13 +559,15 @@ export function AuthenticationForm({
                             input: {
                                 color: "rgba(255, 255, 255, 0.95)",
                                 backgroundColor: "rgba(255, 255, 255, 0.1)",
-                                border: "1px solid rgba(255, 255, 255, 0.2)",
+                                border: form.errors.password 
+                                    ? "1px solid #fa5252" 
+                                    : "1px solid rgba(255, 255, 255, 0.2)",
                                 "&::placeholder": {
                                     color: "rgba(255, 255, 255, 0.6)",
                                 },
                                 "&:focus": {
                                     backgroundColor: "rgba(255, 255, 255, 0.15)",
-                                    borderColor: "rgba(255, 255, 255, 0.3)",
+                                    borderColor: form.errors.password ? "#fa5252" : "#22c55e",
                                 },
                             },
                         }}
@@ -580,6 +586,7 @@ export function AuthenticationForm({
                                     color: "rgba(255, 255, 255, 0.9)",
                                     fontSize: "14px",
                                     fontWeight: 400,
+                                    cursor: "pointer",
                                 },
                                 input: {
                                     borderColor: "rgba(255, 255, 255, 0.3)",
@@ -588,11 +595,12 @@ export function AuthenticationForm({
                                         backgroundColor: "#4caf50",
                                         borderColor: "#4caf50",
                                     },
+                                    cursor: "pointer",
                                 },
                                 error: {
                                     fontSize: "12px",
                                     marginTop: "4px",
-                                    color: "rgba(255, 255, 255, 0.9)",
+                                    color: "#fa5252",
                                 },
                             }}
                         />

@@ -76,7 +76,6 @@ const data: NavItem[] = [
     { link: "/finance", label: "Finance", icon: IconCurrencyDollar },
     { link: "/marketplace", label: "Marketplace", icon: IconShoppingCart },
     { link: "/ai", label: "AI", icon: IconCpu },
-    { link: "/settings", label: "Settings", icon: IconSettings },
     { link: "/users", label: "Users", icon: IconUsersGroup },
 ];
 
