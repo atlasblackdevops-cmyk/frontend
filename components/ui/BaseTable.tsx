@@ -142,7 +142,19 @@ export default function BaseTable<T = any>({
                             </Table.Tr>
                         ))
                     ) : data.length === 0 ? (
-                        <Table.Tr>
+                        <Table.Tr
+                            style={{
+                                backgroundColor: "transparent",
+                            }}
+                            styles={{
+                                tr: {
+                                    backgroundColor: "transparent !important",
+                                    "&:hover": {
+                                        backgroundColor: "transparent !important",
+                                    },
+                                },
+                            }}
+                        >
                             <Table.Td colSpan={columns.length}>
                                 <Stack align="center" gap="md" p="xl">
                                     <div
@@ -233,7 +245,7 @@ export default function BaseTable<T = any>({
                     )}
                 </Table.Tbody>
             </Table>
-            {pagination  && (
+            {pagination && pagination.totalPages > 1 && (
                 <Group 
                     justify="center" 
                     style={{ 
