@@ -6,6 +6,7 @@ import type {
     ApiFertilizerResponse,
     GetFertilizersParams,
     CreateFertilizerData,
+    FertilizerCostSummaryResponse,
 } from "@/components/crops/fertilizer/types";
 
 /**
@@ -151,5 +152,15 @@ export async function updateFertilizer(
  */
 export async function deleteFertilizer(fertilizerId: string): Promise<void> {
     await api.delete(`/api/v1/fertilizer/${fertilizerId}`);
+}
+
+/**
+ * Get fertilizer cost summary per field
+ */
+export async function getFertilizerCostSummary(): Promise<FertilizerCostSummaryResponse> {
+    const response = await api.get<FertilizerCostSummaryResponse>(
+        `/api/v1/fertilizer/cost-summary`
+    );
+    return response.data;
 }
 

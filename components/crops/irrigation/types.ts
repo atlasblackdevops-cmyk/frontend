@@ -150,6 +150,22 @@ export interface IrrigationFiltersDrawerProps {
     onClearFilters: () => void;
 }
 
+// Cost Summary Types
+export type IrrigationCostSummaryItem = {
+    fieldId: string;
+    fieldName: string;
+    totalCost: number;
+};
+
+export type IrrigationCostSummaryResponse = {
+    message: string;
+    data: {
+        summary: IrrigationCostSummaryItem[];
+        totalFields: number;
+        totalCost: number;
+    };
+};
+
 // Constants
 export const VOLUME_UNIT_OPTIONS = [
     { value: "liters", label: "Liters" },

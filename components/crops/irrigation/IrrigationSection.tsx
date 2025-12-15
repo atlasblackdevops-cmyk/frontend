@@ -19,7 +19,7 @@ import { BaseInput } from "@/components/ui";
 import type { IrrigationRecord, FilterValues } from "./types";
 import { useIrrigation } from "./hooks";
 import { AddIrrigationModal, UpdateIrrigationModal } from "./modals";
-import { IrrigationTable, IrrigationFilters, IrrigationFiltersDrawer } from "./components";
+import { IrrigationTable, IrrigationFilters, IrrigationFiltersDrawer, IrrigationCostSummary } from "./components";
 
 export default function IrrigationSection() {
   const { farmId, permissions, role } = useAuth();
@@ -43,6 +43,9 @@ export default function IrrigationSection() {
     updateIrrigation,
     deleteIrrigation,
     setPagination,
+    costSummary,
+    isLoadingSummary,
+    fetchCostSummary,
   } = useIrrigation();
 
   // Modal/Drawer states
@@ -72,6 +75,7 @@ export default function IrrigationSection() {
   useEffect(() => {
     if (farmId && canList) {
       fetchIrrigations(1);
+      fetchCostSummary();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [farmId, canList]);
@@ -265,6 +269,18 @@ export default function IrrigationSection() {
             </Button>
           )}
         </Group>
+
+        {/* Cost Summary */}
+        {costSummary && (
+          <div style={{ flexShrink: 0 }}>
+            <IrrigationCostSummary
+              summary={costSummary.summary}
+              totalFields={costSummary.totalFields}
+              totalCost={costSummary.totalCost}
+              isLoading={isLoadingSummary}
+            />
+          </div>
+        )}
 
       {/* Search and Filters */}
       <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>

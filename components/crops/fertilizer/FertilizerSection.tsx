@@ -20,6 +20,7 @@ import {
   FertilizerTable,
   FertilizerFilters,
   FertilizerFiltersDrawer,
+  FertilizerCostSummary,
 } from "./components";
 import type { CreateFertilizerData } from "./types";
 
@@ -45,6 +46,9 @@ export default function FertilizerSection() {
     updateFertilizer,
     deleteFertilizer,
     setPagination,
+    costSummary,
+    isLoadingSummary,
+    fetchCostSummary,
   } = useFertilizer();
 
   // Modal/Drawer states
@@ -76,6 +80,7 @@ export default function FertilizerSection() {
   useEffect(() => {
     if (farmId && canList) {
       fetchFertilizers(1);
+      fetchCostSummary();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [farmId, canList]);
@@ -306,6 +311,18 @@ export default function FertilizerSection() {
             </Button>
           )}
         </Group>
+
+        {/* Cost Summary */}
+        {costSummary && (
+          <div style={{ flexShrink: 0 }}>
+            <FertilizerCostSummary
+              summary={costSummary.summary}
+              totalFields={costSummary.totalFields}
+              totalCost={costSummary.totalCost}
+              isLoading={isLoadingSummary}
+            />
+          </div>
+        )}
 
         {/* Search and Filters */}
         <Group

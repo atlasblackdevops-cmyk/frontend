@@ -15,7 +15,9 @@ import {
     createFertilizer,
     updateFertilizer,
     deleteFertilizer,
+    getFertilizerCostSummary,
 } from "@/lib/crops/fertilizer/api";
+import type { FertilizerCostSummaryItem } from "../types";
 
 export function useFertilizer() {
     const { farmId } = useAuth();
@@ -212,6 +214,34 @@ export function useFertilizer() {
         }
     };
 
+    const [costSummary, setCostSummary] = useState<{
+        summary: FertilizerCostSummaryItem[];
+        totalFields: number;
+        totalCost: number;
+    } | null>(null);
+    const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+
+    const fetchCostSummary = useCallback(async () => {
+        setIsLoadingSummary(true);
+        setError(null);
+        try {
+            const response = await getFertilizerCostSummary();
+            setCostSummary({
+                summary: response.data.summary,
+                totalFields: response.data.totalFields,
+                totalCost: response.data.totalCost,
+            });
+        } catch (err: any) {
+            const errorMessage =
+                err?.response?.data?.message ??
+                err?.message ??
+                "Failed to fetch cost summary";
+            setError(errorMessage);
+        } finally {
+            setIsLoadingSummary(false);
+        }
+    }, []);
+
     return {
         fertilizers,
         isLoading,
@@ -223,6 +253,9 @@ export function useFertilizer() {
         updateFertilizer: updateFertilizerRecord,
         deleteFertilizer: deleteFertilizerRecord,
         setPagination,
+        costSummary,
+        isLoadingSummary,
+        fetchCostSummary,
     };
 }
 

@@ -245,7 +245,7 @@ export default function BaseTable<T = any>({
                     )}
                 </Table.Tbody>
             </Table>
-            {pagination  && (
+            {pagination && pagination.totalPages > 1 && (
                 <Group 
                     justify="center" 
                     style={{ 

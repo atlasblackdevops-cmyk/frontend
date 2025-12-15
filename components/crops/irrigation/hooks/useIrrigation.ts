@@ -15,7 +15,9 @@ import {
     createIrrigation,
     updateIrrigation,
     deleteIrrigation,
+    getIrrigationCostSummary,
 } from "@/lib/crops/irrigation/api";
+import type { IrrigationCostSummaryItem } from "../types";
 
 export function useIrrigation() {
     const { farmId } = useAuth();
@@ -210,6 +212,34 @@ export function useIrrigation() {
         }
     };
 
+    const [costSummary, setCostSummary] = useState<{
+        summary: IrrigationCostSummaryItem[];
+        totalFields: number;
+        totalCost: number;
+    } | null>(null);
+    const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+
+    const fetchCostSummary = useCallback(async () => {
+        setIsLoadingSummary(true);
+        setError(null);
+        try {
+            const response = await getIrrigationCostSummary();
+            setCostSummary({
+                summary: response.data.summary,
+                totalFields: response.data.totalFields,
+                totalCost: response.data.totalCost,
+            });
+        } catch (err: any) {
+            const errorMessage =
+                err?.response?.data?.message ??
+                err?.message ??
+                "Failed to fetch cost summary";
+            setError(errorMessage);
+        } finally {
+            setIsLoadingSummary(false);
+        }
+    }, []);
+
     return {
         irrigations,
         isLoading,
@@ -221,6 +251,9 @@ export function useIrrigation() {
         updateIrrigation: updateIrrigationRecord,
         deleteIrrigation: deleteIrrigationRecord,
         setPagination,
+        costSummary,
+        isLoadingSummary,
+        fetchCostSummary,
     };
 }
 

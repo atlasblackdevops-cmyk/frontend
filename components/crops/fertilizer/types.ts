@@ -145,6 +145,22 @@ export interface FertilizerFiltersDrawerProps {
     onClearFilters: () => void;
 }
 
+// Cost Summary Types
+export type FertilizerCostSummaryItem = {
+    fieldId: string;
+    fieldName: string;
+    totalCost: number;
+};
+
+export type FertilizerCostSummaryResponse = {
+    message: string;
+    data: {
+        summary: FertilizerCostSummaryItem[];
+        totalFields: number;
+        totalCost: number;
+    };
+};
+
 // Constants
 export const QUANTITY_UNIT_OPTIONS = [
     { value: "kg", label: "Kilograms (kg)" },

@@ -6,6 +6,7 @@ import type {
     ApiIrrigationResponse,
     GetIrrigationsParams,
     CreateIrrigationData,
+    IrrigationCostSummaryResponse,
 } from "@/components/crops/irrigation/types";
 
 /**
@@ -155,4 +156,14 @@ export async function updateIrrigation(
  */
 export async function deleteIrrigation(irrigationId: string): Promise<void> {
     await api.delete(`/api/v1/irrigation/${irrigationId}`);
+}
+
+/**
+ * Get irrigation cost summary per field
+ */
+export async function getIrrigationCostSummary(): Promise<IrrigationCostSummaryResponse> {
+    const response = await api.get<IrrigationCostSummaryResponse>(
+        `/api/v1/irrigation/cost-summary`
+    );
+    return response.data;
 }
