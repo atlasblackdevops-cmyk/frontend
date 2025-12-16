@@ -236,3 +236,67 @@ export interface PlantingFiltersDrawerProps {
     onClearFilters: () => void;
 }
 
+// Planting Statistics Types
+export interface PlantingSummary {
+    totalActivePlantings: number;
+    totalFieldsWithPlantings: number;
+    totalFields: number;
+    totalFieldsWithoutPlantings: number;
+    totalAreaPlanted: number;
+    uniqueCrops: number;
+    upcomingHarvestsCount: number;
+}
+
+export interface PlantingByField {
+    fieldId: string;
+    fieldName: string;
+    fieldSize: number;
+    sizeUnit: string;
+    plantings: Array<{
+        id: string;
+        cropName: string;
+        seedType: string;
+        plantingDate: string;
+        expectedHarvestDate: string;
+        quantityPlanted: number;
+        quantityUnit: string;
+        area: number;
+        areaUnit: string;
+    }>;
+}
+
+export interface FieldWithoutPlanting {
+    fieldId: string;
+    fieldName: string;
+    fieldSize: number;
+    sizeUnit: string;
+}
+
+export interface CropBreakdown {
+    cropName: string;
+    plantingCount: number;
+    totalArea: number;
+    fieldsCount: number;
+}
+
+export interface UpcomingHarvest {
+    id: string;
+    cropName: string;
+    fieldName: string;
+    expectedHarvestDate: string;
+    daysUntilHarvest: number;
+}
+
+export interface PlantingStatisticsData {
+    summary: PlantingSummary;
+    plantingsByField: PlantingByField[];
+    fieldsWithNoActivePlantings: FieldWithoutPlanting[];
+    cropBreakdown: CropBreakdown[];
+    upcomingHarvests: UpcomingHarvest[];
+}
+
+export interface PlantingStatisticsResponse {
+    message: string;
+    data: PlantingStatisticsData;
+}
+

@@ -8,16 +8,20 @@ import {
   Stack,
   Select,
   NumberInput,
+  Autocomplete,
+  Loader,
+  Text,
+  Box,
 } from "@mantine/core";
 import { BaseInput, BaseDateInput, BaseTextarea } from "@/components/ui";
 import { useForm } from "@mantine/form";
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   AddPlantingValues,
   PlantingModalProps,
   PlantingRecord,
 } from "../types";
-import { useActiveFieldsOptions } from "@/components/shared/hooks/useActiveFieldsOptions";
+import { useActiveFieldsOptionsPaginated } from "@/components/shared/hooks/useActiveFieldsOptionsPaginated";
 import {
   AREA_UNIT_OPTIONS,
   CROP_OPTIONS,
@@ -77,8 +81,85 @@ export default function PlantingModal({
   onSubmit,
   isSubmitting,
 }: PlantingModalProps) {
-  const { options: fieldOptions, loading: loadingFields } =
-    useActiveFieldsOptions(opened);
+  const { 
+    options: fieldOptions, 
+    loading: loadingFields,
+    hasMore,
+    loadMore,
+    search: searchFields,
+    searchQuery,
+    addOption
+  } = useActiveFieldsOptionsPaginated(opened);
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [fieldSearchValue, setFieldSearchValue] = useState("");
+  const [dropdownOpened, setDropdownOpened] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced search function
+  const debouncedSearch = (value: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      searchFields(value);
+    }, 300); // 300ms debounce delay
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Attach scroll listener to dropdown for infinite loading
+  useEffect(() => {
+    if (!dropdownOpened) return;
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = target;
+      
+      // Load more when scrolled to 50% of content (more aggressive loading)
+      if (scrollTop + clientHeight >= scrollHeight * 0.5 && hasMore && !loadingFields) {
+        console.log('Loading more fields...', { scrollTop, scrollHeight, clientHeight });
+        loadMore();
+      }
+    };
+
+    // Find the dropdown element and attach scroll listener
+    const timer = setTimeout(() => {
+      const dropdown = 
+        document.querySelector('[data-combobox-dropdown]') ||
+        document.querySelector('.mantine-Autocomplete-dropdown') ||
+        document.querySelector('[role="listbox"]');
+      
+      if (dropdown) {
+        console.log('Attaching scroll listener to dropdown', dropdown);
+        dropdown.addEventListener('scroll', handleScroll, { passive: true });
+      } else {
+        console.warn('Dropdown element not found for scroll listener');
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      const dropdown = 
+        document.querySelector('[data-combobox-dropdown]') ||
+        document.querySelector('.mantine-Autocomplete-dropdown') ||
+        document.querySelector('[role="listbox"]');
+      
+      if (dropdown) {
+        dropdown.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [dropdownOpened, hasMore, loadingFields, loadMore]);
 
   const form = useForm<AddPlantingValues>({
     initialValues: BASE_VALUES,
@@ -105,14 +186,24 @@ export default function PlantingModal({
       const mapped = mapPlantingToValues(planting);
       form.setValues(mapped);
       form.resetDirty(mapped);
+      
+      // Ensure the selected field is in the options for display
+      if (planting.fieldId && planting.fieldName) {
+        addOption({
+          value: planting.fieldId,
+          label: planting.fieldName,
+        });
+        setFieldSearchValue(planting.fieldName);
+      }
       return;
     }
 
     if (mode === "create") {
       form.setValues(BASE_VALUES);
       form.resetDirty(BASE_VALUES);
+      setFieldSearchValue("");
     }
-  }, [mode, planting, opened]);
+  }, [mode, planting, opened, addOption]);
 
   const handleSubmit = async (values: typeof form.values) => {
     const submitValues = normalizeSubmitValues(values);
@@ -132,26 +223,109 @@ export default function PlantingModal({
     !!form.values.plantingDate;
   const submitDisabled = isSubmitting || !form.isDirty() || !requiredFilled;
 
+  // Prepare data with loading indicator as last item
+  const autocompleteData = [
+    ...(Array.isArray(fieldOptions) ? fieldOptions : []),
+    ...(loadingFields && hasMore ? [{
+      value: '__loading__',
+      label: 'Loading more fields...',
+      disabled: true,
+    }] : [])
+  ];
+
   return (
     <Modal opened={opened} onClose={onClose} title={title} centered size="lg">
       <ScrollArea.Autosize mah={500}>
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
-            <Select
+            <Autocomplete
               label="Field"
-              placeholder={loadingFields ? "Loading fields..." : "Select field"}
-              data={fieldOptions}
-              disabled={loadingFields}
-              searchable
-              key={form.key("fieldId")}
-              {...form.getInputProps("fieldId")}
+              placeholder="Search and select field"
+              data={autocompleteData}
+              value={fieldSearchValue}
+              onChange={(value) => {
+                setFieldSearchValue(value);
+                debouncedSearch(value);
+              }}
+              onOptionSubmit={(value) => {
+                // Ignore the loading indicator
+                if (value === '__loading__') return;
+                
+                const selectedField = fieldOptions?.find((opt) => opt.value === value);
+                if (selectedField) {
+                  form.setFieldValue("fieldId", value);
+                  setFieldSearchValue(selectedField.label);
+                }
+              }}
+              error={form.errors.fieldId}
+              maxDropdownHeight={300}
+              limit={Infinity}
+              filter={({ options }) => options}
+              onDropdownOpen={() => {
+                setDropdownOpened(true);
+                console.log('Dropdown opened, fields count:', fieldOptions?.length, 'hasMore:', hasMore);
+                if (!fieldSearchValue) {
+                  searchFields("");
+                }
+              }}
+              onDropdownClose={() => {
+                setDropdownOpened(false);
+                if (form.values.fieldId) {
+                  const selectedField = fieldOptions?.find((opt) => opt.value === form.values.fieldId);
+                  if (selectedField) {
+                    setFieldSearchValue(selectedField.label);
+                  }
+                } else {
+                  setFieldSearchValue("");
+                }
+              }}
+              rightSection={loadingFields && !dropdownOpened ? <Loader size="xs" /> : undefined}
+              comboboxProps={{
+                dropdownPadding: 0,
+                position: "bottom-start",
+                middlewares: { flip: false, shift: false },
+              }}
+              styles={{
+                dropdown: {
+                  maxHeight: 300,
+                  overflowY: 'auto',
+                },
+                option: {
+                  '&[data-combobox-disabled]': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: 'var(--mantine-color-dimmed)',
+                    fontWeight: 500,
+                    cursor: 'default',
+                    opacity: 1,
+                  },
+                },
+              }}
+              renderOption={(item) => {
+                if (item.option.value === '__loading__') {
+                  return (
+                    <Group gap="sm" justify="center" p="xs">
+                      <Loader size="sm" />
+                      <Text size="sm" fw={500} c="dimmed">
+                        Loading more fields...
+                      </Text>
+                    </Group>
+                  );
+                }
+                return <span>{item?.option?.label}</span>;
+              }}
             />
 
             <Select
-              label="Crop"
+              label="Crop"  
               placeholder="Select crop type"
               key={form.key("crop")}
               data={CROP_OPTIONS.filter((opt) => opt.value !== "all")}
+              searchable
+              limit={Infinity}
+              maxDropdownHeight={300}
               {...form.getInputProps("crop")}
             />
 
@@ -196,6 +370,9 @@ export default function PlantingModal({
               <Select
                 label="Quantity Unit"
                 data={QUANTITY_UNIT_OPTIONS}
+                searchable
+                limit={Infinity}
+                maxDropdownHeight={300}
                 key={form.key("quantityUnit")}
                 {...form.getInputProps("quantityUnit")}
               />
@@ -223,6 +400,9 @@ export default function PlantingModal({
               <Select
                 label="Area Unit"
                 data={AREA_UNIT_OPTIONS}
+                searchable
+                limit={Infinity}
+                maxDropdownHeight={300}
                 key={form.key("areaUnit")}
                 {...form.getInputProps("areaUnit")}
               />

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Button, Group, Paper, Stack, Text, Title, Tabs } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconPlus, IconSearch } from "@tabler/icons-react";
+import { IconPlus, IconSearch, IconChartBar, IconList } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
@@ -13,6 +13,7 @@ import type { PlantingRecord, FilterValues, CreatePlantingData } from "../types"
 import { usePlantings } from "../hooks";
 import { PlantingModal } from "../modals";
 import { PlantingTable, PlantingFilters, PlantingFiltersDrawer } from "../components";
+import PlantingStatistics from "./PlantingStatistics";
 
 export default function PlantingSection() {
     const { farmId, permissions, role } = useAuth();
@@ -37,6 +38,10 @@ export default function PlantingSection() {
         deletePlanting,
         setPagination,
     } = usePlantings();
+
+    // Tab state
+    const [activeTab, setActiveTab] = useState<string | null>("listing");
+    const [statisticsRefetchTrigger, setStatisticsRefetchTrigger] = useState(0);
 
     // Modal/Drawer states
     const [modalOpen, setModalOpen] = useState(false);
@@ -247,102 +252,138 @@ export default function PlantingSection() {
                 height: "100%", 
                 display: "flex", 
                 flexDirection: "column",
-                overflow: "hidden"
+                overflow: "hidden",
+                maxWidth: "100%"
             }}
         >
-            <Stack gap="lg" style={{ flex: 1, minHeight: 0, overflow: "hidden", alignItems: "stretch" }}>
-                {/* Header */}
-                <Group justify="space-between" align="center" style={{ flexShrink: 0 }}>
-                    <div>
-                        <Title order={2}>Planting Records</Title>
-                        <Text c="dimmed" size="sm">
-                            Manage planting records and track currently planted crops per field
-                        </Text>
-                    </div>
-                    {canCreate && (
-                        <Button
-                            leftSection={<IconPlus size={16} />}
-                            onClick={() => setModalOpen(true)}
-                        >
-                            Add Planting
-                        </Button>
-                    )}
-                </Group>
-
-                {/* Toast */}
-                <div style={{ flexShrink: 0 }}>
-                    <Toast />
+            {/* Header - Fixed */}
+            <Group justify="space-between" align="center" mb="lg" style={{ flexShrink: 0 }}>
+                <div>
+                    <Title order={2}>Planting Records</Title>
+                    <Text c="dimmed" size="sm">
+                        Manage planting records and track currently planted crops per field
+                    </Text>
                 </div>
+                {canCreate && (
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setModalOpen(true)}
+                    >
+                        Add Planting
+                    </Button>
+                )}
+            </Group>
 
-                {/* Search and Filters */}
-                <Group gap="md" align="stretch" justify="space-between" wrap="nowrap" style={{ flexShrink: 0 }}>
-                    <BaseInput
-                        placeholder="Search by crop name, seed type..."
-                        leftSection={<IconSearch size={16} />}
+            {/* Toast - Fixed */}
+            <div style={{ flexShrink: 0, marginBottom: "1rem" }}>
+                <Toast />
+            </div>
+
+            {/* Tabs - Fixed header, scrollable content */}
+            <Tabs 
+                value={activeTab} 
+                onChange={(value) => {
+                    setActiveTab(value);
+                    // Trigger refetch when switching to summary tab
+                    if (value === "summary") {
+                        setStatisticsRefetchTrigger(prev => prev + 1);
+                    }
+                }}
+                style={{ 
+                    flex: 1, 
+                    display: "flex", 
+                    flexDirection: "column",
+                    minHeight: 0,
+                    overflow: "hidden"
+                }}
+            >
+                    <Tabs.List style={{ flexShrink: 0 }}>
+                        <Tabs.Tab value="listing" leftSection={<IconList size={16} />}>
+                            Planting List
+                        </Tabs.Tab>
+                        <Tabs.Tab value="summary" leftSection={<IconChartBar size={16} />}>
+                            Statistics Summary
+                        </Tabs.Tab>
+                    </Tabs.List>
+
+                    <Tabs.Panel 
+                        value="listing" 
+                        pt="lg"
                         style={{ 
-                            width: "100%",
-                            maxWidth: 500,
-                            flex: "1 1 0",
-                            minWidth: 0
+                            flex: 1,
+                            overflowX: "hidden",
+                            overflowY: "auto",
+                            minHeight: 0
                         }}
-                        styles={{
-                            input: {
-                                height: "42px",
-                                minHeight: "42px",
-                            },
-                        }}
-                        value={filterForm.values.search}
-                        onChange={handleSearchChange}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                void fetchPlantings(1, {
-                                    search: filterForm.values.search || undefined,
-                                    crop: filterForm.values.crop || undefined,
-                                    fieldId: filterForm.values.fieldId || undefined,
-                                    plantingDateFrom: filterForm.values.plantingDateFrom || undefined,
-                                    plantingDateTo: filterForm.values.plantingDateTo || undefined,
-                                });
-                            }
-                        }}
-                    />
-                    <PlantingFilters
-                        onOpenFilters={() => setFiltersDrawerOpen(true)}
-                    />
-                </Group>
+                    >
+                        <Stack gap="lg" pb="lg" style={{ width: "100%" }}>
+                            {/* Search and Filters */}
+                            <Group gap="md" align="stretch" justify="space-between" wrap="wrap">
+                                <BaseInput
+                                    placeholder="Search by crop name, seed type..."
+                                    leftSection={<IconSearch size={16} />}
+                                    style={{ 
+                                        width: "100%",
+                                        maxWidth: 500,
+                                        flex: "1 1 0",
+                                        minWidth: 0
+                                    }}
+                                    styles={{
+                                        input: {
+                                            height: "42px",
+                                            minHeight: "42px",
+                                        },
+                                    }}
+                                    value={filterForm.values.search}
+                                    onChange={handleSearchChange}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            void fetchPlantings(1, {
+                                                search: filterForm.values.search || undefined,
+                                                crop: filterForm.values.crop || undefined,
+                                                fieldId: filterForm.values.fieldId || undefined,
+                                                plantingDateFrom: filterForm.values.plantingDateFrom || undefined,
+                                                plantingDateTo: filterForm.values.plantingDateTo || undefined,
+                                            });
+                                        }
+                                    }}
+                                />
+                                <PlantingFilters
+                                    onOpenFilters={() => setFiltersDrawerOpen(true)}
+                                />
+                            </Group>
 
-                {/* Table - Scrollable container */}
-                <div 
-                    style={{ 
-                        flex: "1 1 0",
-                        minHeight: 0,
-                        width: "100%",
-                        maxHeight: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        overflow: "hidden"
-                    }}
-                >
-                    <div style={{ 
-                        width: "100%",
-                        flex: "1 1 0",
-                        minHeight: 0,
-                        maxHeight: "100%",
-                        overflow: "auto"
-                    }}>
-                        <PlantingTable
-                            plantings={plantings}
-                            pagination={pagination}
-                            isLoading={isLoading}
-                            canUpdate={canUpdate}
-                            canDelete={canDelete}
-                            onUpdate={handleEditClick}
-                            onDelete={handleDeleteClick}
-                            onPageChange={handlePageChange}
-                        />
-                    </div>
-                </div>
+                            {/* Table */}
+                            <div style={{ width: "100%" }}>
+                                <PlantingTable
+                                    plantings={plantings}
+                                    pagination={pagination}
+                                    isLoading={isLoading}
+                                    canUpdate={canUpdate}
+                                    canDelete={canDelete}
+                                    onUpdate={handleEditClick}
+                                    onDelete={handleDeleteClick}
+                                    onPageChange={handlePageChange}
+                                />
+                            </div>
+                        </Stack>
+                    </Tabs.Panel>
 
-            </Stack>
+                    <Tabs.Panel 
+                        value="summary" 
+                        pt="lg"
+                        style={{ 
+                            flex: 1,
+                            overflowX: "hidden",
+                            overflowY: "auto",
+                            minHeight: 0
+                        }}
+                    >
+                        <div style={{ paddingBottom: "1rem", width: "100%", maxWidth: "100%" }}>
+                            <PlantingStatistics refetchTrigger={statisticsRefetchTrigger} />
+                        </div>
+                    </Tabs.Panel>
+                </Tabs>
 
             {/* Modals */}
             {canCreate && (
