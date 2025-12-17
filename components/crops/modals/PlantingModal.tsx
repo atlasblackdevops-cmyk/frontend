@@ -95,6 +95,7 @@ export default function PlantingModal({
   const [fieldSearchValue, setFieldSearchValue] = useState("");
   const [dropdownOpened, setDropdownOpened] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingElementRef = useRef<HTMLDivElement>(null);
 
   // Debounced search function
   const debouncedSearch = (value: string) => {
@@ -116,50 +117,69 @@ export default function PlantingModal({
     };
   }, []);
 
-  // Attach scroll listener to dropdown for infinite loading
+  // Use Intersection Observer to detect when loading element comes into view
   useEffect(() => {
-    if (!dropdownOpened) return;
+    if (!dropdownOpened || !hasMore) return;
 
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (!target) return;
+    let observer: IntersectionObserver | null = null;
 
-      const { scrollTop, scrollHeight, clientHeight } = target;
-      
-      // Load more when scrolled to 50% of content (more aggressive loading)
-      if (scrollTop + clientHeight >= scrollHeight * 0.5 && hasMore && !loadingFields) {
-        console.log('Loading more fields...', { scrollTop, scrollHeight, clientHeight });
-        loadMore();
+    const setupObserver = () => {
+      const loadingElement = loadingElementRef.current;
+
+      if (!loadingElement) {
+        return false;
+      }
+
+      // Find the scrollable dropdown container
+      const dropdownContainer = document.querySelector('[data-combobox-dropdown]') ||
+                               document.querySelector('.mantine-Autocomplete-dropdown') ||
+                               document.querySelector('[role="listbox"]');
+
+      if (!dropdownContainer) {
+        return false;
+      }
+
+      // Create intersection observer with dropdown as root
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && hasMore && !loadingFields) {
+              loadMore();
+            }
+          });
+        },
+        {
+          root: dropdownContainer, // Use dropdown as root instead of viewport
+          rootMargin: '50px', // trigger 50px before element comes into view
+          threshold: 0.01, // trigger when at least 1% is visible
+        }
+      );
+
+      observer.observe(loadingElement);
+      return true;
+    };
+
+    // Try to setup observer with retries
+    const attemptSetup = () => {
+      if (!setupObserver()) {
+        // Retry after a delay
+        const timer1 = setTimeout(() => {
+          if (!setupObserver()) {
+            // Final retry
+            setTimeout(setupObserver, 200);
+          }
+        }, 100);
       }
     };
 
-    // Find the dropdown element and attach scroll listener
-    const timer = setTimeout(() => {
-      const dropdown = 
-        document.querySelector('[data-combobox-dropdown]') ||
-        document.querySelector('.mantine-Autocomplete-dropdown') ||
-        document.querySelector('[role="listbox"]');
-      
-      if (dropdown) {
-        console.log('Attaching scroll listener to dropdown', dropdown);
-        dropdown.addEventListener('scroll', handleScroll, { passive: true });
-      } else {
-        console.warn('Dropdown element not found for scroll listener');
-      }
-    }, 150);
+    attemptSetup();
 
     return () => {
-      clearTimeout(timer);
-      const dropdown = 
-        document.querySelector('[data-combobox-dropdown]') ||
-        document.querySelector('.mantine-Autocomplete-dropdown') ||
-        document.querySelector('[role="listbox"]');
-      
-      if (dropdown) {
-        dropdown.removeEventListener('scroll', handleScroll);
+      if (observer) {
+        observer.disconnect();
       }
     };
-  }, [dropdownOpened, hasMore, loadingFields, loadMore]);
+  }, [dropdownOpened, hasMore, loadingFields, loadMore, fieldOptions]);
 
   const form = useForm<AddPlantingValues>({
     initialValues: BASE_VALUES,
@@ -223,12 +243,12 @@ export default function PlantingModal({
     !!form.values.plantingDate;
   const submitDisabled = isSubmitting || !form.isDirty() || !requiredFilled;
 
-  // Prepare data with loading indicator as last item
+  // Prepare data with loading indicator as last item (always show when hasMore is true)
   const autocompleteData = [
     ...(Array.isArray(fieldOptions) ? fieldOptions : []),
-    ...(loadingFields && hasMore ? [{
+    ...(hasMore ? [{
       value: '__loading__',
-      label: 'Loading more fields...',
+      label: loadingFields ? 'Loading more fields...' : 'Scroll for more...',
       disabled: true,
     }] : [])
   ];
@@ -263,7 +283,6 @@ export default function PlantingModal({
               filter={({ options }) => options}
               onDropdownOpen={() => {
                 setDropdownOpened(true);
-                console.log('Dropdown opened, fields count:', fieldOptions?.length, 'hasMore:', hasMore);
                 if (!fieldSearchValue) {
                   searchFields("");
                 }
@@ -288,10 +307,9 @@ export default function PlantingModal({
               styles={{
                 dropdown: {
                   maxHeight: 300,
-                  overflowY: 'auto',
                 },
                 option: {
-                  '&[data-combobox-disabled]': {
+                  '&[dataDisabled]': {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -306,15 +324,17 @@ export default function PlantingModal({
               renderOption={(item) => {
                 if (item.option.value === '__loading__') {
                   return (
-                    <Group gap="sm" justify="center" p="xs">
-                      <Loader size="sm" />
-                      <Text size="sm" fw={500} c="dimmed">
-                        Loading more fields...
-                      </Text>
-                    </Group>
+                    <div ref={loadingElementRef}>
+                      <Group gap="sm" justify="center" p="xs">
+                        {loadingFields && <Loader size="sm" />}
+                        <Text size="sm" fw={500} c="dimmed">
+                          {loadingFields ? 'Loading more fields...' : 'Scroll for more...'}
+                        </Text>
+                      </Group>
+                    </div>
                   );
                 }
-                return <span>{item?.option?.label}</span>;
+                return <span>{(item.option as any)?.label}</span>;
               }}
             />
 

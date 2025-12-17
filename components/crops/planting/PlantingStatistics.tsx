@@ -156,7 +156,7 @@ export default function PlantingStatistics({ refetchTrigger }: PlantingStatistic
             </Grid>
 
             {/* Field Utilization */}
-            <Paper p="lg" withBorder>
+            <Paper p="md" withBorder>
                 <Group justify="space-between" mb="md">
                     <div>
                         <Text size="sm" fw={600}>
@@ -173,7 +173,7 @@ export default function PlantingStatistics({ refetchTrigger }: PlantingStatistic
                 <Progress
                     value={fieldUtilization}
                     color={fieldUtilization >= 80 ? "green" : fieldUtilization >= 50 ? "yellow" : "red"}
-                    size="xl"
+                    size="lg"
                     radius="md"
                 />
                 {summary.totalFieldsWithoutPlantings > 0 && (
@@ -186,8 +186,8 @@ export default function PlantingStatistics({ refetchTrigger }: PlantingStatistic
             <Grid>
                 {/* Crop Breakdown */}
                 <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper p="lg" withBorder h="100%">
-                        <Group mb="md">
+                    <Paper p="md" withBorder h="100%">
+                        <Group mb="sm">
                             <IconChartBar size={20} />
                             <Title order={4}>Crop Breakdown</Title>
                         </Group>
@@ -210,8 +210,8 @@ export default function PlantingStatistics({ refetchTrigger }: PlantingStatistic
 
                 {/* Upcoming Harvests */}
                 <Grid.Col span={{ base: 12, md: 6 }}>
-                    <Paper p="lg" withBorder h="100%">
-                        <Group mb="md">
+                    <Paper p="md" withBorder h="100%">
+                        <Group mb="sm">
                             <IconTractor size={20} />
                             <Title order={4}>Upcoming Harvests</Title>
                         </Group>
@@ -235,8 +235,8 @@ export default function PlantingStatistics({ refetchTrigger }: PlantingStatistic
 
             {/* Fields Without Plantings */}
             {fieldsWithNoActivePlantings.length > 0 && (
-                <Paper p="lg" withBorder>
-                    <Group mb="md" justify="space-between">
+                <Paper p="md" withBorder>
+                    <Group mb="sm" justify="space-between">
                         <Group>
                             <IconMapPin size={20} />
                             <Title order={4}>Fields Without Active Plantings</Title>
