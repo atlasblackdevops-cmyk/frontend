@@ -263,11 +263,7 @@ export type RemoveAnimalsResponse = {
 // Component Prop Types
 export interface AnimalFiltersProps {
     onOpenFilters: () => void;
-    // Optional props for legacy usage; component currently only uses onOpenFilters
-    form?: any;
-    onSearch?: () => void;
-    onClear?: () => void;
-    isLoading?: boolean;
+    activeFiltersCount?: number;
 }
 
 export interface AnimalFiltersDrawerProps {

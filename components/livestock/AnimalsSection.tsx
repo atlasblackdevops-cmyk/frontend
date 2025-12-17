@@ -92,6 +92,15 @@ export default function AnimalsSection() {
     }
   }, [animalsError]);
 
+  // Calculate active filters count (excluding search)
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filterForm.values.gender !== "all") count++;
+    if (filterForm.values.birthdateFrom) count++;
+    if (filterForm.values.birthdateTo) count++;
+    return count;
+  };
+
   // Handle search change
   const handleSearchChange = (searchValue: string) => {
     filterForm.setFieldValue("search", searchValue);
@@ -117,13 +126,18 @@ export default function AnimalsSection() {
   // Handle clear filters
   const handleClearFilters = () => {
     const clearedFilters: FilterValues = {
-      search: "",
+      search: filterForm.values.search, // Keep search
       gender: "all",
       birthdateFrom: "",
       birthdateTo: "",
     };
     filterForm.setValues(clearedFilters);
-    fetchAnimals(1);
+    fetchAnimals(1, {
+      search: clearedFilters.search || undefined,
+      gender: undefined,
+      birthdateFrom: undefined,
+      birthdateTo: undefined,
+    });
   };
 
   // Handle pagination
@@ -280,7 +294,10 @@ export default function AnimalsSection() {
               }
             }}
           />
-          <AnimalFilters onOpenFilters={() => setFiltersDrawerOpen(true)} />
+          <AnimalFilters 
+            onOpenFilters={() => setFiltersDrawerOpen(true)}
+            activeFiltersCount={getActiveFiltersCount()}
+          />
         </Group>
 
         {/* Table - Scrollable container */}

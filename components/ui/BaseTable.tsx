@@ -67,14 +67,17 @@ export default function BaseTable<T = any>({
     const emptyDescription = emptyState?.description || "No items to display.";
 
     return (
-        <div style={{ 
-            width: "100%", 
-            position: "relative",
-            border: "1px solid var(--mantine-color-gray-3)",
-            borderRadius: 6,
-            overflow: "auto",
-            maxHeight: "100%"
-        }}>
+        <div 
+            className="base-table-scrollbar"
+            style={{ 
+                width: "100%", 
+                position: "relative",
+                border: "1px solid var(--mantine-color-gray-3)",
+                borderRadius: 6,
+                overflow: "auto",
+                maxHeight: "100%"
+            }}
+        >
             <Table
                 verticalSpacing={verticalSpacing}
                 highlightOnHover={highlightOnHover}

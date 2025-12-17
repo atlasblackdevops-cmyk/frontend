@@ -48,7 +48,10 @@ export default function TableFiltersDrawer({
             </Stack>
 
             <Group justify="flex-end" mt="md" style={{ position: "sticky", bottom: 0, background: "white", padding: "12px 16px 0 16px", borderTop: "1px solid var(--mantine-color-gray-2)" }}>
-                <Button variant="default" onClick={onClear}>
+                <Button variant="default" onClick={() => {
+                    onClear();
+                    onClose();
+                }}>
                     Clear All
                 </Button>
                 <Button onClick={onApply}>Apply Filters</Button>

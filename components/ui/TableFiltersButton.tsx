@@ -5,15 +5,15 @@ import { IconFilter } from "@tabler/icons-react";
 
 interface TableFiltersButtonProps {
     onOpenFilters: () => void;
+    activeFiltersCount?: number;
 }
 
-/**
- * Standardized filter button component for table filters.
- * Provides consistent UI across all modules.
- */
 export default function TableFiltersButton({
     onOpenFilters,
+    activeFiltersCount = 0,
 }: TableFiltersButtonProps) {
+    const hasActiveFilters = activeFiltersCount > 0;
+
     return (
         <div style={{ display: 'flex', alignItems: 'stretch', flexShrink: 0 }}>
             <Box visibleFrom="sm">
@@ -25,6 +25,15 @@ export default function TableFiltersButton({
                     style={{ alignSelf: 'stretch', height: '42px' }}
                 >
                     Filters
+                    {hasActiveFilters && (
+                        <span style={{ 
+                            marginLeft: '6px', 
+                            color: '#2f9e44',
+                            fontWeight: 600 
+                        }}>
+                            ({activeFiltersCount})
+                        </span>
+                    )}
                 </Button>
             </Box>
             <Box hiddenFrom="sm">

@@ -36,7 +36,7 @@ export default function PlantingTable({
             label: "Field",
             width: "15%",
             render: (planting) => (
-                <Text fw={500} size="sm">
+                <Text fw={500} size="sm" lineClamp={1} title={planting.fieldName || "N/A"}>
                     {planting.fieldName || "N/A"}
                 </Text>
             ),
@@ -46,7 +46,9 @@ export default function PlantingTable({
             label: "Crop",
             width: "15%",
             render: (planting) => (
-                <Text size="sm">{planting.crop}</Text>
+                <Text size="sm" lineClamp={1} title={planting.crop}>
+                    {planting.crop}
+                </Text>
             ),
         },
         {
@@ -54,7 +56,7 @@ export default function PlantingTable({
             label: "Seed Type",
             width: "15%",
             render: (planting) => (
-                <Text size="sm" c="dimmed">
+                <Text size="sm" c="dimmed" lineClamp={1} title={planting.seedType}>
                     {planting.seedType}
                 </Text>
             ),
@@ -64,7 +66,7 @@ export default function PlantingTable({
             label: "Planting Date",
             width: "12%",
             render: (planting) => (
-                <Text size="sm">
+                <Text size="sm" lineClamp={1}>
                     {formatDate(planting.plantingDate)}
                 </Text>
             ),
@@ -74,7 +76,7 @@ export default function PlantingTable({
             label: "Expected Harvest",
             width: "12%",
             render: (planting) => (
-                <Text size="sm" c="dimmed">
+                <Text size="sm" c="dimmed" lineClamp={1}>
                     {formatDate(planting.expectedHarvestDate)}
                 </Text>
             ),
@@ -85,11 +87,11 @@ export default function PlantingTable({
             width: "15%",
             render: (planting) => (
                 planting.area ? (
-                    <Text size="sm">
+                    <Text size="sm" lineClamp={1} title={`${planting.area} ${planting.areaUnit || ""}`}>
                         {planting.area} {planting.areaUnit || ""}
                     </Text>
                 ) : (
-                    <Text size="sm" c="dimmed">
+                    <Text size="sm" c="dimmed" lineClamp={1}>
                         N/A
                     </Text>
                 )
@@ -113,14 +115,6 @@ export default function PlantingTable({
     ];
 
     return (
-        <div style={{ 
-            width: "100%", 
-            position: "relative",
-            border: "1px solid var(--mantine-color-gray-3)",
-            borderRadius: 6,
-            overflow: "auto",
-            maxHeight: "100%"
-        }}>
         <BaseTable
             columns={columns}
             data={plantings}
@@ -147,7 +141,7 @@ export default function PlantingTable({
                       }
                     : undefined
             }
-        /></div>
+        />
     );
 }
 

@@ -4,17 +4,26 @@ import type {
     FieldDetailsResponse,
     FieldRecord,
     ApiFieldResponse,
-    PaginationInfo,
     GetFieldsParams,
     CreateFieldData,
 } from "@/components/fields/types";
 
-/**
- * Get list of fields with filters and pagination
- */
-export async function getFields(
-    params: GetFieldsParams = {}
-): Promise<FieldsApiResponse> {
+function transformFieldData(fieldData: ApiFieldResponse): FieldRecord {
+    return {
+        id: fieldData.id,
+        farmId: fieldData.farmId,
+        fieldName: fieldData.fieldName,
+        fieldSize: fieldData.fieldSize,
+        sizeUnit: fieldData.sizeUnit,
+        soilType: fieldData.soilType,
+        isActive: fieldData.isActive,
+        notes: fieldData.notes,
+        createdAt: fieldData.createdAt,
+        updatedAt: fieldData.updatedAt,
+    };
+}
+
+function buildQueryParams(params: GetFieldsParams = {}): URLSearchParams {
     const queryParams = new URLSearchParams();
     
     if (params.page) {
@@ -33,19 +42,44 @@ export async function getFields(
         queryParams.append("isActive", params.isActive.toString());
     }
 
+    return queryParams;
+}
+
+function buildFieldPayload(data: CreateFieldData): Record<string, any> {
+    const payload: Record<string, any> = {
+        fieldName: data.fieldName,
+    };
+
+    if (data.fieldSize !== undefined && data.fieldSize !== null) {
+        payload.fieldSize = data.fieldSize;
+    }
+    if (data.sizeUnit) {
+        payload.sizeUnit = data.sizeUnit;
+    }
+    if (data.soilType) {
+        payload.soilType = data.soilType;
+    }
+    if (data.isActive !== undefined) {
+        payload.isActive = data.isActive;
+    }
+    if (data.notes?.trim()) {
+        payload.notes = data.notes.trim();
+    }
+
+    return payload;
+}
+
+export async function getFields(
+    params: GetFieldsParams = {}
+): Promise<FieldsApiResponse> {
+    const queryParams = buildQueryParams(params);
     const response = await api.get<FieldsApiResponse>(
         `/api/v1/fields?${queryParams.toString()}`
     );
-
     return response.data;
 }
 
-/**
- * Get single field details by ID
- */
-export async function getFieldDetails(
-    fieldId: string
-): Promise<FieldRecord> {
+export async function getFieldDetails(fieldId: string): Promise<FieldRecord> {
     const response = await api.get<FieldDetailsResponse>(
         `/api/v1/fields/${fieldId}`
     );
@@ -57,59 +91,29 @@ export async function getFieldDetails(
         throw new Error("Field data not found");
     }
 
-    return {
-        id: fieldData.id,
-        farmId: fieldData.farmId,
-        fieldName: fieldData.fieldName,
-        fieldSize: fieldData.fieldSize,
-        sizeUnit: fieldData.sizeUnit,
-        soilType: fieldData.soilType,
-        isActive: fieldData.isActive,
-        notes: fieldData.notes,
-        createdAt: fieldData.createdAt,
-        updatedAt: fieldData.updatedAt,
-    };
+    return transformFieldData(fieldData);
 }
 
-/**
- * Get all active fields (for dropdowns)
- */
 export async function getActiveFields(): Promise<FieldRecord[]> {
     const response = await api.get<FieldsApiResponse>(`/api/v1/fields/active`);
-
     const responseData = response.data?.data ?? {};
     const fieldsData = responseData?.fields ?? [];
 
-    return fieldsData.map((item: ApiFieldResponse) => ({
-        id: item.id,
-        farmId: item.farmId,
-        fieldName: item.fieldName,
-        fieldSize: item.fieldSize,
-        sizeUnit: item.sizeUnit,
-        soilType: item.soilType,
-        isActive: item.isActive,
-        notes: item.notes,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-    }));
+    return fieldsData.map(transformFieldData);
 }
 
-/**
- * Get active fields with pagination (for dropdowns with infinite scroll)
- */
+
 export async function getActiveFieldsPaginated(
     page: number = 1,
     limit: number = 20,
     search?: string
 ): Promise<FieldsApiResponse> {
-    const queryParams = new URLSearchParams();
-    queryParams.append("page", page.toString());
-    queryParams.append("limit", limit.toString());
-    queryParams.append("isActive", "true");
-    
-    if (search?.trim()) {
-        queryParams.append("search", search.trim());
-    }
+    const queryParams = buildQueryParams({
+        page,
+        limit,
+        isActive: true,
+        search,
+    });
 
     const response = await api.get<FieldsApiResponse>(
         `/api/v1/fields?${queryParams.toString()}`
@@ -118,66 +122,39 @@ export async function getActiveFieldsPaginated(
     return response.data;
 }
 
-/**
- * Create a new field
- */
-export async function createField(data: CreateFieldData): Promise<void> {
-    const payload: any = {
-        fieldName: data.fieldName,
-    };
-
-    if (data.fieldSize !== undefined && data.fieldSize !== null) {
-        payload.fieldSize = data.fieldSize;
+export async function createField(data: CreateFieldData): Promise<FieldRecord> {
+    const payload = buildFieldPayload(data);
+    const response = await api.post<{ data: { field: ApiFieldResponse } }>(
+        "/api/v1/fields",
+        payload
+    );
+    
+    const fieldData = response.data?.data?.field;
+    if (!fieldData) {
+        throw new Error("Field creation failed - no data returned");
     }
-    if (data.sizeUnit) {
-        payload.sizeUnit = data.sizeUnit;
-    }
-    if (data.soilType) {
-        payload.soilType = data.soilType;
-    }
-    if (data.isActive !== undefined) {
-        payload.isActive = data.isActive;
-    }
-    if (data.notes?.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
-    await api.post("/api/v1/fields", payload);
+    
+    return transformFieldData(fieldData);
 }
 
-/**
- * Update an existing field
- */
 export async function updateField(
     fieldId: string,
     data: CreateFieldData
-): Promise<void> {
-    const payload: any = {
-        fieldName: data.fieldName,
-    };
-
-    if (data.fieldSize !== undefined && data.fieldSize !== null) {
-        payload.fieldSize = data.fieldSize;
+): Promise<FieldRecord> {
+    const payload = buildFieldPayload(data);
+    const response = await api.put<{ data: { field: ApiFieldResponse } }>(
+        `/api/v1/fields/${fieldId}`,
+        payload
+    );
+    
+    const fieldData = response.data?.data?.field;
+    if (!fieldData) {
+        throw new Error("Field update failed - no data returned");
     }
-    if (data.sizeUnit) {
-        payload.sizeUnit = data.sizeUnit;
-    }
-    if (data.soilType) {
-        payload.soilType = data.soilType;
-    }
-    if (data.isActive !== undefined) {
-        payload.isActive = data.isActive;
-    }
-    if (data.notes?.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
-    await api.put(`/api/v1/fields/${fieldId}`, payload);
+    
+    return transformFieldData(fieldData);
 }
 
-/**
- * Delete a field
- */
 export async function deleteField(fieldId: string): Promise<void> {
     await api.delete(`/api/v1/fields/${fieldId}`);
 }

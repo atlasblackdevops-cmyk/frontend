@@ -204,14 +204,8 @@ export default function HarvestModal({
                     : null
                 }
                 onChange={(date) => {
-                  if (date && typeof date === 'object' && 'toISOString' in date) {
-                    form.setFieldValue(
-                      "harvestDate",
-                      (date as Date).toISOString().split("T")[0]
-                    );
-                  } else {
-                    form.setFieldValue("harvestDate", "");
-                  }
+                
+                    form.setFieldValue("harvestDate", date || "");
                 }}
                 key={form.key("harvestDate")}
               />

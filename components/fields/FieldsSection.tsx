@@ -81,6 +81,14 @@ export default function FieldsSection() {
     }
   }, [fieldsError]);
 
+  // Calculate active filters count (excluding search)
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filterForm.values.soilType !== "all") count++;
+    if (filterForm.values.isActive !== "all") count++;
+    return count;
+  };
+
   // Handle search change
   const handleSearchChange = (searchValue: string) => {
     filterForm.setFieldValue("search", searchValue);
@@ -156,7 +164,7 @@ export default function FieldsSection() {
     setError(null);
 
     try {
-      const success = await createField({
+      const { success, error: mutationError } = await createField({
         fieldName: values.fieldName,
         fieldSize: values.fieldSize,
         sizeUnit: values.sizeUnit,
@@ -169,18 +177,14 @@ export default function FieldsSection() {
         showToast("Field added successfully!", "green");
         setModalOpen(false);
       } else {
-        const message = "Failed to add field";
+        const message = mutationError || "Failed to add field";
         setError(message);
         showToast(message, "red");
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err?.message || "Failed to add field"
-      );
-      showToast(
-        err?.response?.data?.message || err?.message || "Failed to add field",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to add field";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsSubmitting(false);
     }
@@ -194,7 +198,7 @@ export default function FieldsSection() {
     setError(null);
 
     try {
-      const success = await updateField(selectedField.id, {
+      const { success, error: mutationError } = await updateField(selectedField.id, {
         fieldName: values.fieldName,
         fieldSize: values.fieldSize,
         sizeUnit: values.sizeUnit,
@@ -208,20 +212,14 @@ export default function FieldsSection() {
         setUpdateModalOpen(false);
         setSelectedField(null);
       } else {
-        const message = "Failed to update field";
+        const message = mutationError || "Failed to update field";
         setError(message);
         showToast(message, "red");
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err?.message || "Failed to update field"
-      );
-      showToast(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to update field",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to update field";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsUpdating(false);
     }
@@ -235,27 +233,21 @@ export default function FieldsSection() {
     setError(null);
 
     try {
-      const success = await deleteField(fieldToDelete.id);
+      const { success, error: mutationError } = await deleteField(fieldToDelete.id);
 
       if (success) {
         showToast("Field deleted successfully!", "green");
         setDeleteModalOpen(false);
         setFieldToDelete(null);
       } else {
-        const message = "Failed to delete field";
+        const message = mutationError || "Failed to delete field";
         setError(message);
         showToast(message, "red");
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err?.message || "Failed to delete field"
-      );
-      showToast(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to delete field",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to delete field";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsDeleting(false);
     }
@@ -332,7 +324,10 @@ export default function FieldsSection() {
               }
             }}
           />
-          <FieldFilters onOpenFilters={() => setFiltersDrawerOpen(true)} />
+          <FieldFilters 
+            onOpenFilters={() => setFiltersDrawerOpen(true)}
+            activeFiltersCount={getActiveFiltersCount()}
+          />
         </Group>
 
         {/* Table - Scrollable container */}

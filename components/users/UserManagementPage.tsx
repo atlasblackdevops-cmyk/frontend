@@ -316,34 +316,43 @@ export function UserManagementPage() {
                         updatePayload.password = values.password;
                     }
 
-                    await updateUserHook(
+                    const { success, error: mutationError } = await updateUserHook(
                         activeUser.id,
                         updatePayload
                     );
 
-                    setNotification({
-                        type: "success",
-                        message: "User updated successfully",
-                    });
-                    setTimeout(() => setNotification(null), 5000);
-                    closeUserDrawer();
-                    fetchUsers(pagination.page, pagination.limit);
+                    if (success) {
+                        setNotification({
+                            type: "success",
+                            message: "User updated successfully",
+                        });
+                        setTimeout(() => setNotification(null), 5000);
+                        closeUserDrawer();
+                        // No need to call fetchUsers - hook auto-refetches
+                    } else {
+                        throw new Error(mutationError || "Failed to update user");
+                    }
                 } else {
                     const permissionIds = getPermissionIds(permissionDraft);
-                    await createUserHook({
+                    const { success, error: mutationError } = await createUserHook({
                         name: values.name.trim(),
                         email: values.email.trim().toLowerCase(),
                         password: values.password,
                         roleId: values.roleId,
                         permissionIds,
                     });
-                    setNotification({
-                        type: "success",
-                        message: "User created successfully",
-                    });
-                    setTimeout(() => setNotification(null), 5000);
-                    closeUserDrawer();
-                    fetchUsers(pagination.page, pagination.limit);
+                    
+                    if (success) {
+                        setNotification({
+                            type: "success",
+                            message: "User created successfully",
+                        });
+                        setTimeout(() => setNotification(null), 5000);
+                        closeUserDrawer();
+                        // No need to call fetchUsers - hook auto-refetches
+                    } else {
+                        throw new Error(mutationError || "Failed to create user");
+                    }
                 }
             } catch (error: any) {
                 const errorMessage =
@@ -381,19 +390,23 @@ export function UserManagementPage() {
 
             try {
                 const permissionIds = getPermissionIds(permissionDraft);
-                addExistingUserHook({
+                const { success, error: mutationError } = await addExistingUserHook({
                     userId: values.userId,
                     roleId: values.roleId,
                     permissionIds,
                 });
 
-                setNotification({
-                    type: "success",
-                    message: "User added to farm successfully",
-                });
-                setTimeout(() => setNotification(null), 5000);
-                closeExistingUserDrawer();
-                fetchUsers(pagination.page, pagination.limit);
+                if (success) {
+                    setNotification({
+                        type: "success",
+                        message: "User added to farm successfully",
+                    });
+                    setTimeout(() => setNotification(null), 5000);
+                    closeExistingUserDrawer();
+                    // No need to call fetchUsers - hook auto-refetches
+                } else {
+                    throw new Error(mutationError || "Failed to add existing user");
+                }
             } catch (error: any) {
                 const errorMessage =
                     error.response?.data?.message ||

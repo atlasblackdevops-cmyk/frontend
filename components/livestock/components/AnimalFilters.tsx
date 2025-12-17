@@ -5,7 +5,13 @@ import type { AnimalFiltersProps } from "../types";
 
 export default function AnimalFilters({
     onOpenFilters,
+    activeFiltersCount,
 }: AnimalFiltersProps) {
-    return <TableFiltersButton onOpenFilters={onOpenFilters} />;
+    return (
+        <TableFiltersButton 
+            onOpenFilters={onOpenFilters}
+            activeFiltersCount={activeFiltersCount}
+        />
+    );
 }
 

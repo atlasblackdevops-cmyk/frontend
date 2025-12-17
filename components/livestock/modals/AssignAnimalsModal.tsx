@@ -81,7 +81,7 @@ export default function AssignAnimalsModal({
                     resetAndClose();
                 })}
             >
-                <Stack gap="md">
+                <Stack  gap="md">
                     {isLoadingAnimals ? (
                         <Center p="xl">
                             <Stack align="center" gap="md">
@@ -96,13 +96,18 @@ export default function AssignAnimalsModal({
                                 placeholder="Choose animals for this group"
                                 data={animalOptions}
                                 searchable
-                                clearable
                                 description={`Select animals to assign to this group. Deselect animals to remove them. ${availableAnimals.length} animals available.`}
+                                styles={{
+                                   
+                                    description: {
+                                        marginBottom: '14px',
+                                    },
+                                }}
                                 {...form.getInputProps("animalIds")}
                             />
 
                             {selectedAnimals.length > 0 && (
-                                <Paper withBorder p="md" radius="md">
+                                <Paper withBorder p="sm" radius="md">
                                     <Stack gap="xs">
                                         <Text size="sm" fw={600}>
                                             Selected Animals (

@@ -186,13 +186,13 @@ export default function ListingPage({
             overflow: "hidden"
           }}
         >
-          <div style={{ 
+          {/* <div style={{ 
             width: "100%",
             flex: "1 1 0",
             minHeight: 0,
             maxHeight: "100%",
             overflow: "auto"
-          }}>
+          }}> */}
             <BaseTable
                 columns={tableColumns}
                 data={paginatedData}
@@ -224,7 +224,7 @@ export default function ListingPage({
                   : undefined
               }
               />
-          </div>
+          {/* </div> */}
         </div>
 
       </Stack>

@@ -123,6 +123,7 @@ export interface FieldTableProps {
 
 export interface FieldFiltersProps {
     onOpenFilters: () => void;
+    activeFiltersCount?: number;
 }
 
 export interface FieldFiltersDrawerProps {

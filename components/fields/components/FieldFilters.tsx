@@ -5,7 +5,13 @@ import type { FieldFiltersProps } from "../types";
 
 export default function FieldFilters({
     onOpenFilters,
+    activeFiltersCount,
 }: FieldFiltersProps) {
-    return <TableFiltersButton onOpenFilters={onOpenFilters} />;
+    return (
+        <TableFiltersButton 
+            onOpenFilters={onOpenFilters}
+            activeFiltersCount={activeFiltersCount}
+        />
+    );
 }
 

@@ -20,16 +20,35 @@ interface UseUsersOptions {
     };
 }
 
+interface MutationResult {
+    success: boolean;
+    data?: ApiUserResponse;
+    error?: string;
+}
+
+
+const DEFAULT_PAGINATION: PaginationInfo = {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+};
+
+function extractErrorMessage(err: any, defaultMessage: string): string {
+    return (
+        err?.response?.data?.message ??
+        err?.message ??
+        defaultMessage
+    );
+}
+
 export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
+    // State
     const [users, setUsers] = useState<ManagedUser[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [pagination, setPagination] = useState<PaginationInfo>({
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-    });
+    const [pagination, setPagination] = useState<PaginationInfo>(DEFAULT_PAGINATION);
     const [error, setError] = useState<string | null>(null);
+
 
     const convertApiUserToManagedUser = useCallback(
         (apiUser: ApiUserResponse): ManagedUser => {
@@ -85,12 +104,7 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
 
                 const response = await getUsers(params);
                 const apiUsers = response.users || [];
-                const paginationInfo = response.pagination || {
-                    page: 1,
-                    limit: 10,
-                    total: 0,
-                    totalPages: 0,
-                };
+                const paginationInfo = response.pagination || DEFAULT_PAGINATION;
 
                 const managedUsers = apiUsers.map(convertApiUserToManagedUser);
                 // Apply client-side search filter if needed
@@ -108,12 +122,10 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
                 setUsers(finalUsers);
                 setPagination(paginationInfo);
             } catch (err: any) {
-                setError(
-                    err?.response?.data?.message ??
-                        err?.message ??
-                        "Failed to fetch users"
-                );
+                const errorMessage = extractErrorMessage(err, "Failed to fetch users");
+                setError(errorMessage);
                 setUsers([]);
+                setPagination(DEFAULT_PAGINATION);
             } finally {
                 setIsLoading(false);
             }
@@ -122,25 +134,74 @@ export function useUsers({ moduleDefinitions, filters }: UseUsersOptions) {
     );
 
     const handleCreateUser = useCallback(
-        async (data: CreateUserData): Promise<ApiUserResponse> => {
-            return await createUser(data);
+        async (data: CreateUserData): Promise<MutationResult> => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const newUser = await createUser(data);
+                
+                // Refetch the current page to reflect the new user
+                await fetchUsers(pagination.page, pagination.limit);
+                
+                return { success: true, data: newUser };
+            } catch (err: any) {
+                const errorMessage = extractErrorMessage(err, "Failed to create user");
+                setError(errorMessage);
+                return { success: false, error: errorMessage };
+            } finally {
+                setIsLoading(false);
+            }
         },
-        []
+        [pagination.page, pagination.limit, fetchUsers]
     );
 
     const handleUpdateUser = useCallback(
-        async (userId: string, data: UpdateUserData): Promise<ApiUserResponse> => {
-            return await updateUser(userId, data);
+        async (userId: string, data: UpdateUserData): Promise<MutationResult> => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const updatedUser = await updateUser(userId, data);
+                
+                // Refetch the current page to reflect the updated user
+                await fetchUsers(pagination.page, pagination.limit);
+                
+                return { success: true, data: updatedUser };
+            } catch (err: any) {
+                const errorMessage = extractErrorMessage(err, "Failed to update user");
+                setError(errorMessage);
+                return { success: false, error: errorMessage };
+            } finally {
+                setIsLoading(false);
+            }
         },
-        []
+        [pagination.page, pagination.limit, fetchUsers]
     );
 
     const handleAddExistingUser = useCallback(
-        async (data: AddExistingUserData): Promise<ApiUserResponse> => {
-            return await addExistingUser(data);
+        async (data: AddExistingUserData): Promise<MutationResult> => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const addedUser = await addExistingUser(data);
+                
+                // Refetch the current page to reflect the added user
+                await fetchUsers(pagination.page, pagination.limit);
+                
+                return { success: true, data: addedUser };
+            } catch (err: any) {
+                const errorMessage = extractErrorMessage(err, "Failed to add existing user");
+                setError(errorMessage);
+                return { success: false, error: errorMessage };
+            } finally {
+                setIsLoading(false);
+            }
         },
-        []
+        [pagination.page, pagination.limit, fetchUsers]
     );
+
 
     return {
         users,

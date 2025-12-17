@@ -39,16 +39,28 @@ export interface AddExistingUserData {
     permissionIds?: string[];
 }
 
-export const getUsers = async (
-    params: GetUsersParams = {}
-): Promise<{ users: ApiUserResponse[]; pagination: PaginationInfo }> => {
+function buildQueryParams(params: GetUsersParams = {}): URLSearchParams {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.append("page", params.page.toString());
     if (params.limit) queryParams.append("limit", params.limit.toString());
     if (params.roleId) queryParams.append("roleId", params.roleId);
     if (params.isActive) queryParams.append("isActive", params.isActive);
     if (params.search) queryParams.append("search", params.search);
+    return queryParams;
+}
 
+function extractUserData(response: any): ApiUserResponse {
+    const data = response.data?.data ?? response.data;
+    if (!data) {
+        throw new Error("User data not found in response");
+    }
+    return data;
+}
+
+export const getUsers = async (
+    params: GetUsersParams = {}
+): Promise<{ users: ApiUserResponse[]; pagination: PaginationInfo }> => {
+    const queryParams = buildQueryParams(params);
     const response = await api.get<UsersApiResponse>(
         `/api/v1/users?${queryParams.toString()}`
     );
@@ -64,6 +76,7 @@ export const getUsers = async (
             },
     };
 };
+
 
 export const getAllUsers = async (
     search?: string
@@ -105,7 +118,7 @@ export const createUser = async (
         "/api/v1/users",
         data
     );
-    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
+    return extractUserData(response);
 };
 
 export const updateUser = async (
@@ -116,7 +129,7 @@ export const updateUser = async (
         `/api/v1/users/${userId}`,
         data
     );
-    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
+    return extractUserData(response);
 };
 
 export const addExistingUser = async (
@@ -126,6 +139,6 @@ export const addExistingUser = async (
         "/api/v1/users/add-existing",
         data
     );
-    return (response.data as { data?: ApiUserResponse })?.data ?? (response.data as ApiUserResponse);
+    return extractUserData(response);
 };
 

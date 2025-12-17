@@ -3,29 +3,27 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/stores/use-auth-store";
 import type {
-    FieldRecord,
+    AnimalGroup,
     PaginationInfo,
-    GetFieldsParams,
-    CreateFieldData,
+    AddGroupValues,
+    UpdateGroupValues,
 } from "../types";
 import {
-    getFields,
-    getFieldDetails,
-    getActiveFields,
-    createField,
-    updateField,
-    deleteField,
-} from "@/lib/fields/api";
+    getGroups,
+    getGroupDetails,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    type GetGroupsParams,
+} from "@/lib/livestock/api";
 
-interface FetchFieldsFilters {
+interface FetchGroupsFilters {
     search?: string;
-    soilType?: string;
-    isActive?: boolean;
 }
 
 interface MutationResult {
     success: boolean;
-    data?: FieldRecord;
+    data?: any;
     error?: string;
 }
 
@@ -44,16 +42,16 @@ function extractErrorMessage(err: any, defaultMessage: string): string {
     );
 }
 
-export function useFields() {
+export function useGroups() {
     const { farmId } = useAuth();
     
-    const [fields, setFields] = useState<FieldRecord[]>([]);
+    const [groups, setGroups] = useState<AnimalGroup[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [pagination, setPagination] = useState<PaginationInfo>(DEFAULT_PAGINATION);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchFields = useCallback(
-        async (page: number = 1, filters?: FetchFieldsFilters) => {
+    const fetchGroups = useCallback(
+        async (page: number = 1, filters?: FetchGroupsFilters) => {
             if (!farmId) {
                 setError("Farm ID is required");
                 return;
@@ -63,23 +61,23 @@ export function useFields() {
             setError(null);
 
             try {
-                const params: GetFieldsParams = {
+                const params: GetGroupsParams = {
                     page,
                     limit: pagination.limit,
                     ...filters,
                 };
 
-                const response = await getFields(params);
+                const response = await getGroups(params);
                 const responseData = response?.data ?? {};
-                const fieldsData = responseData?.fields ?? [];
+                const groupsData = responseData?.groups ?? [];
                 const paginationData = responseData?.pagination ?? DEFAULT_PAGINATION;
 
-                setFields(fieldsData);
+                setGroups(groupsData);
                 setPagination(paginationData);
             } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to fetch fields");
+                const errorMessage = extractErrorMessage(err, "Failed to fetch groups");
                 setError(errorMessage);
-                setFields([]);
+                setGroups([]);
                 setPagination(DEFAULT_PAGINATION);
             } finally {
                 setIsLoading(false);
@@ -88,16 +86,16 @@ export function useFields() {
         [farmId, pagination.limit]
     );
 
-    const fetchFieldDetails = useCallback(
-        async (fieldId: string): Promise<FieldRecord | null> => {
+    const fetchGroupDetails = useCallback(
+        async (groupId: string) => {
             setIsLoading(true);
             setError(null);
 
             try {
-                const field = await getFieldDetails(fieldId);
-                return field;
+                const groupDetails = await getGroupDetails(groupId);
+                return groupDetails;
             } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to fetch field details");
+                const errorMessage = extractErrorMessage(err, "Failed to fetch group details");
                 setError(errorMessage);
                 return null;
             } finally {
@@ -107,27 +105,8 @@ export function useFields() {
         []
     );
 
-    const fetchActiveFields = useCallback(
-        async (): Promise<FieldRecord[]> => {
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const activeFields = await getActiveFields();
-                return activeFields;
-            } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to fetch active fields");
-                setError(errorMessage);
-                return [];
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        []
-    );
-
-    const createFieldRecord = useCallback(
-        async (data: CreateFieldData): Promise<MutationResult> => {
+    const createGroupRecord = useCallback(
+        async (data: AddGroupValues): Promise<MutationResult> => {
             if (!farmId) {
                 const errorMsg = "Farm ID is required";
                 setError(errorMsg);
@@ -138,78 +117,76 @@ export function useFields() {
             setError(null);
 
             try {
-                const newField = await createField(data);
+                const result = await createGroup(data);
                 
-                await fetchFields(pagination.page);
+                await fetchGroups(pagination.page);
                 
-                return { success: true, data: newField };
+                return { success: true, data: result };
             } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to create field");
+                const errorMessage = extractErrorMessage(err, "Failed to create group");
                 setError(errorMessage);
                 return { success: false, error: errorMessage };
             } finally {
                 setIsLoading(false);
             }
         },
-        [farmId, pagination.page, fetchFields]
+        [farmId, pagination.page, fetchGroups]
     );
 
-    const updateFieldRecord = useCallback(
-        async (fieldId: string, data: CreateFieldData): Promise<MutationResult> => {
+    const updateGroupRecord = useCallback(
+        async (groupId: string, data: UpdateGroupValues): Promise<MutationResult> => {
             setIsLoading(true);
             setError(null);
 
             try {
-                const updatedField = await updateField(fieldId, data);
+                const result = await updateGroup(groupId, data);
 
-                await fetchFields(pagination.page);
+                await fetchGroups(pagination.page);
                 
-                return { success: true, data: updatedField };
+                return { success: true, data: result };
             } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to update field");
+                const errorMessage = extractErrorMessage(err, "Failed to update group");
                 setError(errorMessage);
                 return { success: false, error: errorMessage };
             } finally {
                 setIsLoading(false);
             }
         },
-        [pagination.page, fetchFields]
+        [pagination.page, fetchGroups]
     );
 
-    const deleteFieldRecord = useCallback(
-        async (fieldId: string): Promise<MutationResult> => {
+    const deleteGroupRecord = useCallback(
+        async (groupId: string): Promise<MutationResult> => {
             setIsLoading(true);
             setError(null);
 
             try {
-                await deleteField(fieldId);
+                await deleteGroup(groupId);
                 
-                await fetchFields(pagination.page);
+                await fetchGroups(pagination.page);
                 
                 return { success: true };
             } catch (err: any) {
-                const errorMessage = extractErrorMessage(err, "Failed to delete field");
+                const errorMessage = extractErrorMessage(err, "Failed to delete group");
                 setError(errorMessage);
                 return { success: false, error: errorMessage };
             } finally {
                 setIsLoading(false);
             }
         },
-        [pagination.page, fetchFields]
+        [pagination.page, fetchGroups]
     );
 
     return {
-        fields,
+        groups,
         isLoading,
         pagination,
         error,
-        fetchFields,
-        fetchFieldDetails,
-        fetchActiveFields,
-        createField: createFieldRecord,
-        updateField: updateFieldRecord,
-        deleteField: deleteFieldRecord,
+        fetchGroups,
+        fetchGroupDetails,
+        createGroup: createGroupRecord,
+        updateGroup: updateGroupRecord,
+        deleteGroup: deleteGroupRecord,
         setPagination,
     };
 }
-

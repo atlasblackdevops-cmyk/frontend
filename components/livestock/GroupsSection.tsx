@@ -18,17 +18,13 @@ import { useToast } from "@/components/ui/useToast";
 import { BaseInput } from "@/components/ui";
 import type { AnimalGroup, AddGroupValues, AssignAnimalsValues, UpdateGroupValues, AnimalRecord } from "./types";
 import {
-  getGroups,
-  createGroup,
-  updateGroup,
   assignAnimalsToGroup,
   removeAnimalsFromGroup,
-  deleteGroup,
-  getGroupDetails,
 } from "@/lib/livestock/api";
 import { GroupsTable } from "./components";
 import { AddGroupModal, UpdateGroupModal, AssignAnimalsModal } from "./modals";
 import { getAnimals } from "@/lib/livestock/api";
+import { useGroups } from "./hooks";
 
 export default function GroupsSection() {
   const { farmId, permissions, role } = useAuth();
@@ -41,17 +37,22 @@ export default function GroupsSection() {
   const canUpdate = hasPermission("LIVESTOCK", "UPDATE", permissions, role);
   const canDelete = hasPermission("LIVESTOCK", "DELETE", permissions, role);
 
-  // State management
-  const [groups, setGroups] = useState<AnimalGroup[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Hooks
+  const {
+    groups,
+    isLoading,
+    pagination,
+    error: groupsError,
+    fetchGroups,
+    fetchGroupDetails,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    setPagination,
+  } = useGroups();
+
   const { Toast, showToast } = useToast();
+  const [error, setError] = useState<string | null>(null);
 
   // Get all animals for assign modal - we'll fetch them when needed
   const [allAnimals, setAllAnimals] = useState<AnimalRecord[]>([]);
@@ -75,42 +76,6 @@ export default function GroupsSection() {
       search: "",
     },
   });
-
-  // Fetch groups list
-  const fetchGroups = async (page: number = 1, search?: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getGroups({
-        page,
-        limit: pagination.limit,
-        search: search || undefined,
-      });
-
-      const responseData = response.data ?? response;
-      const groupsData = responseData?.groups ?? [];
-      const paginationData = responseData?.pagination ?? {
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0,
-      };
-
-      setGroups(groupsData);
-      setPagination(paginationData);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? err?.message ?? "Failed to fetch groups"
-      );
-      showToast(
-        err?.response?.data?.message ?? err?.message ?? "Failed to fetch groups",
-        "red"
-      );
-      setGroups([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Fetch all animals for assign modal (only when needed)
   const fetchAllAnimals = async () => {
@@ -167,42 +132,56 @@ export default function GroupsSection() {
     }
   };
 
-  // Load groups on mount
+  // Load groups on mount and when farmId changes
   useEffect(() => {
     if (farmId && canList) {
       fetchGroups(1);
     }
   }, [farmId, canList]);
 
+  // Surface fetch errors as toast
+  useEffect(() => {
+    if (groupsError) {
+      showToast(groupsError, "red");
+    }
+  }, [groupsError]);
+
   // Handle search change
   const handleSearchChange = (searchValue: string) => {
     searchForm.setFieldValue("search", searchValue);
-    fetchGroups(1, searchValue);
+    fetchGroups(1, {
+      search: searchValue || undefined,
+    });
   };
 
   // Handle pagination
   const handlePageChange = (page: number) => {
     setPagination({ ...pagination, page });
-    fetchGroups(page, searchForm.values.search);
+    fetchGroups(page, {
+      search: searchForm.values.search || undefined,
+    });
   };
 
   // Handle create group
   const handleCreateGroup = async (values: AddGroupValues) => {
     setIsSubmitting(true);
     setError(null);
+
     try {
-      await createGroup(values);
-      showToast("Group created successfully!", "green");
-      setAddModalOpen(false);
-      await fetchGroups(pagination.page, searchForm.values.search);
+      const { success, error: mutationError } = await createGroup(values);
+
+      if (success) {
+        showToast("Group created successfully!", "green");
+        setAddModalOpen(false);
+      } else {
+        const message = mutationError || "Failed to create group";
+        setError(message);
+        showToast(message, "red");
+      }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? err?.message ?? "Failed to create group"
-      );
-      showToast(
-        err?.response?.data?.message ?? err?.message ?? "Failed to create group",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to create group";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsSubmitting(false);
     }
@@ -214,20 +193,23 @@ export default function GroupsSection() {
 
     setIsUpdating(true);
     setError(null);
+
     try {
-      await updateGroup(selectedGroup.id, values);
-      showToast("Group updated successfully!", "green");
-      setUpdateModalOpen(false);
-      setSelectedGroup(null);
-      await fetchGroups(pagination.page, searchForm.values.search);
+      const { success, error: mutationError } = await updateGroup(selectedGroup.id, values);
+
+      if (success) {
+        showToast("Group updated successfully!", "green");
+        setUpdateModalOpen(false);
+        setSelectedGroup(null);
+      } else {
+        const message = mutationError || "Failed to update group";
+        setError(message);
+        showToast(message, "red");
+      }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? err?.message ?? "Failed to update group"
-      );
-      showToast(
-        err?.response?.data?.message ?? err?.message ?? "Failed to update group",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to update group";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsUpdating(false);
     }
@@ -239,20 +221,23 @@ export default function GroupsSection() {
 
     setIsDeleting(true);
     setError(null);
+
     try {
-      await deleteGroup(groupToDelete.id);
-      showToast("Group deleted successfully!", "green");
-      setDeleteModalOpen(false);
-      setGroupToDelete(null);
-      await fetchGroups(pagination.page, searchForm.values.search);
+      const { success, error: mutationError } = await deleteGroup(groupToDelete.id);
+
+      if (success) {
+        showToast("Group deleted successfully!", "green");
+        setDeleteModalOpen(false);
+        setGroupToDelete(null);
+      } else {
+        const message = mutationError || "Failed to delete group";
+        setError(message);
+        showToast(message, "red");
+      }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? err?.message ?? "Failed to delete group"
-      );
-      showToast(
-        err?.response?.data?.message ?? err?.message ?? "Failed to delete group",
-        "red"
-      );
+      const message = err?.response?.data?.message || err?.message || "Failed to delete group";
+      setError(message);
+      showToast(message, "red");
     } finally {
       setIsDeleting(false);
     }
@@ -266,10 +251,14 @@ export default function GroupsSection() {
       await fetchAllAnimals();
       
       // Then fetch group details
-      const groupDetails = await getGroupDetails(group.id);
-      const ids = groupDetails.animals?.map((assignment) => assignment.animal.id) ?? [];
-      setCurrentGroupAnimalIds(ids);
-      setAssignModalOpen(true);
+      const groupDetails = await fetchGroupDetails(group.id);
+      if (groupDetails) {
+        const ids = groupDetails.animals?.map((assignment) => assignment.animal.id) ?? [];
+        setCurrentGroupAnimalIds(ids);
+        setAssignModalOpen(true);
+      } else {
+        showToast("Failed to load group details", "red");
+      }
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message ?? err?.message ?? "Failed to load group details";
       console.error("Error in handleAssignAnimals:", err);
@@ -301,7 +290,9 @@ export default function GroupsSection() {
       setAssignModalOpen(false);
       setSelectedGroup(null);
       setCurrentGroupAnimalIds([]);
-      await fetchGroups(pagination.page, searchForm.values.search);
+      await fetchGroups(pagination.page, {
+        search: searchForm.values.search || undefined,
+      });
     } catch (err: any) {
       setError(
         err?.response?.data?.message ?? err?.message ?? "Failed to assign animals"

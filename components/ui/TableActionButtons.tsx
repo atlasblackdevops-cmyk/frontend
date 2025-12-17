@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Tooltip } from "@mantine/core";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { ReactNode } from "react";
 
@@ -46,7 +46,8 @@ export default function TableActionButtons({
     return (
         <Group justify={justify} gap="xs" wrap="nowrap">
             {canUpdate && (
-                <Button
+              <Tooltip label="Edit" position="top" withArrow>
+              <Button
                     variant="subtle"
                     size="md"
                     px="xs"
@@ -56,8 +57,10 @@ export default function TableActionButtons({
                 >
                     <IconEdit size={18} style={actionIconStyle} />
                 </Button>
+              </Tooltip>
             )}
             {canDelete && (
+              <Tooltip label="Delete" position="top" withArrow>
                 <Button
                     variant="subtle"
                     color="red"
@@ -69,6 +72,7 @@ export default function TableActionButtons({
                 >
                     <IconTrash size={18} style={actionIconStyle} />
                 </Button>
+              </Tooltip>
             )}
             {customActions}
         </Group>

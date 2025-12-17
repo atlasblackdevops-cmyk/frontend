@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { TableFiltersDrawer } from "@/components/ui";
@@ -19,6 +20,16 @@ export default function FieldFiltersDrawer({
             isActive: filters.isActive,
         },
     });
+
+    // Reset form to current filters when drawer opens or filters change
+    useEffect(() => {
+        if (opened) {
+            form.setValues({
+                soilType: filters.soilType,
+                isActive: filters.isActive,
+            });
+        }
+    }, [opened, filters.soilType, filters.isActive]);
 
     const handleApply = () => {
         onApplyFilters({

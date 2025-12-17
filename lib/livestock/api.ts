@@ -38,6 +38,62 @@ export interface CreateAnimalData {
     photo: File | null;
 }
 
+function transformAnimalData(animalData: ApiAnimalResponse): AnimalRecord {
+    return {
+        id: animalData.id,
+        name: animalData.name,
+        species: animalData.speciesRelation.name,
+        breed: animalData.breedRelation.name,
+        gender: animalData.gender as "Male" | "Female" | "Unknown",
+        birthdate: animalData.birthdate,
+        photo: animalData.photo,
+        isActive: animalData.isActive,
+        createdAt: animalData.createdAt,
+        updatedAt: animalData.updatedAt,
+    };
+}
+
+
+function buildAnimalQueryParams(params: GetAnimalsParams = {}): URLSearchParams {
+    const queryParams = new URLSearchParams();
+
+    if (params.page) {
+        queryParams.append("page", params.page.toString());
+    }
+    if (params.limit) {
+        queryParams.append("limit", params.limit.toString());
+    }
+    if (params.search?.trim()) {
+        queryParams.append("search", params.search.trim());
+    }
+    if (params.gender && params.gender !== "all") {
+        queryParams.append("gender", params.gender);
+    }
+    if (params.birthdateFrom) {
+        queryParams.append("birthdateFrom", params.birthdateFrom);
+    }
+    if (params.birthdateTo) {
+        queryParams.append("birthdateTo", params.birthdateTo);
+    }
+
+    return queryParams;
+}
+
+function buildAnimalFormData(data: CreateAnimalData): FormData {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("speciesId", data.species);
+    formData.append("breedId", data.breed);
+    formData.append("gender", data.gender);
+    formData.append("birthdate", data.birthdate);
+
+    if (data.photo) {
+        formData.append("image", data.photo);
+    }
+
+    return formData;
+}
+
 export interface CreateHealthRecordData {
     recordType: string;
     name: string;
@@ -66,46 +122,99 @@ export interface CreateFeedRecordData {
     notes?: string;
 }
 
-/**
- * Get list of animals with filters and pagination
- */
+function buildHealthRecordFormData(data: CreateHealthRecordData | UpdateHealthRecordData): FormData {
+    const formData = new FormData();
+    
+    if (data.recordType) {
+        formData.append("recordType", data.recordType);
+    }
+    if (data.name) {
+        formData.append("name", data.name);
+    }
+    if (data.cost !== null && data.cost !== undefined) {
+        formData.append("cost", data.cost.toString());
+    }
+    if (data.nextDueDate) {
+        formData.append("nextDueDate", data.nextDueDate);
+    }
+    if (data.description) {
+        formData.append("description", data.description);
+    }
+    
+    // Append images if provided
+    if (data.images && data.images.length > 0) {
+        data.images.forEach((image) => {
+            formData.append("images", image);
+        });
+    }
+
+    // For updates: append deletedImageKeys if provided
+    if ("deletedImageKeys" in data && data.deletedImageKeys && data.deletedImageKeys.length > 0) {
+        data.deletedImageKeys.forEach((key) => {
+            formData.append("deletedImageKeys", key);
+        });
+    }
+
+    return formData;
+}
+
+function buildWeightRecordPayload(data: CreateWeightRecordData): Record<string, any> {
+    const measuredAtDate = new Date(data.measuredAt);
+    const measuredAtISO = measuredAtDate.toISOString();
+
+    const payload: Record<string, any> = {
+        measuredAt: measuredAtISO,
+        weight: data.weight,
+        weightUnit: data.weightUnit,
+    };
+
+    if (data.notes && data.notes.trim()) {
+        payload.notes = data.notes.trim();
+    }
+
+    return payload;
+}
+
+
+function buildFeedRecordPayload(data: CreateFeedRecordData): Record<string, any> {
+    const payload: Record<string, any> = {
+        quantity: data.quantity,
+        quantityUnit: data.quantityUnit,
+        feedType: data.feedType,
+    };
+
+    if (data.notes && data.notes.trim()) {
+        payload.notes = data.notes.trim();
+    }
+
+    return payload;
+}
+
+
+function buildRecordQueryParams(params?: {
+    page?: number;
+    limit?: number;
+    dateFrom?: string;
+    dateTo?: string;
+}): URLSearchParams {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
+    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
+    return queryParams;
+}
+
 export async function getAnimals(
     params: GetAnimalsParams = {}
 ): Promise<AnimalsApiResponse> {
-    const queryParams = new URLSearchParams();
-
-    if (params.page) {
-        queryParams.append("page", params.page.toString());
-    }
-    if (params.limit) {
-        queryParams.append("limit", params.limit.toString());
-    }
-    if (params.search?.trim()) {
-        queryParams.append("search", params.search.trim());
-    }
-    if (params.gender && params.gender !== "all") {
-        queryParams.append("gender", params.gender);
-    }
-    if (params.birthdateFrom) {
-        queryParams.append("birthdateFrom", params.birthdateFrom);
-    }
-    if (params.birthdateTo) {
-        queryParams.append("birthdateTo", params.birthdateTo);
-    }
-
-    const queryString = queryParams.toString();
-    const url = queryString 
-        ? `/api/v1/animals?${queryString}`
-        : `/api/v1/animals`;
-    
-    const response = await api.get<AnimalsApiResponse>(url);
-
+    const queryParams = buildAnimalQueryParams(params);
+    const response = await api.get<AnimalsApiResponse>(
+        `/api/v1/animals?${queryParams.toString()}`
+    );
     return response.data;
 }
 
-/**
- * Get single animal details by ID
- */
 export async function getAnimalDetails(
     animalId: string
 ): Promise<AnimalRecord> {
@@ -120,35 +229,11 @@ export async function getAnimalDetails(
         throw new Error("Animal data not found");
     }
 
-    return {
-        id: animalData.id,
-        name: animalData.name,
-        species: animalData.speciesRelation.name,
-        breed: animalData.breedRelation.name,
-        gender: animalData.gender as "Male" | "Female" | "Unknown",
-        birthdate: animalData.birthdate,
-        photo: animalData.photo,
-        isActive: animalData.isActive,
-        createdAt: animalData.createdAt,
-        updatedAt: animalData.updatedAt,
-    };
+    return transformAnimalData(animalData);
 }
 
-/**
- * Create a new animal
- */
 export async function createAnimal(data: CreateAnimalData): Promise<void> {
-    const formData = new FormData();
-    formData.append("name", data.name);
-    formData.append("speciesId", data.species);
-    formData.append("breedId", data.breed);
-    formData.append("gender", data.gender);
-    formData.append("birthdate", data.birthdate);
-
-    if (data.photo) {
-        formData.append("image", data.photo);
-    }
-
+    const formData = buildAnimalFormData(data);
     await api.post("/api/v1/animals", formData, {
         headers: {
             "Content-Type": "multipart/form-data",
@@ -156,24 +241,12 @@ export async function createAnimal(data: CreateAnimalData): Promise<void> {
     });
 }
 
-/**
- * Update an existing animal
- */
+
 export async function updateAnimal(
     animalId: string,
     data: CreateAnimalData
 ): Promise<void> {
-    const formData = new FormData();
-    formData.append("name", data.name);
-    formData.append("speciesId", data.species);
-    formData.append("breedId", data.breed);
-    formData.append("gender", data.gender);
-    formData.append("birthdate", data.birthdate);
-
-    if (data.photo) {
-        formData.append("image", data.photo);
-    }
-
+    const formData = buildAnimalFormData(data);
     await api.put(`/api/v1/animals/${animalId}`, formData, {
         headers: {
             "Content-Type": "multipart/form-data",
@@ -181,16 +254,11 @@ export async function updateAnimal(
     });
 }
 
-/**
- * Delete an animal
- */
+
 export async function deleteAnimal(animalId: string): Promise<void> {
     await api.delete(`/api/v1/animals/${animalId}`);
 }
 
-/**
- * Get health records for an animal with pagination and date filters
- */
 export async function getHealthRecords(
     animalId: string,
     params?: {
@@ -200,12 +268,7 @@ export async function getHealthRecords(
         dateTo?: string;
     }
 ): Promise<{ records: HealthRecord[]; pagination: PaginationInfo }> {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
-    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
-    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
-
+    const queryParams = buildRecordQueryParams(params);
     const response = await api.get<{
         message?: string;
         data?: {
@@ -229,35 +292,12 @@ export async function getHealthRecords(
     };
 }
 
-/**
- * Create a health record for an animal
- */
+
 export async function createHealthRecord(
     animalId: string,
     data: CreateHealthRecordData
 ): Promise<void> {
-    // Always use FormData for multipart/form-data as per API spec
-    const formData = new FormData();
-    formData.append("recordType", data.recordType);
-    formData.append("name", data.name);
-
-    if (data.cost !== null && data.cost !== undefined) {
-        formData.append("cost", data.cost.toString());
-    }
-    if (data.nextDueDate) {
-        formData.append("nextDueDate", data.nextDueDate);
-    }
-    if (data.description) {
-        formData.append("description", data.description);
-    }
-
-    // Append images if provided
-    if (data.images && data.images.length > 0) {
-        data.images.forEach((image) => {
-            formData.append("images", image);
-        });
-    }
-
+    const formData = buildHealthRecordFormData(data);
     await api.post(`/api/v1/animals/${animalId}/health-records`, formData, {
         headers: {
             "Content-Type": "multipart/form-data",
@@ -265,50 +305,13 @@ export async function createHealthRecord(
     });
 }
 
-/**
- * Update a health record
- */
+
 export async function updateHealthRecord(
     animalId: string,
     recordId: string,
     data: UpdateHealthRecordData
 ): Promise<void> {
-    // Always use FormData for multipart/form-data as per API spec
-    const formData = new FormData();
-
-    // All fields are optional for update
-    if (data.recordType) {
-        formData.append("recordType", data.recordType);
-    }
-    if (data.name) {
-        formData.append("name", data.name);
-    }
-    if (data.cost !== null && data.cost !== undefined) {
-        formData.append("cost", data.cost.toString());
-    }
-    if (data.nextDueDate) {
-        formData.append("nextDueDate", data.nextDueDate);
-    }
-    if (data.description) {
-        formData.append("description", data.description);
-    }
-
-    // Append images if provided (adds new images)
-    if (data.images && data.images.length > 0) {
-        data.images.forEach((image) => {
-            formData.append("images", image);
-        });
-    }
-
-    // Append deletedImageKeys if provided (deletes specific images by S3 key)
-    if (data.deletedImageKeys && data.deletedImageKeys.length > 0) {
-        // Send as JSON array string or multiple entries
-        // Backend should parse this as array of strings
-        data.deletedImageKeys.forEach((key) => {
-            formData.append("deletedImageKeys", key);
-        });
-    }
-
+    const formData = buildHealthRecordFormData(data);
     await api.put(
         `/api/v1/animals/${animalId}/health-records/${recordId}`,
         formData,
@@ -320,9 +323,7 @@ export async function updateHealthRecord(
     );
 }
 
-/**
- * Get weight records for an animal with pagination and date filters
- */
+
 export async function getWeightRecords(
     animalId: string,
     params?: {
@@ -332,12 +333,7 @@ export async function getWeightRecords(
         dateTo?: string;
     }
 ): Promise<{ records: WeightRecord[]; pagination: PaginationInfo }> {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
-    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
-    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
-
+    const queryParams = buildRecordQueryParams(params);
     const response = await api.get<{
         message?: string;
         data?: {
@@ -361,71 +357,26 @@ export async function getWeightRecords(
     };
 }
 
-/**
- * Create a weight record for an animal
- */
 export async function createWeightRecord(
     animalId: string,
     data: CreateWeightRecordData
 ): Promise<void> {
-    // Convert date string to ISO format
-    const measuredAtDate = new Date(data.measuredAt);
-    const measuredAtISO = measuredAtDate.toISOString();
-
-    const payload: {
-        measuredAt: string;
-        weight: number;
-        weightUnit: string;
-        notes?: string;
-    } = {
-        measuredAt: measuredAtISO,
-        weight: data.weight,
-        weightUnit: data.weightUnit,
-    };
-
-    if (data.notes && data.notes.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
+    const payload = buildWeightRecordPayload(data);
     await api.post(`/api/v1/animals/${animalId}/weight-records`, payload);
 }
 
-/**
- * Update a weight record
- */
 export async function updateWeightRecord(
     animalId: string,
     recordId: string,
     data: CreateWeightRecordData
 ): Promise<void> {
-    // Convert date string to ISO format
-    const measuredAtDate = new Date(data.measuredAt);
-    const measuredAtISO = measuredAtDate.toISOString();
-
-    const payload: {
-        measuredAt: string;
-        weight: number;
-        weightUnit: string;
-        notes?: string;
-    } = {
-        measuredAt: measuredAtISO,
-        weight: data.weight,
-        weightUnit: data.weightUnit,
-    };
-
-    if (data.notes && data.notes.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
+    const payload = buildWeightRecordPayload(data);
     await api.put(
         `/api/v1/animals/${animalId}/weight-records/${recordId}`,
         payload
     );
 }
 
-/**
- * Get feed records for an animal with pagination and date filters
- */
 export async function getFeedRecords(
     animalId: string,
     params?: {
@@ -435,12 +386,7 @@ export async function getFeedRecords(
         dateTo?: string;
     }
 ): Promise<{ records: FeedRecord[]; pagination: PaginationInfo }> {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
-    if (params?.dateFrom) queryParams.append("dateFrom", params.dateFrom);
-    if (params?.dateTo) queryParams.append("dateTo", params.dateTo);
-
+    const queryParams = buildRecordQueryParams(params);
     const response = await api.get<{
         message?: string;
         data?: {
@@ -464,63 +410,26 @@ export async function getFeedRecords(
     };
 }
 
-/**
- * Create a feed record for an animal
- */
 export async function createFeedRecord(
     animalId: string,
     data: CreateFeedRecordData
 ): Promise<void> {
-    const payload: {
-        quantity: number;
-        quantityUnit: string;
-        feedType: string;
-        notes?: string;
-    } = {
-        quantity: data.quantity,
-        quantityUnit: data.quantityUnit,
-        feedType: data.feedType,
-    };
-
-    if (data.notes && data.notes.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
+    const payload = buildFeedRecordPayload(data);
     await api.post(`/api/v1/animals/${animalId}/feed-records`, payload);
 }
 
-/**
- * Update a feed record
- */
 export async function updateFeedRecord(
     animalId: string,
     recordId: string,
     data: CreateFeedRecordData
 ): Promise<void> {
-    const payload: {
-        quantity: number;
-        quantityUnit: string;
-        feedType: string;
-        notes?: string;
-    } = {
-        quantity: data.quantity,
-        quantityUnit: data.quantityUnit,
-        feedType: data.feedType,
-    };
-
-    if (data.notes && data.notes.trim()) {
-        payload.notes = data.notes.trim();
-    }
-
+    const payload = buildFeedRecordPayload(data);
     await api.put(
         `/api/v1/animals/${animalId}/feed-records/${recordId}`,
         payload
     );
 }
 
-/**
- * Dashboard stats API response
- */
 export interface DashboardStatsResponse {
     message: string;
     data: {
@@ -531,9 +440,6 @@ export interface DashboardStatsResponse {
     };
 }
 
-/**
- * Weight trends API response
- */
 export interface WeightTrendsResponse {
     message: string;
     data: {
@@ -545,9 +451,6 @@ export interface WeightTrendsResponse {
     };
 }
 
-/**
- * Get dashboard statistics for livestock
- */
 export async function getDashboardStats(): Promise<
     DashboardStatsResponse["data"]
 > {
@@ -564,9 +467,6 @@ export async function getDashboardStats(): Promise<
     return responseData;
 }
 
-/**
- * Get weight trends for livestock dashboard
- */
 export async function getWeightTrends(): Promise<
     WeightTrendsResponse["data"]["weightTrends"]
 > {
@@ -583,9 +483,6 @@ export async function getWeightTrends(): Promise<
     return responseData.weightTrends;
 }
 
-/**
- * Feed trends API response
- */
 export interface FeedTrendsResponse {
     message: string;
     data: {
@@ -597,9 +494,6 @@ export interface FeedTrendsResponse {
     };
 }
 
-/**
- * Get feed trends for livestock dashboard
- */
 export async function getFeedTrends(): Promise<
     FeedTrendsResponse["data"]["feedEntriesTrends"]
 > {
@@ -616,19 +510,12 @@ export async function getFeedTrends(): Promise<
     return responseData.feedEntriesTrends;
 }
 
-/**
- * Animal Groups API
- */
-
 export interface GetGroupsParams {
     page?: number;
     limit?: number;
     search?: string;
 }
 
-/**
- * Get dashboard metrics for animal groups
- */
 export async function getGroupsDashboard(): Promise<GroupMetrics> {
     const response = await api.get<GroupDashboardResponse>(
         "/api/v1/animals/groups/dashboard"
@@ -643,9 +530,6 @@ export async function getGroupsDashboard(): Promise<GroupMetrics> {
     return responseData;
 }
 
-/**
- * Get all animal groups with pagination and search
- */
 export async function getGroups(
     params: GetGroupsParams = {}
 ): Promise<GroupsApiResponse> {
@@ -668,9 +552,7 @@ export async function getGroups(
     return response.data;
 }
 
-/**
- * Get single group details with animals
- */
+
 export async function getGroupDetails(
     groupId: string
 ): Promise<GroupDetailsResponse["data"]> {
@@ -687,9 +569,7 @@ export async function getGroupDetails(
     return responseData;
 }
 
-/**
- * Create a new animal group
- */
+
 export async function createGroup(
     data: AddGroupValues
 ): Promise<CreateGroupResponse["data"]> {
@@ -718,9 +598,7 @@ export async function createGroup(
     return responseData;
 }
 
-/**
- * Update an animal group
- */
+
 export async function updateGroup(
     groupId: string,
     data: UpdateGroupValues
@@ -752,16 +630,10 @@ export async function updateGroup(
     return responseData;
 }
 
-/**
- * Delete an animal group
- */
 export async function deleteGroup(groupId: string): Promise<void> {
     await api.delete(`/api/v1/animals/groups/${groupId}`);
 }
 
-/**
- * Assign animals to a group
- */
 export async function assignAnimalsToGroup(
     groupId: string,
     animalIds: string[]
@@ -784,9 +656,6 @@ export async function assignAnimalsToGroup(
     return responseData;
 }
 
-/**
- * Get animals in a group with pagination and search
- */
 export async function getGroupAnimals(
     groupId: string,
     params?: {
@@ -819,11 +688,6 @@ export async function getGroupAnimals(
 
     return responseData;
 }
-
-/**
- * Remove animals from a group
- * DELETE /api/v1/animals/groups/{groupId}/animals
- */
 export async function removeAnimalsFromGroup(
     groupId: string,
     animalIds: string[]
@@ -845,10 +709,6 @@ export async function removeAnimalsFromGroup(
 
     return responseData;
 }
-
-/**
- * Species and Breeds API
- */
 
 export interface Species {
     id: string;

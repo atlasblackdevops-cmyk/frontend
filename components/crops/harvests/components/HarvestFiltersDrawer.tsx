@@ -92,11 +92,7 @@ export default function HarvestFiltersDrawer({
                 placeholder="Select start date"
                 value={form.values.harvestDateFrom ? new Date(form.values.harvestDateFrom) : null}
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("harvestDateFrom", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("harvestDateFrom", "");
-                    }
+                        form.setFieldValue("harvestDateFrom", date ||"");
                 }}
             />
 
@@ -105,11 +101,7 @@ export default function HarvestFiltersDrawer({
                 placeholder="Select end date"
                 value={form.values.harvestDateTo ? new Date(form.values.harvestDateTo) : null}
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("harvestDateTo", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("harvestDateTo", "");
-                    }
+                        form.setFieldValue("harvestDateTo",date || "");
                 }}
             />
         </TableFiltersDrawer>

@@ -51,6 +51,7 @@ export default function AnimalTable({
       label: "Sex",
       render: (animal) => (
         <Badge
+        variant="light"
           color={
             animal.gender === "Female"
               ? "pink"

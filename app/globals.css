@@ -15,3 +15,29 @@ html, body {
 	font-size: 20px !important;
 	font-weight:700 !important;
 }
+
+/* Custom scrollbar styles for tables */
+.base-table-scrollbar::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.base-table-scrollbar::-webkit-scrollbar-track {
+	background: var(--mantine-color-gray-1);
+	border-radius: 4px;
+}
+
+.base-table-scrollbar::-webkit-scrollbar-thumb {
+	background: var(--mantine-color-gray-4);
+	border-radius: 4px;
+	transition: background 0.2s ease;
+}
+
+.base-table-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--mantine-color-gray-5);
+}
+
+.base-table-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: var(--mantine-color-gray-4) var(--mantine-color-gray-1);
+}

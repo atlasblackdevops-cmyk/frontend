@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Select } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { BaseDateInput, TableFiltersDrawer } from "@/components/ui";
@@ -28,6 +29,17 @@ export default function AnimalFiltersDrawer({
             birthdateTo: filters.birthdateTo,
         },
     });
+
+    // Reset form to current filters when drawer opens or filters change
+    useEffect(() => {
+        if (opened) {
+            form.setValues({
+                gender: filters.gender,
+                birthdateFrom: filters.birthdateFrom,
+                birthdateTo: filters.birthdateTo,
+            });
+        }
+    }, [opened, filters.gender, filters.birthdateFrom, filters.birthdateTo]);
 
     const handleApply = () => {
         onApplyFilters({
@@ -63,27 +75,31 @@ export default function AnimalFiltersDrawer({
             <BaseDateInput
                 label="Birthdate From"
                 placeholder="Select start date"
+                clearable
                 value={form.values.birthdateFrom ? new Date(form.values.birthdateFrom) : null}
-                onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("birthdateFrom", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("birthdateFrom", "");
-                    }
-                }}
+                onChange={(value) => form.setFieldValue("birthdateFrom", value || "")}
+                // onChange={(date) => {
+                //     if (date && typeof date === 'object' && 'toISOString' in date) {
+                //         form.setFieldValue("birthdateFrom", (date as Date).toISOString().split('T')[0]);
+                //     } else {
+                //         form.setFieldValue("birthdateFrom", "");
+                //     }
+                // }}
             />
 
             <BaseDateInput
                 label="Birthdate To"
                 placeholder="Select end date"
                 value={form.values.birthdateTo ? new Date(form.values.birthdateTo) : null}
-                onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("birthdateTo", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("birthdateTo", "");
-                    }
-                }}
+                clearable
+                onChange={(value) => form.setFieldValue("birthdateTo", value || "")}
+                // onChange={(date) => {
+                //     if (date && typeof date === 'object' && 'toISOString' in date) {
+                //         form.setFieldValue("birthdateTo", (date as Date).toISOString().split('T')[0]);
+                //     } else {
+                //         form.setFieldValue("birthdateTo", "");
+                //     }
+                // }}
             />
         </TableFiltersDrawer>
     );
