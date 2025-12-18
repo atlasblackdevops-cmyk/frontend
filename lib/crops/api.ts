@@ -11,6 +11,7 @@ import type {
     CreatePlantingData,
     CreateSeedPurchaseData,
     CreateSeedUsageData,
+    PlantingStatisticsResponse,
 } from "@/components/crops/types";
 import type {
     HarvestsApiResponse,
@@ -184,8 +185,17 @@ export async function deletePlanting(plantingId: string): Promise<void> {
 }
 
 /**
- * Get seed purchase records
+ * Get planting statistics summary
+ * Backend endpoint: GET /api/v1/crops/plantings/stats/summary
+ * No parameters needed - farmId is extracted from JWT token by backend
  */
+export async function getPlantingStatistics(): Promise<PlantingStatisticsResponse> {
+    const response = await api.get<PlantingStatisticsResponse>(
+        `/api/v1/crops/plantings/stats/summary`
+    );
+    return response.data;
+}
+
 export async function getSeedPurchases(params?: {
     page?: number;
     limit?: number;

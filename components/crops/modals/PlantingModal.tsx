@@ -8,16 +8,20 @@ import {
   Stack,
   Select,
   NumberInput,
+  Autocomplete,
+  Loader,
+  Text,
+  Box,
 } from "@mantine/core";
 import { BaseInput, BaseDateInput, BaseTextarea } from "@/components/ui";
 import { useForm } from "@mantine/form";
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   AddPlantingValues,
   PlantingModalProps,
   PlantingRecord,
 } from "../types";
-import { useActiveFieldsOptions } from "@/components/shared/hooks/useActiveFieldsOptions";
+import { useActiveFieldsOptionsPaginated } from "@/components/shared/hooks/useActiveFieldsOptionsPaginated";
 import {
   AREA_UNIT_OPTIONS,
   CROP_OPTIONS,
@@ -77,8 +81,105 @@ export default function PlantingModal({
   onSubmit,
   isSubmitting,
 }: PlantingModalProps) {
-  const { options: fieldOptions, loading: loadingFields } =
-    useActiveFieldsOptions(opened);
+  const { 
+    options: fieldOptions, 
+    loading: loadingFields,
+    hasMore,
+    loadMore,
+    search: searchFields,
+    searchQuery,
+    addOption
+  } = useActiveFieldsOptionsPaginated(opened);
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [fieldSearchValue, setFieldSearchValue] = useState("");
+  const [dropdownOpened, setDropdownOpened] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingElementRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search function
+  const debouncedSearch = (value: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      searchFields(value);
+    }, 300); // 300ms debounce delay
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Use Intersection Observer to detect when loading element comes into view
+  useEffect(() => {
+    if (!dropdownOpened || !hasMore) return;
+
+    let observer: IntersectionObserver | null = null;
+
+    const setupObserver = () => {
+      const loadingElement = loadingElementRef.current;
+
+      if (!loadingElement) {
+        return false;
+      }
+
+      // Find the scrollable dropdown container
+      const dropdownContainer = document.querySelector('[data-combobox-dropdown]') ||
+                               document.querySelector('.mantine-Autocomplete-dropdown') ||
+                               document.querySelector('[role="listbox"]');
+
+      if (!dropdownContainer) {
+        return false;
+      }
+
+      // Create intersection observer with dropdown as root
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && hasMore && !loadingFields) {
+              loadMore();
+            }
+          });
+        },
+        {
+          root: dropdownContainer, // Use dropdown as root instead of viewport
+          rootMargin: '50px', // trigger 50px before element comes into view
+          threshold: 0.01, // trigger when at least 1% is visible
+        }
+      );
+
+      observer.observe(loadingElement);
+      return true;
+    };
+
+    // Try to setup observer with retries
+    const attemptSetup = () => {
+      if (!setupObserver()) {
+        // Retry after a delay
+        const timer1 = setTimeout(() => {
+          if (!setupObserver()) {
+            // Final retry
+            setTimeout(setupObserver, 200);
+          }
+        }, 100);
+      }
+    };
+
+    attemptSetup();
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [dropdownOpened, hasMore, loadingFields, loadMore, fieldOptions]);
 
   const form = useForm<AddPlantingValues>({
     initialValues: BASE_VALUES,
@@ -105,14 +206,24 @@ export default function PlantingModal({
       const mapped = mapPlantingToValues(planting);
       form.setValues(mapped);
       form.resetDirty(mapped);
+      
+      // Ensure the selected field is in the options for display
+      if (planting.fieldId && planting.fieldName) {
+        addOption({
+          value: planting.fieldId,
+          label: planting.fieldName,
+        });
+        setFieldSearchValue(planting.fieldName);
+      }
       return;
     }
 
     if (mode === "create") {
       form.setValues(BASE_VALUES);
       form.resetDirty(BASE_VALUES);
+      setFieldSearchValue("");
     }
-  }, [mode, planting, opened]);
+  }, [mode, planting, opened, addOption]);
 
   const handleSubmit = async (values: typeof form.values) => {
     const submitValues = normalizeSubmitValues(values);
@@ -132,26 +243,109 @@ export default function PlantingModal({
     !!form.values.plantingDate;
   const submitDisabled = isSubmitting || !form.isDirty() || !requiredFilled;
 
+  // Prepare data with loading indicator as last item (always show when hasMore is true)
+  const autocompleteData = [
+    ...(Array.isArray(fieldOptions) ? fieldOptions : []),
+    ...(hasMore ? [{
+      value: '__loading__',
+      label: loadingFields ? 'Loading more fields...' : 'Scroll for more...',
+      disabled: true,
+    }] : [])
+  ];
+
   return (
     <Modal opened={opened} onClose={onClose} title={title} centered size="lg">
       <ScrollArea.Autosize mah={500}>
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
-            <Select
+            <Autocomplete
               label="Field"
-              placeholder={loadingFields ? "Loading fields..." : "Select field"}
-              data={fieldOptions}
-              disabled={loadingFields}
-              searchable
-              key={form.key("fieldId")}
-              {...form.getInputProps("fieldId")}
+              placeholder="Search and select field"
+              data={autocompleteData}
+              value={fieldSearchValue}
+              onChange={(value) => {
+                setFieldSearchValue(value);
+                debouncedSearch(value);
+              }}
+              onOptionSubmit={(value) => {
+                // Ignore the loading indicator
+                if (value === '__loading__') return;
+                
+                const selectedField = fieldOptions?.find((opt) => opt.value === value);
+                if (selectedField) {
+                  form.setFieldValue("fieldId", value);
+                  setFieldSearchValue(selectedField.label);
+                }
+              }}
+              error={form.errors.fieldId}
+              maxDropdownHeight={300}
+              limit={Infinity}
+              filter={({ options }) => options}
+              onDropdownOpen={() => {
+                setDropdownOpened(true);
+                if (!fieldSearchValue) {
+                  searchFields("");
+                }
+              }}
+              onDropdownClose={() => {
+                setDropdownOpened(false);
+                if (form.values.fieldId) {
+                  const selectedField = fieldOptions?.find((opt) => opt.value === form.values.fieldId);
+                  if (selectedField) {
+                    setFieldSearchValue(selectedField.label);
+                  }
+                } else {
+                  setFieldSearchValue("");
+                }
+              }}
+              rightSection={loadingFields && !dropdownOpened ? <Loader size="xs" /> : undefined}
+              comboboxProps={{
+                dropdownPadding: 0,
+                position: "bottom-start",
+                middlewares: { flip: false, shift: false },
+              }}
+              styles={{
+                dropdown: {
+                  maxHeight: 300,
+                },
+                option: {
+                  '&[dataDisabled]': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: 'var(--mantine-color-dimmed)',
+                    fontWeight: 500,
+                    cursor: 'default',
+                    opacity: 1,
+                  },
+                },
+              }}
+              renderOption={(item) => {
+                if (item.option.value === '__loading__') {
+                  return (
+                    <div ref={loadingElementRef}>
+                      <Group gap="sm" justify="center" p="xs">
+                        {loadingFields && <Loader size="sm" />}
+                        <Text size="sm" fw={500} c="dimmed">
+                          {loadingFields ? 'Loading more fields...' : 'Scroll for more...'}
+                        </Text>
+                      </Group>
+                    </div>
+                  );
+                }
+                return <span>{(item.option as any)?.label}</span>;
+              }}
             />
 
             <Select
-              label="Crop"
+              label="Crop"  
               placeholder="Select crop type"
               key={form.key("crop")}
               data={CROP_OPTIONS.filter((opt) => opt.value !== "all")}
+              searchable
+              limit={Infinity}
+              maxDropdownHeight={300}
               {...form.getInputProps("crop")}
             />
 
@@ -196,6 +390,9 @@ export default function PlantingModal({
               <Select
                 label="Quantity Unit"
                 data={QUANTITY_UNIT_OPTIONS}
+                searchable
+                limit={Infinity}
+                maxDropdownHeight={300}
                 key={form.key("quantityUnit")}
                 {...form.getInputProps("quantityUnit")}
               />
@@ -223,6 +420,9 @@ export default function PlantingModal({
               <Select
                 label="Area Unit"
                 data={AREA_UNIT_OPTIONS}
+                searchable
+                limit={Infinity}
+                maxDropdownHeight={300}
                 key={form.key("areaUnit")}
                 {...form.getInputProps("areaUnit")}
               />

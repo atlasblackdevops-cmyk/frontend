@@ -95,6 +95,30 @@ export async function getActiveFields(): Promise<FieldRecord[]> {
 }
 
 /**
+ * Get active fields with pagination (for dropdowns with infinite scroll)
+ */
+export async function getActiveFieldsPaginated(
+    page: number = 1,
+    limit: number = 20,
+    search?: string
+): Promise<FieldsApiResponse> {
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", limit.toString());
+    queryParams.append("isActive", "true");
+    
+    if (search?.trim()) {
+        queryParams.append("search", search.trim());
+    }
+
+    const response = await api.get<FieldsApiResponse>(
+        `/api/v1/fields?${queryParams.toString()}`
+    );
+
+    return response.data;
+}
+
+/**
  * Create a new field
  */
 export async function createField(data: CreateFieldData): Promise<void> {
