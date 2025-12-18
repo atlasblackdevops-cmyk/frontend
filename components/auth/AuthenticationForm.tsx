@@ -273,22 +273,16 @@ export function AuthenticationForm({
                             name: values.name.trim(),
                         };
 
-                        if (type === "register") {
-                            await api.post("/api/v1/auth/register", {
+                        const { data } = type === "register"
+                            ? await api.post("/api/v1/auth/register", {
                                 email: payload.email,
                                 password: payload.password,
                                 name: payload.name,
+                            })
+                            : await api.post("/api/v1/auth/login", {
+                                email: payload.email,
+                                password: payload.password,
                             });
-                            setIsSubmitting(false);
-                            form.reset();
-                            toggle(); // Switch to login after successful register
-                            return;
-                        }
-
-                        const { data } = await api.post("/api/v1/auth/login", {
-                            email: payload.email,
-                            password: payload.password,
-                        });
 
                         const backendToken =
                             data?.accessToken ??
@@ -401,8 +395,17 @@ export function AuthenticationForm({
                                       : [];
                                 useAuth.getState().setPermissions(permissions);
                             } catch {}
-                            // Always navigate to dashboard; FarmGate will show modal if owner without farm
-                            router.push("/dashboard");
+                            
+                            // Check if user is OWNER and just registered
+                            const isOwner = roleName && String(roleName).trim().toUpperCase() === "OWNER";
+                            
+                            // If owner and just registered, redirect to subscription page
+                            // Otherwise, navigate to dashboard
+                            if (type === "register" && isOwner) {
+                                router.push("/subscription");
+                            } else {
+                                router.push("/dashboard");
+                            }
                         } catch {
                             // Fallback: navigate to dashboard even if /me fails
                             router.push("/dashboard");

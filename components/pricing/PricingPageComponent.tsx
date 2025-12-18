@@ -12,6 +12,8 @@ import {
     List,
     ThemeIcon,
     Box,
+    Loader,
+    Alert,
 } from "@mantine/core";
 import {
     IconCheck,
@@ -19,37 +21,33 @@ import {
     IconTrendingUp,
     IconBuilding,
     IconLeaf,
+    IconAlertCircle,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useMantineTheme } from "@mantine/core";
+import { useEffect } from "react";
 import BaseButton from "../ui/BaseButton";
+import { useSubscription } from "./hooks/useSubscription";
+import type { SubscriptionPlan } from "@/lib/subscription/api";
 
 interface PricingFeature {
     text: string;
     included: boolean;
 }
 
-interface PricingPlan {
-    name: string;
+interface PlanUIMetadata {
     description: string;
-    billingPeriod: "month" | "6months" | "1year";
-    price: number;
-    trialDays: number;
     icon: React.ComponentType<{ size?: number }>;
     color: string;
     badge?: string;
     features: PricingFeature[];
-    ctaText: string;
     popular?: boolean;
 }
 
-const pricingPlans: PricingPlan[] = [
-    {
-        name: "1 Month Plan",
+// UI metadata for different plan types
+const planUIMetadata: Record<string, PlanUIMetadata> = {
+    month: {
         description: "Perfect for trying out our platform with flexibility",
-        billingPeriod: "month",
-        price: 29,
-        trialDays: 7,
         icon: IconLeaf,
         color: "brandGreen",
         features: [
@@ -64,14 +62,9 @@ const pricingPlans: PricingPlan[] = [
             { text: "Multi-user access", included: false },
             { text: "Priority support", included: false },
         ],
-        ctaText: "Start 7-Day Trial",
     },
-    {
-        name: "6 Months Plan",
+    "6months": {
         description: "Great value for committed users with better savings",
-        billingPeriod: "6months",
-        price: 149,
-        trialDays: 14,
         icon: IconTrendingUp,
         color: "brandGreen",
         badge: "Most Popular",
@@ -89,14 +82,9 @@ const pricingPlans: PricingPlan[] = [
             { text: "API access", included: false },
             { text: "24/7 phone support", included: false },
         ],
-        ctaText: "Start 14-Day Trial",
     },
-    {
-        name: "1 Year Plan",
+    year: {
         description: "Best value with maximum savings and full features",
-        billingPeriod: "1year",
-        price: 249,
-        trialDays: 30,
         icon: IconBuilding,
         color: "brandGreen",
         features: [
@@ -111,34 +99,48 @@ const pricingPlans: PricingPlan[] = [
             { text: "API access", included: true },
             { text: "White-label option", included: true },
         ],
-        ctaText: "Start 30-Day Trial",
     },
-];
+};
 
 export default function PricingPageComponent() {
     const router = useRouter();
     const theme = useMantineTheme();
+    const { plans, isLoading, checkingOutPriceId, error, fetchPlans, checkout } = useSubscription();
 
-    const getBillingPeriodLabel = (period: "month" | "6months" | "1year") => {
-        switch (period) {
-            case "month":
-                return "per month";
-            case "6months":
-                return "per 6 months";
-            case "1year":
-                return "per year";
+    useEffect(() => {
+        fetchPlans();
+    }, []);
+
+    const getBillingPeriodLabel = (interval: string, intervalCount: number = 1) => {
+        if (intervalCount === 1) {
+            return `per ${interval}`;
         }
+        return `per ${intervalCount} ${interval}s`;
     };
 
-    const calculateMonthlyEquivalent = (price: number, period: "month" | "6months" | "1year") => {
-        switch (period) {
-            case "month":
-                return price;
-            case "6months":
-                return Math.round(price / 6);
-            case "1year":
-                return Math.round(price / 12);
+    const calculateMonthlyEquivalent = (amount: number, interval: string, intervalCount: number = 1) => {
+        const totalMonths = interval === "year" ? intervalCount * 12 : 
+                          interval === "month" ? intervalCount : 
+                          interval === "day" ? intervalCount / 30 : intervalCount;
+        return Math.round(amount / totalMonths);
+    };
+
+    const getPlanMetadata = (interval: string, intervalCount: number = 1): PlanUIMetadata => {
+        if (interval === "month" && intervalCount === 1) {
+            return planUIMetadata.month;
         }
+        if (interval === "month" && intervalCount === 6) {
+            return planUIMetadata["6months"];
+        }
+        if (interval === "year") {
+            return planUIMetadata.year;
+        }
+        // Fallback to month plan metadata
+        return planUIMetadata.month;
+    };
+
+    const handleCheckout = async (priceId: string) => {
+        await checkout(priceId);
     };
 
     return (
@@ -188,224 +190,269 @@ export default function PricingPageComponent() {
                     </Text>
                 </Stack>
 
-                {/* Pricing Cards */}
-                <Grid gutter={{ base: "md", md: "xl" }} w="100%">
-                    {pricingPlans.map((plan) => {
-                        const Icon = plan.icon;
-                        const isPopular = plan.popular;
-                        const period = getBillingPeriodLabel(plan.billingPeriod);
-                        const monthlyEquivalent = calculateMonthlyEquivalent(plan.price, plan.billingPeriod);
-                        const displayPrice = `$${plan.price}`;
-                       
+                {/* Error Alert */}
+                {error && (
+                    <Alert
+                        icon={<IconAlertCircle size={16} />}
+                        title="Error"
+                        color="red"
+                        variant="light"
+                        w="100%"
+                    >
+                        {error}
+                    </Alert>
+                )}
 
-                        return (
-                            <Grid.Col
-                                key={plan.name}
-                                span={{ base: 12, md: 4 }}
-                                style={{ display: "flex" }}
-                            >
-                                <Box
-                                    style={{
-                                        flex: 1,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        position: "relative",
-                                        height: "100%",
-                                    }}
+                {/* Loading State */}
+                {isLoading && (
+                    <Box style={{ textAlign: "center", padding: "3rem" }}>
+                        <Loader size="lg" color="brandGreen" />
+                        <Text size="sm" c="dimmed" mt="md">
+                            Loading pricing plans...
+                        </Text>
+                    </Box>
+                )}
+
+                {/* Pricing Cards */}
+                {!isLoading && plans.length > 0 && (
+                    <Grid gutter={{ base: "md", md: "xl" }} w="100%">
+                        {plans.map((plan) => {
+                            const metadata = getPlanMetadata(plan.interval, plan.intervalCount);
+                            const Icon = metadata.icon;
+                            const isPopular = metadata.popular;
+                            const period = getBillingPeriodLabel(plan.interval, plan.intervalCount);
+                            const monthlyEquivalent = calculateMonthlyEquivalent(
+                                plan.amount / 100,
+                                plan.interval,
+                                plan.intervalCount
+                            );
+                            const displayPrice = `$${(plan.amount / 100).toFixed(0)}`;
+
+                            return (
+                                <Grid.Col
+                                    key={plan.priceId}
+                                    span={{ base: 12, md: 4 }}
+                                    style={{ display: "flex" }}
                                 >
-                                    <Card
-                                        p={{ base: "lg", md: "xl" }}
-                                        radius="lg"
-                                        withBorder
+                                    <Box
                                         style={{
                                             flex: 1,
-                                            position: "relative",
                                             display: "flex",
                                             flexDirection: "column",
-                                            borderWidth: isPopular ? 2 : 1,
-                                            borderColor: isPopular
-                                                ? theme.colors.brandGreen[5]
-                                                : theme.colors.gray[3],
-                                            backgroundColor: isPopular
-                                                ? theme.colors.brandGreen[0]
-                                                : theme.white,
-                                            boxShadow: isPopular
-                                                ? `0 6px 22px ${theme.colors.brandGreen[2]}`
-                                                : "0 2px 8px rgba(0, 0, 0, 0.05)",
-                                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                            position: "relative",
                                             height: "100%",
                                         }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.boxShadow = isPopular
-                                                ? `0 12px 32px ${theme.colors.brandGreen[3]}`
-                                                : "0 8px 24px rgba(0, 0, 0, 0.12)";
-                                            e.currentTarget.style.transform = "translateY(-4px)";
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.boxShadow = isPopular
-                                                ? `0 6px 22px ${theme.colors.brandGreen[2]}`
-                                                : "0 2px 8px rgba(0, 0, 0, 0.05)";
-                                            e.currentTarget.style.transform = "translateY(0)";
-                                        }}
                                     >
-                                        {isPopular && (
-                                            <Box
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 12,
-                                                    right: 10,
-                                                    zIndex: 10,
-                                                }}
-                                            >
-                                                <Badge
-                                                    size="lg"
-                                                    color="brandGreen"
-                                                    variant="filled"
-                                                    radius="xl"
+                                        <Card
+                                            p={{ base: "lg", md: "xl" }}
+                                            radius="lg"
+                                            withBorder
+                                            style={{
+                                                flex: 1,
+                                                position: "relative",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                borderWidth: isPopular ? 2 : 1,
+                                                borderColor: isPopular
+                                                    ? theme.colors.brandGreen[5]
+                                                    : theme.colors.gray[3],
+                                                backgroundColor: isPopular
+                                                    ? theme.colors.brandGreen[0]
+                                                    : theme.white,
+                                                boxShadow: isPopular
+                                                    ? `0 6px 22px ${theme.colors.brandGreen[2]}`
+                                                    : "0 2px 8px rgba(0, 0, 0, 0.05)",
+                                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                                height: "100%",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.boxShadow = isPopular
+                                                    ? `0 12px 32px ${theme.colors.brandGreen[3]}`
+                                                    : "0 8px 24px rgba(0, 0, 0, 0.12)";
+                                                e.currentTarget.style.transform = "translateY(-4px)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.boxShadow = isPopular
+                                                    ? `0 6px 22px ${theme.colors.brandGreen[2]}`
+                                                    : "0 2px 8px rgba(0, 0, 0, 0.05)";
+                                                e.currentTarget.style.transform = "translateY(0)";
+                                            }}
+                                        >
+                                            {isPopular && metadata.badge && (
+                                                <Box
                                                     style={{
-                                                        fontWeight: 700,
-                                                        padding: "6px 20px",
-                                                        fontSize: "12px",
-                                                        letterSpacing: "0.5px",
+                                                        position: "absolute",
+                                                        top: 12,
+                                                        right: 10,
+                                                        zIndex: 10,
                                                     }}
                                                 >
-                                                    {plan.badge}
-                                                </Badge>
-                                            </Box>
-                                        )}
-
-                                        <Stack gap="lg" style={{ flex: 1}}>
-                                            {/* Plan Header */}
-                                            <Stack gap="xs">
-                                                <ThemeIcon
-                                                    size={56}
-                                                    radius="md"
-                                                    color={plan.color}
-                                                    variant="light"
-                                                    style={{
-                                                        alignSelf: "flex-start",
-                                                    }}
-                                                >
-                                                    <Icon size={28} />
-                                                </ThemeIcon>
-                                                <Title order={3} size="h3" fw={700} style={{ marginTop: 8 }}>
-                                                    {plan.name}
-                                                </Title>
-                                                <Text size="sm" c="dimmed" style={{ minHeight: 30 }}>
-                                                    {plan.description}
-                                                </Text>
-                                            </Stack>
-
-                                            {/* Pricing */}
-                                            <Box style={{ marginTop: 6, marginBottom: 8 }}>
-                                                <Group gap={4} align="baseline" wrap="nowrap">
-                                                    <Text
-                                                        size="48px"
-                                                        fw={700}
-                                                        c={isPopular ? theme.colors.brandGreen[6]: theme.colors.dark[7]}
+                                                    <Badge
+                                                        size="lg"
+                                                        color="brandGreen"
+                                                        variant="filled"
+                                                        radius="xl"
                                                         style={{
-                                                            lineHeight: 1,
+                                                            fontWeight: 700,
+                                                            padding: "6px 20px",
+                                                            fontSize: "12px",
+                                                            letterSpacing: "0.5px",
                                                         }}
                                                     >
-                                                        {displayPrice}
-                                                    </Text>
-                                                    <Text 
-                                                        size="sm" 
-                                                        c="dimmed" 
-                                                        fw={500}
+                                                        {metadata.badge}
+                                                    </Badge>
+                                                </Box>
+                                            )}
+
+                                            <Stack gap="lg" style={{ flex: 1 }}>
+                                                {/* Plan Header */}
+                                                <Stack gap="xs">
+                                                    <ThemeIcon
+                                                        size={56}
+                                                        radius="md"
+                                                        color={metadata.color}
+                                                        variant="light"
                                                         style={{
-                                                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                                            alignSelf: "flex-start",
                                                         }}
                                                     >
-                                                        {period}  
+                                                        <Icon size={28} />
+                                                    </ThemeIcon>
+                                                    <Title order={3} size="h3" fw={700} style={{ marginTop: 8 }}>
+                                                        {plan.name}
+                                                    </Title>
+                                                    <Text size="sm" c="dimmed" style={{ minHeight: 30 }}>
+                                                        {metadata.description}
                                                     </Text>
-                                                    <Text 
-                                                        size="xs" 
-                                                        c="dimmed" 
-                                                        fw={500}
-                                                        style={{
-                                                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                                                        }}
-                                                    >
-                                                      {monthlyEquivalent !== plan.price && `(${monthlyEquivalent}/month)`} 
-                                                    </Text>
-                                                </Group>
-                                               
-                                            </Box>
+                                                </Stack>
 
-                                            {/* CTA Button */}
-                                            <BaseButton
-                                                fullWidth
-                                                variant={isPopular ? "filled" : "outline"}
-                                                color="brandGreen"
-                                                radius="xl"
-                                                style={{ marginTop: "auto" }}
-                                                onClick={() => {
-                                                    router.push("/register");
-                                                }}
-                                            >
-                                                {plan.ctaText}
-                                            </BaseButton>
-
-                                            {/* Features List */}
-                                            <List
-                                                spacing="sm"
-                                                size="sm"
-                                                style={{ flex: 1 }}
-                                            >
-                                            {plan.features.map((feature, index) => (
-                                                <List.Item
-                                                    key={index}
-                                                    style={{
-                                                        opacity: feature.included ? 1 : 0.5,
-                                                    }}
-                                                >
-                                                    <Group gap="xs" wrap="nowrap">
-                                                        {feature.included ? (
-                                                            <ThemeIcon
-                                                                color="brandGreen"
-                                                                size={18}
-                                                                radius="xl"
-                                                                variant="light"
-                                                                style={{ flexShrink: 0 }}
-                                                            >
-                                                                <IconCheck
-                                                                    size={12}
-                                                                    strokeWidth={3}
-                                                                />
-                                                            </ThemeIcon>
-                                                        ) : (
-                                                            <ThemeIcon
-                                                                color="gray"
-                                                                size={18}
-                                                                radius="xl"
-                                                                variant="light"
-                                                                style={{ flexShrink: 0 }}
-                                                            >
-                                                                <IconX size={12} strokeWidth={3} />
-                                                            </ThemeIcon>
-                                                        )}
+                                                {/* Pricing */}
+                                                <Box style={{ marginTop: 6, marginBottom: 8 }}>
+                                                    <Group gap={4} align="baseline" wrap="nowrap">
                                                         <Text
-                                                            size="sm"
+                                                            size="48px"
+                                                            fw={700}
+                                                            c={
+                                                                isPopular
+                                                                    ? theme.colors.brandGreen[6]
+                                                                    : theme.colors.dark[7]
+                                                            }
                                                             style={{
-                                                                textDecoration: feature.included
-                                                                    ? "none"
-                                                                    : "line-through",
+                                                                lineHeight: 1,
                                                             }}
                                                         >
-                                                            {feature.text}
+                                                            {displayPrice}
                                                         </Text>
+                                                        <Text
+                                                            size="sm"
+                                                            c="dimmed"
+                                                            fw={500}
+                                                            style={{
+                                                                transition:
+                                                                    "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                                            }}
+                                                        >
+                                                            {period}
+                                                        </Text>
+                                                        {monthlyEquivalent !== plan.amount / 100 && (
+                                                            <Text
+                                                                size="xs"
+                                                                c="dimmed"
+                                                                fw={500}
+                                                                style={{
+                                                                    transition:
+                                                                        "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                                                }}
+                                                            >
+                                                                ($
+                                                                {monthlyEquivalent}
+                                                                /month)
+                                                            </Text>
+                                                        )}
                                                     </Group>
-                                                </List.Item>
-                                            ))}
-                                        </List>
-                                    </Stack>
-                                </Card>
-                                </Box>
-                            </Grid.Col>
-                        );
-                    })}
-                </Grid>
+                                                </Box>
+
+                                                {/* CTA Button */}
+                                                <BaseButton
+                                                    fullWidth
+                                                    variant={isPopular ? "filled" : "outline"}
+                                                    color="brandGreen"
+                                                    radius="xl"
+                                                    loading={checkingOutPriceId === plan.priceId}
+                                                    disabled={checkingOutPriceId !== null && checkingOutPriceId !== plan.priceId}
+                                                    onClick={() => handleCheckout(plan.priceId)}
+                                                >
+                                                    Subscribe Now
+                                                </BaseButton>
+
+                                                {/* Features List */}
+                                                <List spacing="sm" size="sm" style={{ flex: 1 }}>
+                                                    {metadata.features.map((feature, index) => (
+                                                        <List.Item
+                                                            key={index}
+                                                            style={{
+                                                                opacity: feature.included ? 1 : 0.5,
+                                                            }}
+                                                        >
+                                                            <Group gap="xs" wrap="nowrap">
+                                                                {feature.included ? (
+                                                                    <ThemeIcon
+                                                                        color="brandGreen"
+                                                                        size={18}
+                                                                        radius="xl"
+                                                                        variant="light"
+                                                                        style={{ flexShrink: 0 }}
+                                                                    >
+                                                                        <IconCheck
+                                                                            size={12}
+                                                                            strokeWidth={3}
+                                                                        />
+                                                                    </ThemeIcon>
+                                                                ) : (
+                                                                    <ThemeIcon
+                                                                        color="gray"
+                                                                        size={18}
+                                                                        radius="xl"
+                                                                        variant="light"
+                                                                        style={{ flexShrink: 0 }}
+                                                                    >
+                                                                        <IconX
+                                                                            size={12}
+                                                                            strokeWidth={3}
+                                                                        />
+                                                                    </ThemeIcon>
+                                                                )}
+                                                                <Text
+                                                                    size="sm"
+                                                                    style={{
+                                                                        textDecoration: feature.included
+                                                                            ? "none"
+                                                                            : "line-through",
+                                                                    }}
+                                                                >
+                                                                    {feature.text}
+                                                                </Text>
+                                                            </Group>
+                                                        </List.Item>
+                                                    ))}
+                                                </List>
+                                            </Stack>
+                                        </Card>
+                                    </Box>
+                                </Grid.Col>
+                            );
+                        })}
+                    </Grid>
+                )}
+
+                {/* No Plans Available */}
+                {!isLoading && plans.length === 0 && !error && (
+                    <Box style={{ textAlign: "center", padding: "3rem" }}>
+                        <Text size="lg" c="dimmed">
+                            No pricing plans available at the moment.
+                        </Text>
+                    </Box>
+                )}
 
                 </Stack>
             </Container>
