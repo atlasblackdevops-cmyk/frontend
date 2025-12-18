@@ -200,11 +200,9 @@ export default function HarvestModal({
                 clearable
                 value={
                   form.values.harvestDate
-                    ? new Date(form.values.harvestDate)
-                    : null
+                   
                 }
                 onChange={(date) => {
-                
                     form.setFieldValue("harvestDate", date || "");
                 }}
                 key={form.key("harvestDate")}

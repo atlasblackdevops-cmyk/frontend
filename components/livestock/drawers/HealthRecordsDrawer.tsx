@@ -282,25 +282,18 @@ export default function HealthRecordsDrawer({
                                 <BaseDateInput
                                     label="Date From"
                                     placeholder="Select start date"
-                                    value={dateFrom ? new Date(dateFrom) : null}
+                                    value={dateFrom}
                                     onChange={(date) => {
-                                        if (date && typeof date === 'object' && 'toISOString' in date) {
-                                            setDateFrom((date as Date).toISOString().split('T')[0]);
-                                        } else {
-                                            setDateFrom("");
-                                        }
+                                            setDateFrom(date ||'');
                                     }}
                                 />
                                 <BaseDateInput
                                     label="Date To"
                                     placeholder="Select end date"
-                                    value={dateTo ? new Date(dateTo) : null}
+                                    value={dateTo}
+                                    clearable
                                     onChange={(date) => {
-                                        if (date && typeof date === 'object' && 'toISOString' in date) {
-                                            setDateTo((date as Date).toISOString().split('T')[0]);
-                                        } else {
-                                            setDateTo("");
-                                        }
+                                            setDateTo(date ||'');
                                     }}
                                 />
                             </SimpleGrid>

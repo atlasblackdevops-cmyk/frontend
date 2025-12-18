@@ -157,9 +157,11 @@ export default function AnimalsSection() {
     setError(null);
 
     try {
-      await createAnimal(values);
-      showToast("Animal added successfully!", "green");
-      setModalOpen(false);
+      const res=await createAnimal(values);
+      if(res.success){
+        showToast("Animal added successfully!", "green");
+        setModalOpen(false);
+      }
     } catch (err: any) {
       setError(
         err?.response?.data?.message || err?.message || "Failed to add animal"
@@ -218,7 +220,8 @@ export default function AnimalsSection() {
         err?.response?.data?.message || err?.message || "Failed to delete animal",
         "red"
       );
-    } finally {
+    } 
+    finally {
       setIsDeleting(false);
     }
   };

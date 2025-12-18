@@ -279,13 +279,10 @@ export default function HealthRecordUpdateModal({
                     <BaseDateInput
                         label="Next due date"
                         placeholder="Select date"
-                        value={form.values.nextDueDate ? new Date(form.values.nextDueDate) : null}
+                        value={form.values.nextDueDate}
+                        clearable
                         onChange={(date) => {
-                            if (date && typeof date === 'object' && 'toISOString' in date) {
-                                form.setFieldValue("nextDueDate", (date as Date).toISOString().split('T')[0]);
-                            } else {
-                                form.setFieldValue("nextDueDate", "");
-                            }
+                                form.setFieldValue("nextDueDate", date ||'');
                         }}
                     />
                     <BaseTextarea

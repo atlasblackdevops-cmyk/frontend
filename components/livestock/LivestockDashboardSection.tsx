@@ -26,7 +26,7 @@ export default function LivestockDashboardSection() {
         </div>
 
         {/* Dashboard Content */}
-        <div style={{ flex: "1 1 0", minHeight: 0, overflow: "auto" }}>
+        <div style={{ flex: "1 1 0", minHeight: 0, overflowY: "auto",overflowX:'hidden' }}>
           <LivestockDashboard />
         </div>
       </Stack>

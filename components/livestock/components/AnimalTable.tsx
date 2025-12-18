@@ -115,7 +115,7 @@ export default function AnimalTable({
         colgroup={[
           { width: "20%" },
           { width: "15%" },
-          { width: "15%" },
+          { width: "25%" },
           { width: "15%" },
           { width: "18%" },
           { width: "150px" },

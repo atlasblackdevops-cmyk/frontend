@@ -208,13 +208,10 @@ export default function HealthRecordModal({
                     <BaseDateInput
                         label="Next due date"
                         placeholder="Select date"
-                        value={form.values.nextDueDate ? new Date(form.values.nextDueDate) : null}
+                        value={form.values.nextDueDate}
+                        clearable
                         onChange={(date) => {
-                            if (date && typeof date === 'object' && 'toISOString' in date) {
-                                form.setFieldValue("nextDueDate", (date as Date).toISOString().split('T')[0]);
-                            } else {
-                                form.setFieldValue("nextDueDate", "");
-                            }
+                                form.setFieldValue("nextDueDate", date ||'');
                         }}
                     />
                     <BaseTextarea
@@ -251,6 +248,7 @@ export default function HealthRecordModal({
                                             leftSection={
                                                 <IconPhoto size={16} />
                                             }
+                                            type="button"
                                             disabled={
                                                 imageFiles.length >= MAX_IMAGES
                                             }
@@ -261,7 +259,7 @@ export default function HealthRecordModal({
                                 </FileButton>
                             </Group>
                             {imagePreviews.length > 0 && (
-                                <SimpleGrid cols={4} spacing="xs">
+                                <SimpleGrid cols={6} spacing="xs">
                                     {imagePreviews.map((preview, index) => (
                                         <Box
                                             key={index}
@@ -285,7 +283,7 @@ export default function HealthRecordModal({
                                             <ActionIcon
                                                 variant="filled"
                                                 color="red"
-                                                size="sm"
+                                                size="xs    "
                                                 radius="xl"
                                                 onClick={() =>
                                                     handleRemoveImage(index)
@@ -296,7 +294,7 @@ export default function HealthRecordModal({
                                                     right: 4,
                                                 }}
                                             >
-                                                <IconX size={14} />
+                                                <IconX size={12} />
                                             </ActionIcon>
                                         </Box>
                                     ))}
@@ -318,6 +316,7 @@ export default function HealthRecordModal({
 
                     <Group justify="flex-end" mt="sm">
                         <Button
+                            type="button"
                             variant="default"
                             onClick={resetAndClose}
                             disabled={isSubmitting}

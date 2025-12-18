@@ -86,13 +86,10 @@ export default function WeightRecordModal({
                         label="Measured at (date)"
                         placeholder="Select date"
                         required
-                        value={form.values.measuredAt ? new Date(form.values.measuredAt) : null}
+                        value={form.values.measuredAt}
+                        clearable
                         onChange={(date) => {
-                            if (date && typeof date === 'object' && 'toISOString' in date) {
-                                form.setFieldValue("measuredAt", (date as Date).toISOString().split('T')[0]);
-                            } else {
-                                form.setFieldValue("measuredAt", "");
-                            }
+                                form.setFieldValue("measuredAt", date ||'');
                         }}
                     />
                     <NumberInput

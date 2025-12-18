@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, cache } from "react";
 import {
   Avatar,
   Button,
@@ -144,15 +144,16 @@ export default function AddAnimalModal({
     >
       <form
         onSubmit={form.onSubmit(async (values) => {
-            
-          await onSubmit({
-            name: values.name.trim(),
-            species: values.species,
-            breed: values.breed,
-            gender: values.gender,
-            birthdate: values.birthdate,
-            photo: values.photo,
-          });
+           
+              await onSubmit({
+                name: values.name.trim(),
+                species: values.species,
+                breed: values.breed,
+                gender: values.gender,
+                birthdate: values.birthdate,
+                photo: values.photo,
+              });
+           
         //   resetAndClose();
         })}
       >
@@ -226,6 +227,7 @@ export default function AddAnimalModal({
             label="Birthdate"
             placeholder="Select birthdate"
             required
+            clearable
             value={form.values.birthdate || ""}
             onChange={(date) => {
               form.setFieldValue("birthdate", date || "");

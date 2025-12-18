@@ -98,13 +98,10 @@ export default function PlantingFiltersDrawer({
             <BaseDateInput
                 label="Planting Date From"
                 placeholder="Select start date"
-                value={form.values.plantingDateFrom ? new Date(form.values.plantingDateFrom) : null}
+                value={form.values.plantingDateFrom}
+                clearable
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("plantingDateFrom", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("plantingDateFrom", "");
-                    }
+                        form.setFieldValue("plantingDateFrom", date ||'');
                 }}
             />
 
@@ -112,12 +109,9 @@ export default function PlantingFiltersDrawer({
                 label="Planting Date To"
                 placeholder="Select end date"
                 value={form.values.plantingDateTo ? new Date(form.values.plantingDateTo) : null}
+                clearable
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("plantingDateTo", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("plantingDateTo", "");
-                    }
+                        form.setFieldValue("plantingDateTo",date ||'');
                 }}
             />
         </TableFiltersDrawer>

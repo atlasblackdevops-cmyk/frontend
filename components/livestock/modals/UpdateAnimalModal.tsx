@@ -284,6 +284,7 @@ export default function UpdateAnimalModal({
                         label="Birthdate"
                         placeholder="Select birthdate"
                         required
+                        clearable
                         value={form.values.birthdate || ""}
                         onChange={(date) => {
                             form.setFieldValue("birthdate", date || "");

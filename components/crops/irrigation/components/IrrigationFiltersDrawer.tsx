@@ -80,26 +80,19 @@ export default function IrrigationFiltersDrawer({
             <BaseDateInput
                 label="Irrigation Date From"
                 placeholder="Select start date"
-                value={form.values.irrigationDateFrom ? new Date(form.values.irrigationDateFrom) : null}
+                value={form.values.irrigationDateFrom}
+                clearable
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("irrigationDateFrom", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("irrigationDateFrom", "");
-                    }
-                }}
+                        form.setFieldValue("irrigationDateFrom",date ||'');
+                }}  
             />
 
             <BaseDateInput
                 label="Irrigation Date To"
                 placeholder="Select end date"
-                value={form.values.irrigationDateTo ? new Date(form.values.irrigationDateTo) : null}
+                value={form.values.irrigationDateTo}
                 onChange={(date) => {
-                    if (date && typeof date === 'object' && 'toISOString' in date) {
-                        form.setFieldValue("irrigationDateTo", (date as Date).toISOString().split('T')[0]);
-                    } else {
-                        form.setFieldValue("irrigationDateTo", "");
-                    }
+                        form.setFieldValue("irrigationDateTo", date ||'');
                 }}
             />
         </TableFiltersDrawer>

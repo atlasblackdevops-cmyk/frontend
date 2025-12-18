@@ -1,27 +1,26 @@
 "use client";
 
+import { useActiveFieldsOptionsPaginated } from "@/components/shared/hooks/useActiveFieldsOptionsPaginated";
+import { BaseDateInput, BaseInput, BaseTextarea } from "@/components/ui";
 import {
-  Modal,
+  Autocomplete,
   Button,
   Group,
-  ScrollArea,
-  Stack,
-  Select,
-  NumberInput,
-  Autocomplete,
   Loader,
-  Text,
-  Box,
+  Modal,
+  NumberInput,
+  ScrollArea,
+  Select,
+  Stack,
+  Text
 } from "@mantine/core";
-import { BaseInput, BaseDateInput, BaseTextarea } from "@/components/ui";
 import { useForm } from "@mantine/form";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AddPlantingValues,
   PlantingModalProps,
   PlantingRecord,
 } from "../types";
-import { useActiveFieldsOptionsPaginated } from "@/components/shared/hooks/useActiveFieldsOptionsPaginated";
 import {
   AREA_UNIT_OPTIONS,
   CROP_OPTIONS,
@@ -91,12 +90,22 @@ export default function PlantingModal({
     addOption
   } = useActiveFieldsOptionsPaginated(opened);
 
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [fieldSearchValue, setFieldSearchValue] = useState("");
   const [dropdownOpened, setDropdownOpened] = useState(false);
+  const [selectedFieldLabel, setSelectedFieldLabel] = useState("");
+
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadingElementRef = useRef<HTMLDivElement>(null);
+  const selectingRef = useRef(false);
 
+  const fieldLabelMap = useMemo(
+    () =>
+      new Map(
+        fieldOptions.map((opt) => [opt.label, opt.value])
+      ),
+    [fieldOptions]
+  );
+  
   // Debounced search function
   const debouncedSearch = (value: string) => {
     if (searchTimeoutRef.current) {
@@ -123,63 +132,32 @@ export default function PlantingModal({
 
     let observer: IntersectionObserver | null = null;
 
-    const setupObserver = () => {
-      const loadingElement = loadingElementRef.current;
+    const dropdownContainer =
+      document.querySelector('[data-combobox-dropdown]') ||
+      document.querySelector(".mantine-Autocomplete-dropdown") ||
+      document.querySelector('[role="listbox"]');
 
-      if (!loadingElement) {
-        return false;
-      }
+    if (!dropdownContainer || !loadingElementRef.current) return;
 
-      // Find the scrollable dropdown container
-      const dropdownContainer = document.querySelector('[data-combobox-dropdown]') ||
-                               document.querySelector('.mantine-Autocomplete-dropdown') ||
-                               document.querySelector('[role="listbox"]');
-
-      if (!dropdownContainer) {
-        return false;
-      }
-
-      // Create intersection observer with dropdown as root
-      observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && hasMore && !loadingFields) {
-              loadMore();
-            }
-          });
-        },
-        {
-          root: dropdownContainer, // Use dropdown as root instead of viewport
-          rootMargin: '50px', // trigger 50px before element comes into view
-          threshold: 0.01, // trigger when at least 1% is visible
-        }
-      );
-
-      observer.observe(loadingElement);
-      return true;
-    };
-
-    // Try to setup observer with retries
-    const attemptSetup = () => {
-      if (!setupObserver()) {
-        // Retry after a delay
-        const timer1 = setTimeout(() => {
-          if (!setupObserver()) {
-            // Final retry
-            setTimeout(setupObserver, 200);
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && hasMore && !loadingFields) {
+            loadMore();
           }
-        }, 100);
+        });
+      },
+      {
+        root: dropdownContainer,
+        rootMargin: "50px",
+        threshold: 0.01,
       }
-    };
+    );
 
-    attemptSetup();
+    observer.observe(loadingElementRef.current);
 
-    return () => {
-      if (observer) {
-        observer.disconnect();
-      }
-    };
-  }, [dropdownOpened, hasMore, loadingFields, loadMore, fieldOptions]);
+    return () => observer?.disconnect();
+  }, [dropdownOpened, hasMore, loadingFields, loadMore]);
 
   const form = useForm<AddPlantingValues>({
     initialValues: BASE_VALUES,
@@ -214,6 +192,7 @@ export default function PlantingModal({
           label: planting.fieldName,
         });
         setFieldSearchValue(planting.fieldName);
+        // setSelectedFieldLabel(planting.fieldName);
       }
       return;
     }
@@ -222,16 +201,21 @@ export default function PlantingModal({
       form.setValues(BASE_VALUES);
       form.resetDirty(BASE_VALUES);
       setFieldSearchValue("");
+      setSelectedFieldLabel("");
     }
   }, [mode, planting, opened, addOption]);
 
   const handleSubmit = async (values: typeof form.values) => {
+    /* ✅ FINAL SAFETY SYNC (FIX) */
+    if (!values.fieldId) {
+      const matched = fieldLabelMap.get(fieldSearchValue);
+      if (matched) {
+        values.fieldId = matched;
+      }
+    }
+
     const submitValues = normalizeSubmitValues(values);
     await onSubmit(submitValues);
-    if (mode === "create") {
-      form.setValues(BASE_VALUES);
-      form.resetDirty(BASE_VALUES);
-    }
     onClose();
   };
 
@@ -241,101 +225,94 @@ export default function PlantingModal({
     !!form.values.crop &&
     !!form.values.seedType.trim() &&
     !!form.values.plantingDate;
-  const submitDisabled = isSubmitting || !form.isDirty() || !requiredFilled;
+  const submitDisabled = isSubmitting || !form.isDirty() ;
 
   // Prepare data with loading indicator as last item (always show when hasMore is true)
   const autocompleteData = [
-    ...(Array.isArray(fieldOptions) ? fieldOptions : []),
-    ...(hasMore ? [{
-      value: '__loading__',
-      label: loadingFields ? 'Loading more fields...' : 'Scroll for more...',
-      disabled: true,
-    }] : [])
+    ...fieldOptions,
+    ...(hasMore
+      ? [
+          {
+            value: "__loading__",
+            label: "Loading more...",
+            disabled: true,
+          },
+        ]
+      : []),
   ];
+
 
   return (
     <Modal opened={opened} onClose={onClose} title={title} centered size="lg">
       <ScrollArea.Autosize mah={500}>
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
-            <Autocomplete
+          <Autocomplete
               label="Field"
               placeholder="Search and select field"
               data={autocompleteData}
               value={fieldSearchValue}
+              error={form.errors.fieldId}
+              limit={Infinity}
+              maxDropdownHeight={300}
+              filter={({ options }) => options}
               onChange={(value) => {
                 setFieldSearchValue(value);
+              
+                if (selectingRef.current) {
+                  // selection just happened, don't clear label
+                  selectingRef.current = false;
+                  return;
+                }
+              
+                // user is typing → clear selection
+                setSelectedFieldLabel("");
+                form.setFieldValue("fieldId", "");
+              
                 debouncedSearch(value);
               }}
               onOptionSubmit={(value) => {
-                // Ignore the loading indicator
-                if (value === '__loading__') return;
-                
-                const selectedField = fieldOptions?.find((opt) => opt.value === value);
-                if (selectedField) {
-                  form.setFieldValue("fieldId", value);
-                  setFieldSearchValue(selectedField.label);
-                }
+                if (value === "__loading__") return;
+              
+                const selected = fieldOptions.find((opt) => opt.value === value);
+                if (!selected) return;
+              
+                selectingRef.current = true;
+              
+                setFieldSearchValue(selected.label);
+                setSelectedFieldLabel(selected.label);
+                form.setFieldValue("fieldId", selected.value);
+                setDropdownOpened(false);
               }}
-              error={form.errors.fieldId}
-              maxDropdownHeight={300}
-              limit={Infinity}
-              filter={({ options }) => options}
               onDropdownOpen={() => {
                 setDropdownOpened(true);
-                if (!fieldSearchValue) {
-                  searchFields("");
-                }
+                searchFields(fieldSearchValue);
               }}
               onDropdownClose={() => {
                 setDropdownOpened(false);
-                if (form.values.fieldId) {
-                  const selectedField = fieldOptions?.find((opt) => opt.value === form.values.fieldId);
-                  if (selectedField) {
-                    setFieldSearchValue(selectedField.label);
-                  }
-                } else {
-                  setFieldSearchValue("");
+              
+                const matched = fieldLabelMap.get(fieldSearchValue);
+                if (matched) {
+                  form.setFieldValue("fieldId", matched);
+                  setSelectedFieldLabel(fieldSearchValue);
+                } else if (selectedFieldLabel) {
+                  setFieldSearchValue(selectedFieldLabel);
                 }
               }}
-              rightSection={loadingFields && !dropdownOpened ? <Loader size="xs" /> : undefined}
-              comboboxProps={{
-                dropdownPadding: 0,
-                position: "bottom-start",
-                middlewares: { flip: false, shift: false },
-              }}
-              styles={{
-                dropdown: {
-                  maxHeight: 300,
-                },
-                option: {
-                  '&[dataDisabled]': {
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    color: 'var(--mantine-color-dimmed)',
-                    fontWeight: 500,
-                    cursor: 'default',
-                    opacity: 1,
-                  },
-                },
-              }}
-              renderOption={(item) => {
-                if (item.option.value === '__loading__') {
-                  return (
-                    <div ref={loadingElementRef}>
-                      <Group gap="sm" justify="center" p="xs">
-                        {loadingFields && <Loader size="sm" />}
-                        <Text size="sm" fw={500} c="dimmed">
-                          {loadingFields ? 'Loading more fields...' : 'Scroll for more...'}
-                        </Text>
-                      </Group>
-                    </div>
-                  );
-                }
-                return <span>{(item.option as any)?.label}</span>;
-              }}
+              renderOption={(item) =>
+                item.option.value === "__loading__" ? (
+                  <div ref={loadingElementRef}>
+                    <Group justify="center" p="xs">
+                      <Loader size="sm" />
+                      <Text size="sm" c="dimmed">
+                        Loading more...
+                      </Text>
+                    </Group>
+                  </div>
+                ) : (
+                  <span>{(item.option as any)?.label}</span>
+                )
+              }
             />
 
             <Select

@@ -90,7 +90,7 @@ export default function HarvestFiltersDrawer({
             <BaseDateInput
                 label="Harvest Date From"
                 placeholder="Select start date"
-                value={form.values.harvestDateFrom ? new Date(form.values.harvestDateFrom) : null}
+                value={form.values.harvestDateFrom }
                 onChange={(date) => {
                         form.setFieldValue("harvestDateFrom", date ||"");
                 }}
@@ -99,7 +99,7 @@ export default function HarvestFiltersDrawer({
             <BaseDateInput
                 label="Harvest Date To"
                 placeholder="Select end date"
-                value={form.values.harvestDateTo ? new Date(form.values.harvestDateTo) : null}
+                value={form.values.harvestDateTo }
                 onChange={(date) => {
                         form.setFieldValue("harvestDateTo",date || "");
                 }}
