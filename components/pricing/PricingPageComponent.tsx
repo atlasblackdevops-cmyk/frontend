@@ -22,13 +22,18 @@ import {
     IconBuilding,
     IconLeaf,
     IconAlertCircle,
+    IconArrowRight,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useMantineTheme } from "@mantine/core";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import BaseButton from "../ui/BaseButton";
 import { useSubscription } from "./hooks/useSubscription";
-import type { SubscriptionPlan } from "@/lib/subscription/api";
+import type { SubscriptionPlan, CurrentSubscription } from "@/lib/subscription/api";
+
+interface PricingPageComponentProps {
+    mode?: "subscribe" | "change-plan";
+}
 
 interface PricingFeature {
     text: string;
@@ -102,14 +107,31 @@ const planUIMetadata: Record<string, PlanUIMetadata> = {
     },
 };
 
-export default function PricingPageComponent() {
+export default function PricingPageComponent({ mode = "subscribe" }: PricingPageComponentProps) {
     const router = useRouter();
     const theme = useMantineTheme();
-    const { plans, isLoading, checkingOutPriceId, error, fetchPlans, checkout } = useSubscription();
+    const {
+        plans,
+        currentSubscription,
+        isLoading,
+        checkingOutPriceId,
+        error,
+        fetchPlans,
+        fetchCurrentSubscription,
+        checkout,
+        changeSubscriptionPlan,
+    } = useSubscription();
+    const [changingPlanId, setChangingPlanId] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const isChangePlanMode = mode === "change-plan";
 
     useEffect(() => {
         fetchPlans();
-    }, []);
+        if (isChangePlanMode) {
+            fetchCurrentSubscription();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isChangePlanMode]);
 
     const getBillingPeriodLabel = (interval: string, intervalCount: number = 1) => {
         if (intervalCount === 1) {
@@ -139,8 +161,54 @@ export default function PricingPageComponent() {
         return planUIMetadata.month;
     };
 
+    const getCurrentPlanName = (subscription: CurrentSubscription | null, plans: SubscriptionPlan[]): string | null => {
+        if (!subscription?.stripePriceId) return null;
+        const currentPlan = plans.find((p) => p.priceId === subscription.stripePriceId);
+        return currentPlan?.name || null;
+    };
+
+    const formatDate = (dateString: string | null | undefined) => {
+        if (!dateString) return "N/A";
+        try {
+            return new Date(dateString).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+        } catch {
+            return dateString;
+        }
+    };
+
     const handleCheckout = async (priceId: string) => {
         await checkout(priceId);
+    };
+
+    const handleChangePlan = async (priceId: string) => {
+        if (!currentSubscription) return;
+
+        // Don't allow changing to the same plan
+        if (currentSubscription.stripePriceId === priceId) {
+            return;
+        }
+
+        setChangingPlanId(priceId);
+        setSuccess(null);
+
+        try {
+            await changeSubscriptionPlan(priceId);
+            setSuccess("Plan changed successfully! Your subscription will be updated at the end of the current billing period.");
+            // Refresh subscription data
+            await fetchCurrentSubscription();
+            // Redirect after a delay
+            setTimeout(() => {
+                router.push("/dashboard");
+            }, 2000);
+        } catch (err: any) {
+            console.error("Failed to change plan:", err);
+        } finally {
+            setChangingPlanId(null);
+        }
     };
 
     return (
@@ -169,7 +237,7 @@ export default function PricingPageComponent() {
                         px="md"
                         py={4}
                     >
-                        Pricing Plans
+                        {isChangePlanMode ? "Change Plan" : "Pricing Plans"}
                     </Badge>
                     <Title
                         order={1}
@@ -182,13 +250,76 @@ export default function PricingPageComponent() {
                             fontSize: "2.5rem",
                         }}
                     >
-                        Choose the Right Plan for Your Farm
+                        {isChangePlanMode
+                            ? "Change Your Subscription Plan"
+                            : "Choose the Right Plan for Your Farm"}
                     </Title>
                     <Text size="md" c="dimmed" mb="md" maw={600}>
-                        Choose from our flexible billing options: 1 month, 6 months, or 1 year.
-                        Start your free trial today. No hidden fees.
+                        {isChangePlanMode
+                            ? "Select a new plan below. Changes will take effect at the end of your current billing period."
+                            : "Choose from our flexible billing options: 1 month, 6 months, or 1 year. Start your free trial today. No hidden fees."}
                     </Text>
                 </Stack>
+
+                {/* Current Subscription Card (Change Plan Mode Only) */}
+                {isChangePlanMode && currentSubscription && (
+                    <Card
+                        p="lg"
+                        radius="lg"
+                        withBorder
+                        style={{
+                            borderColor: theme.colors.brandGreen[4],
+                            backgroundColor: theme.colors.brandGreen[0],
+                            borderWidth: 2,
+                            width: "100%",
+                        }}
+                    >
+                        <Stack gap="md">
+                            <Group justify="space-between" align="flex-start">
+                                <Stack gap="xs">
+                                    <Group gap="sm">
+                                        <Text fw={600} size="lg">
+                                            Current Plan
+                                        </Text>
+                                        {currentSubscription.status === "ACTIVE" && (
+                                            <Badge color="brandGreen" variant="light">
+                                                Active
+                                            </Badge>
+                                        )}
+                                        {currentSubscription.cancelAtPeriodEnd && (
+                                            <Badge color="orange" variant="light">
+                                                Canceling at Period End
+                                            </Badge>
+                                        )}
+                                    </Group>
+                                    <Text size="sm" c="dimmed">
+                                        {getCurrentPlanName(currentSubscription, plans) || "Unknown Plan"}
+                                    </Text>
+                                    {currentSubscription.currentPeriodEnd && (
+                                        <Text size="xs" c="dimmed">
+                                            Current period ends: {formatDate(currentSubscription.currentPeriodEnd)}
+                                        </Text>
+                                    )}
+                                </Stack>
+                            </Group>
+                        </Stack>
+                    </Card>
+                )}
+
+                {/* Success Alert (Change Plan Mode Only) */}
+                {isChangePlanMode && success && (
+                    <Alert
+                        icon={<IconCheck size={16} />}
+                        title="Success"
+                        color="green"
+                        variant="light"
+                        onClose={() => setSuccess(null)}
+                        withCloseButton
+                        w="100%"
+                    >
+                        {success}
+                    </Alert>
+                )}
 
                 {/* Error Alert */}
                 {error && (
@@ -215,12 +346,19 @@ export default function PricingPageComponent() {
 
                 {/* Pricing Cards */}
                 {!isLoading && plans.length > 0 && (
-                    <Grid gutter={{ base: "md", md: "xl" }} w="100%">
-                        {plans.map((plan) => {
-                            const metadata = getPlanMetadata(plan.interval, plan.intervalCount);
-                            const Icon = metadata.icon;
-                            const isPopular = metadata.popular;
-                            const period = getBillingPeriodLabel(plan.interval, plan.intervalCount);
+                    <>
+                        {isChangePlanMode && (
+                            <Title order={2} size="h3" ta="center" fw={600} w="100%">
+                                Available Plans
+                            </Title>
+                        )}
+                        <Grid gutter={{ base: "md", md: "xl" }} w="100%">
+                            {plans.map((plan) => {
+                                const metadata = getPlanMetadata(plan.interval, plan.intervalCount);
+                                const Icon = metadata.icon;
+                                const isPopular = metadata.popular;
+                                const isCurrentPlan = isChangePlanMode && currentSubscription?.stripePriceId === plan.priceId;
+                                const period = getBillingPeriodLabel(plan.interval, plan.intervalCount);
                             const monthlyEquivalent = calculateMonthlyEquivalent(
                                 plan.amount / 100,
                                 plan.interval,
@@ -252,33 +390,46 @@ export default function PricingPageComponent() {
                                                 position: "relative",
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                borderWidth: isPopular ? 2 : 1,
-                                                borderColor: isPopular
-                                                    ? theme.colors.brandGreen[5]
-                                                    : theme.colors.gray[3],
-                                                backgroundColor: isPopular
-                                                    ? theme.colors.brandGreen[0]
-                                                    : theme.white,
-                                                boxShadow: isPopular
-                                                    ? `0 6px 22px ${theme.colors.brandGreen[2]}`
-                                                    : "0 2px 8px rgba(0, 0, 0, 0.05)",
+                                                borderWidth: isCurrentPlan || isPopular ? 2 : 1,
+                                                borderColor:
+                                                    isCurrentPlan
+                                                        ? theme.colors.brandGreen[6]
+                                                        : isPopular
+                                                          ? theme.colors.brandGreen[5]
+                                                          : theme.colors.gray[3],
+                                                backgroundColor:
+                                                    isCurrentPlan
+                                                        ? theme.colors.brandGreen[1]
+                                                        : isPopular
+                                                          ? theme.colors.brandGreen[0]
+                                                          : theme.white,
+                                                boxShadow:
+                                                    isCurrentPlan || isPopular
+                                                        ? `0 6px 22px ${theme.colors.brandGreen[2]}`
+                                                        : "0 2px 8px rgba(0, 0, 0, 0.05)",
                                                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                                                 height: "100%",
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.boxShadow = isPopular
-                                                    ? `0 12px 32px ${theme.colors.brandGreen[3]}`
-                                                    : "0 8px 24px rgba(0, 0, 0, 0.12)";
-                                                e.currentTarget.style.transform = "translateY(-4px)";
+                                                if (!isCurrentPlan) {
+                                                    e.currentTarget.style.boxShadow =
+                                                        isPopular
+                                                            ? `0 12px 32px ${theme.colors.brandGreen[3]}`
+                                                            : "0 8px 24px rgba(0, 0, 0, 0.12)";
+                                                    e.currentTarget.style.transform = "translateY(-4px)";
+                                                }
                                             }}
                                             onMouseLeave={(e) => {
-                                                e.currentTarget.style.boxShadow = isPopular
-                                                    ? `0 6px 22px ${theme.colors.brandGreen[2]}`
-                                                    : "0 2px 8px rgba(0, 0, 0, 0.05)";
-                                                e.currentTarget.style.transform = "translateY(0)";
+                                                if (!isCurrentPlan) {
+                                                    e.currentTarget.style.boxShadow =
+                                                        isCurrentPlan || isPopular
+                                                            ? `0 6px 22px ${theme.colors.brandGreen[2]}`
+                                                            : "0 2px 8px rgba(0, 0, 0, 0.05)";
+                                                    e.currentTarget.style.transform = "translateY(0)";
+                                                }
                                             }}
                                         >
-                                            {isPopular && metadata.badge && (
+                                            {isPopular && metadata.badge && !isCurrentPlan && (
                                                 <Box
                                                     style={{
                                                         position: "absolute",
@@ -300,6 +451,32 @@ export default function PricingPageComponent() {
                                                         }}
                                                     >
                                                         {metadata.badge}
+                                                    </Badge>
+                                                </Box>
+                                            )}
+
+                                            {isCurrentPlan && (
+                                                <Box
+                                                    style={{
+                                                        position: "absolute",
+                                                        top: 12,
+                                                        right: 10,
+                                                        zIndex: 10,
+                                                    }}
+                                                >
+                                                    <Badge
+                                                        size="lg"
+                                                        color="brandGreen"
+                                                        variant="filled"
+                                                        radius="xl"
+                                                        style={{
+                                                            fontWeight: 700,
+                                                            padding: "6px 20px",
+                                                            fontSize: "12px",
+                                                            letterSpacing: "0.5px",
+                                                        }}
+                                                    >
+                                                        Current Plan
                                                     </Badge>
                                                 </Box>
                                             )}
@@ -333,7 +510,7 @@ export default function PricingPageComponent() {
                                                             size="48px"
                                                             fw={700}
                                                             c={
-                                                                isPopular
+                                                                isCurrentPlan || isPopular
                                                                     ? theme.colors.brandGreen[6]
                                                                     : theme.colors.dark[7]
                                                             }
@@ -373,17 +550,48 @@ export default function PricingPageComponent() {
                                                 </Box>
 
                                                 {/* CTA Button */}
-                                                <BaseButton
-                                                    fullWidth
-                                                    variant={isPopular ? "filled" : "outline"}
-                                                    color="brandGreen"
-                                                    radius="xl"
-                                                    loading={checkingOutPriceId === plan.priceId}
-                                                    disabled={checkingOutPriceId !== null && checkingOutPriceId !== plan.priceId}
-                                                    onClick={() => handleCheckout(plan.priceId)}
-                                                >
-                                                    Subscribe Now
-                                                </BaseButton>
+                                                {isChangePlanMode && isCurrentPlan ? (
+                                                    <BaseButton
+                                                        fullWidth
+                                                        variant="outline"
+                                                        color="brandGreen"
+                                                        radius="xl"
+                                                        disabled
+                                                    >
+                                                        Current Plan
+                                                    </BaseButton>
+                                                ) : isChangePlanMode ? (
+                                                    <BaseButton
+                                                        fullWidth
+                                                        variant={isPopular ? "filled" : "outline"}
+                                                        color="brandGreen"
+                                                        radius="xl"
+                                                        loading={changingPlanId === plan.priceId}
+                                                        disabled={
+                                                            (changingPlanId !== null &&
+                                                                changingPlanId !== plan.priceId) ||
+                                                            isLoading
+                                                        }
+                                                        rightSection={<IconArrowRight size={18} />}
+                                                        onClick={() => handleChangePlan(plan.priceId)}
+                                                    >
+                                                        Switch to This Plan
+                                                    </BaseButton>
+                                                ) : (
+                                                    <BaseButton
+                                                        fullWidth
+                                                        variant={isPopular ? "filled" : "outline"}
+                                                        color="brandGreen"
+                                                        radius="xl"
+                                                        loading={checkingOutPriceId === plan.priceId}
+                                                        disabled={
+                                                            checkingOutPriceId !== null && checkingOutPriceId !== plan.priceId
+                                                        }
+                                                        onClick={() => handleCheckout(plan.priceId)}
+                                                    >
+                                                        Subscribe Now
+                                                    </BaseButton>
+                                                )}
 
                                                 {/* Features List */}
                                                 <List spacing="sm" size="sm" style={{ flex: 1 }}>
@@ -442,7 +650,8 @@ export default function PricingPageComponent() {
                                 </Grid.Col>
                             );
                         })}
-                    </Grid>
+                        </Grid>
+                    </>
                 )}
 
                 {/* No Plans Available */}

@@ -42,6 +42,8 @@ export interface AuthStore {
         email?: string | null;
         profilePicture?: string | null;
     }) => void;
+    setIsSubscribed: (isSubscribed: boolean) => void;
+    isSubscribed: boolean;
     setPermissions: (permissions: Permission[]) => void;
 }
 
@@ -58,6 +60,8 @@ export const useAuth = create<AuthStore>((set) => ({
     userEmail: null,
     userProfilePicture: null,
     permissions: [],
+    isSubscribed:false,
+    setIsSubscribed: (isSubscribed: boolean) => set({ isSubscribed }),
     setToken: (token: string | null) => set({ token }),
     setRefreshToken: (refreshToken: string | null) => set({ refreshToken }),
     setAuth: (auth: OAuthProfile) => set({ auth }),

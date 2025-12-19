@@ -8,6 +8,7 @@ import { useAuth } from "@/stores/use-auth-store";
 import {
   Alert,
   Avatar,
+  Badge,
   Button,
   Divider,
   FileButton,
@@ -27,14 +28,21 @@ import {
   IconUpload,
   IconUser,
   IconEye,
+  IconCreditCard,
+  IconArrowRight,
+  IconX,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSubscription } from "../pricing/hooks/useSubscription";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { role, userName, userEmail, userProfilePicture, setUserData, farmId } =
     useAuth();
   const isOwner = (role ?? "").toUpperCase() === "OWNER";
+  const { currentSubscription, fetchCurrentSubscription, isLoading: subscriptionLoading } = useSubscription();
 
   // User details state
   const [userNameValue, setUserNameValue] = useState(userName || "");
@@ -100,6 +108,14 @@ export default function SettingsPage() {
     setUserEmailValue(userEmail || "");
     setUserProfilePicturePreview(userProfilePicture || null);
   }, [userName, userEmail, userProfilePicture]);
+
+  // Fetch subscription data for owners
+  useEffect(() => {
+    if (isOwner) {
+      fetchCurrentSubscription();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOwner]);
 
   // Handle user profile picture change
   const handleUserProfilePictureChange = (file: File | null) => {
@@ -599,6 +615,88 @@ export default function SettingsPage() {
                 Update Farm Details
               </BaseButton>
             </Stack>
+          </Stack>
+        </Paper>
+      )}
+
+      {/* Subscription Section - Only for Owners */}
+      {isOwner && (
+        <Paper withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <Group gap="xs">
+              <IconCreditCard size={20} />
+              <Title order={3}>Subscription</Title>
+            </Group>
+            <Divider />
+
+            {subscriptionLoading ? (
+              <Text size="sm" c="dimmed">
+                Loading subscription details...
+              </Text>
+            ) : currentSubscription && currentSubscription.status === "ACTIVE" ? (
+              <Stack gap="md">
+                <Group justify="space-between" align="flex-start">
+                  <Stack gap="xs">
+                    <Group gap="sm">
+                      <Text fw={500} size="sm">
+                        Status:
+                      </Text>
+                      {currentSubscription.cancelAtPeriodEnd ? (
+                        <Badge color="orange" variant="light">
+                          Canceling at Period End
+                        </Badge>
+                      ) : (
+                        <Badge color="brandGreen" variant="light">
+                          Active
+                        </Badge>
+                      )}
+                    </Group>
+                    {currentSubscription.currentPeriodEnd && (
+                      <Text size="xs" c="dimmed">
+                        Current period ends: {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </Text>
+                    )}
+                  </Stack>
+                </Group>
+
+                <Group gap="sm">
+                  <BaseButton
+                    variant="outline"
+                    color="brandGreen"
+                    onClick={() => router.push("/subscription/change-plan")}
+                    rightSection={<IconArrowRight size={16} />}
+                  >
+                    Change Plan
+                  </BaseButton>
+                  <BaseButton
+                    variant="outline"
+                    color="red"
+                    onClick={() => router.push("/subscription/cancel")}
+                    rightSection={<IconX size={16} />}
+                  >
+                    Cancel Subscription
+                  </BaseButton>
+                </Group>
+              </Stack>
+            ) : (
+              <Stack gap="md">
+                <Text size="sm" c="dimmed">
+                  No active subscription. Subscribe to access premium features.
+                </Text>
+                <BaseButton
+                  variant="filled"
+                  color="brandGreen"
+                  onClick={() => router.push("/subscription")}
+                  rightSection={<IconArrowRight size={16} />}
+                >
+                  View Plans
+                </BaseButton>
+              </Stack>
+            )}
           </Stack>
         </Paper>
       )}

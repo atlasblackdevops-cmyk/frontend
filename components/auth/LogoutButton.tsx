@@ -16,7 +16,7 @@ export function LogoutButton({
     ...props
 }: LogoutButtonProps) {
     const router = useRouter();
-    const { token, setToken, setRefreshToken } = useAuth();
+    const { token, setToken, setRefreshToken ,setIsSubscribed} = useAuth();
     const [loading, setLoading] = useState(false);
 
     async function handleLogout() {
@@ -58,6 +58,7 @@ export function LogoutButton({
                 // no-op
             }
             setToken(null);
+            setIsSubscribed(false);
             setRefreshToken(null);
 
             // Finally navigate to login

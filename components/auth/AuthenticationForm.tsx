@@ -178,7 +178,7 @@ export function AuthenticationForm({
         initialType === "login" ? ["login", "register"] : ["register", "login"];
     const [type, toggle] = useToggle<"login" | "register">(toggleValues);
     const router = useRouter();
-    const { setToken, setRefreshToken } = useAuth();
+    const { setToken, setRefreshToken ,setIsSubscribed} = useAuth();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [status, setStatus] = React.useState<string | undefined>(undefined);
 
@@ -283,7 +283,6 @@ export function AuthenticationForm({
                                 email: payload.email,
                                 password: payload.password,
                             });
-
                         const backendToken =
                             data?.accessToken ??
                             data?.token ??
@@ -304,6 +303,7 @@ export function AuthenticationForm({
 
                         if (backendToken) {
                             setToken(backendToken);
+                            setIsSubscribed(data?.data?.isSubscribed ?? false);
                             if (backendRefreshToken) {
                                 setRefreshToken(backendRefreshToken);
                             }
@@ -394,6 +394,11 @@ export function AuthenticationForm({
                                       ? payload.user.permissions
                                       : [];
                                 useAuth.getState().setPermissions(permissions);
+                                console.log(payload?.isSubscribed,'payload?.isSubscribed')
+                                if(payload){
+                                    console.log(payload?.isSubscribed,'payload?.isSubscribed--sadjsadsadf')
+                                    useAuth.getState().setIsSubscribed(payload?.isSubscribed);
+                                }
                             } catch {}
                             
                             // Check if user is OWNER and just registered
@@ -401,7 +406,7 @@ export function AuthenticationForm({
                             
                             // If owner and just registered, redirect to subscription page
                             // Otherwise, navigate to dashboard
-                            if (type === "register" && isOwner) {
+                            if (!data?.data?.isSubscribed && isOwner) {
                                 router.push("/subscription");
                             } else {
                                 router.push("/dashboard");
