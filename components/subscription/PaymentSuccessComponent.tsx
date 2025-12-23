@@ -26,6 +26,7 @@ import { useMantineTheme } from "@mantine/core";
 import BaseButton from "@/components/ui/BaseButton";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/stores/use-auth-store";
 import styles from "./PaymentResult.module.css";
 
 type SubscriptionStatus = 
@@ -58,6 +59,7 @@ export default function PaymentSuccessComponent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const theme = useMantineTheme();
+    const { setIsSubscribed } = useAuth();
 
     const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -74,6 +76,11 @@ export default function PaymentSuccessComponent() {
                 const data = response.data?.data;
                 setSubscription(data);
                 setError(null);
+                
+                // Update subscription status in auth store
+                if (data && (data.status === "ACTIVE" || data.status === "TRIALING")) {
+                    setIsSubscribed(true);
+                }
             } catch (err: any) {
                 console.error("Failed to fetch subscription:", err);
                 setError(err?.response?.data?.message || "Failed to load subscription details");
@@ -83,7 +90,7 @@ export default function PaymentSuccessComponent() {
         };
 
         fetchSubscription();
-    }, []);
+    }, [setIsSubscribed]);
 
     return (
         <Container size="sm" py={{ base: "xl", md: "4rem" }}>
@@ -329,25 +336,16 @@ export default function PaymentSuccessComponent() {
                         </Stack>
                     </Card>
 
-                    {/* Action Buttons */}
-                    <Group gap="sm" w="100%" align="cennter" justify="center">
+                    {/* Action Button */}
+                    <Group gap="sm" w="100%" align="center" justify="center">
                         <BaseButton
                             size="lg"
                             variant="filled"
                             color="brandGreen"
                             radius={6}
-                            onClick={() => router.push("/dashboard")}
-                        >
-                            Go to Dashboard
-                        </BaseButton>
-                        <BaseButton
-                            size="lg"
-                            variant="outline"
-                            color="brandGreen"
-                            radius={6}
                             onClick={() => router.push("/")}
                         >
-                            Return to Home
+                            Go to Home
                         </BaseButton>
                     </Group>
 
