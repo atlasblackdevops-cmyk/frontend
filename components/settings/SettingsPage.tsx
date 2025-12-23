@@ -20,6 +20,13 @@ import {
   TextInput,
   Title,
   ActionIcon,
+  Tabs,
+  Card,
+  List,
+  ThemeIcon,
+  useMantineTheme,
+  Box,
+  Grid,
 } from "@mantine/core";
 import {
   IconAlertCircle,
@@ -31,6 +38,9 @@ import {
   IconCreditCard,
   IconArrowRight,
   IconX,
+  IconCheck,
+  IconLeaf,
+  IconTrendingUp,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -39,10 +49,31 @@ import { useSubscription } from "../pricing/hooks/useSubscription";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const theme = useMantineTheme();
   const { role, userName, userEmail, userProfilePicture, setUserData, farmId } =
     useAuth();
   const isOwner = (role ?? "").toUpperCase() === "OWNER";
-  const { currentSubscription, fetchCurrentSubscription, isLoading: subscriptionLoading } = useSubscription();
+  const { 
+    currentSubscription, 
+    fetchCurrentSubscription, 
+    plans,
+    fetchPlans,
+    isLoading: subscriptionLoading 
+  } = useSubscription();
+
+  // Helper to get plan metadata (similar to PricingPageComponent)
+  const getPlanMetadata = (interval: string, intervalCount: number = 1) => {
+    if (interval === "month" && intervalCount === 1) {
+      return { icon: IconLeaf, color: "brandGreen", description: "Basic Monthly Plan" };
+    }
+    if (interval === "month" && intervalCount === 6) {
+      return { icon: IconTrendingUp, color: "blue", description: "Pro 6-Month Plan" };
+    }
+    if (interval === "year") {
+      return { icon: IconBuilding, color: "violet", description: "Business Yearly Plan" };
+    }
+    return { icon: IconLeaf, color: "brandGreen", description: "Subscription Plan" };
+  };
 
   // User details state
   const [userNameValue, setUserNameValue] = useState(userName || "");
@@ -113,6 +144,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (isOwner) {
       fetchCurrentSubscription();
+      fetchPlans();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwner]);
@@ -268,438 +300,539 @@ export default function SettingsPage() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<string | null>("user");
+
   return (
     <Stack gap="xl" p="md">
       <Title order={2}>Settings</Title>
 
-      {/* User Details Section */}
-      <Paper withBorder p="lg" radius="md">
-        <Stack gap="md">
-          <Group gap="xs">
-            <IconUser size={20} />
-            <Title order={3}>User Details</Title>
-          </Group>
-          <Divider />
-
-          {userError && (
-            <Alert
-              icon={<IconAlertCircle size={16} />}
-              title="Error"
-              color="red"
-            >
-              {userError}
-            </Alert>
+      <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md">
+        <Tabs.List mb="lg">
+          <Tabs.Tab value="user" leftSection={<IconUser size={16} />}>
+            User Profile
+          </Tabs.Tab>
+          {isOwner && (
+            <>
+              <Tabs.Tab value="farm" leftSection={<IconBuilding size={16} />}>
+                Farm Details
+              </Tabs.Tab>
+              <Tabs.Tab value="subscription" leftSection={<IconCreditCard size={16} />}>
+                Subscription
+              </Tabs.Tab>
+            </>
           )}
+        </Tabs.List>
 
-          {userSuccess && (
-            <Alert
-              icon={<IconAlertCircle size={16} />}
-              title="Success"
-              color="green"
-            >
-              Profile updated successfully!
-            </Alert>
-          )}
-
-          <Stack gap="md">
-            {/* Profile Picture */}
-            <Stack gap="xs">
-              <Text size="sm" fw={500}>
-                Profile Picture
-              </Text>
-              <Group gap="md">
-                {userProfilePicturePreview ? (
-                  <div
-                    style={{
-                      position: "relative",
-                      display: "inline-block",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => {
-                      const overlay = e.currentTarget.querySelector(
-                        '[data-overlay]'
-                      ) as HTMLElement;
-                      if (overlay) overlay.style.opacity = "1";
-                    }}
-                    onMouseLeave={(e) => {
-                      const overlay = e.currentTarget.querySelector(
-                        '[data-overlay]'
-                      ) as HTMLElement;
-                      if (overlay) overlay.style.opacity = "0";
-                    }}
-                    onClick={() => setUserPreviewModalOpen(true)}
-                  >
-                    <Avatar
-                      src={userProfilePicturePreview}
-                      size={80}
-                      radius="md"
-                      alt="Profile picture"
-                    />
-                    <div
-                      data-overlay
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0, 0, 0, 0.5)",
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        opacity: 0,
-                        transition: "opacity 0.2s ease",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <ActionIcon
-                        variant="subtle"
-                        size="lg"
-                        radius="md"
-                        style={{
-                          color: "white",
-                          backgroundColor: "transparent",
-                        }}
-                      >
-                        <IconEye size={20} color="white" />
-                      </ActionIcon>
-                    </div>
-                  </div>
-                ) : (
-                  <Avatar size={80} radius="md" alt="Profile picture" />
-                )}
-                <Stack gap="xs">
-                  <FileButton
-                    onChange={handleUserProfilePictureChange}
-                    accept="image/png,image/jpeg,image/jpg,image/webp"
-                  >
-                    {(props) => (
-                      <Button
-                        {...props}
-                        leftSection={<IconUpload size={16} />}
-                        variant="light"
-                        size="sm"
-                      >
-                        Upload Photo
-                      </Button>
-                    )}
-                  </FileButton>
-                  {userProfilePicturePreview && (
-                    <Group
-                      onClick={() => setUserDeleteModalOpen(true)}
-                      gap="xs"
-                      style={{ cursor: "pointer", paddingLeft: 10 }}
-                      align="center"
-                    >
-                      <IconTrash size={16} color="red" />
-                      <Text size="sm" fw={500} color="red">
-                        Remove
-                      </Text>
-                    </Group>
-                  )}
-                </Stack>
-              </Group>
-            </Stack>
-
-            {/* Name */}
-            <TextInput
-              label="Name"
-              placeholder="Enter your name"
-              value={userNameValue}
-              onChange={(e) => setUserNameValue(e.currentTarget.value)}
-              error={userErrors.name}
-              required
-            />
-
-            {/* Email */}
-            <TextInput
-              label="Email"
-              placeholder="Enter your email"
-              type="email"
-              value={userEmailValue}
-              onChange={(e) => setUserEmailValue(e.currentTarget.value)}
-              error={userErrors.email}
-              required
-            />
-
-            <BaseButton
-              onClick={handleUserUpdate}
-              loading={userSubmitting}
-              disabled={!isUserFormValid}
-            >
-              Update Profile
-            </BaseButton>
-          </Stack>
-        </Stack>
-      </Paper>
-
-      {/* Farm Details Section (owners only) */}
-      {isOwner && (
-        <Paper withBorder p="lg" radius="md">
-          <Stack gap="md">
-            <Group gap="xs">
-              <IconBuilding size={20} />
-              <Title order={3}>Farm Details</Title>
-            </Group>
-            <Divider />
-
-            {farmError && (
-              <Alert
-                icon={<IconAlertCircle size={16} />}
-                title="Error"
-                color="red"
-              >
-                {farmError}
-              </Alert>
-            )}
-
-            {farmSuccess && (
-              <Alert
-                icon={<IconAlertCircle size={16} />}
-                title="Success"
-                color="green"
-              >
-                Farm details updated successfully!
-              </Alert>
-            )}
-
+        <Tabs.Panel value="user">
+          {/* User Details Section */}
+          <Paper withBorder p="lg" radius="md">
             <Stack gap="md">
-              {/* Farm Logo */}
-              <Stack gap="xs">
-                <Text size="sm" fw={500}>
-                  Farm Logo
-                </Text>
-                <Group gap="md">
-                  {farmLogoPreview ? (
-                    <div
-                      style={{
-                        position: "relative",
-                        display: "inline-block",
-                        cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) => {
-                        const overlay = e.currentTarget.querySelector(
-                          '[data-overlay]'
-                        ) as HTMLElement;
-                        if (overlay) overlay.style.opacity = "1";
-                      }}
-                      onMouseLeave={(e) => {
-                        const overlay = e.currentTarget.querySelector(
-                          '[data-overlay]'
-                        ) as HTMLElement;
-                        if (overlay) overlay.style.opacity = "0";
-                      }}
-                      onClick={() => setFarmPreviewModalOpen(true)}
-                    >
-                      <Avatar
-                        src={farmLogoPreview}
-                        size={80}
-                        radius="md"
-                        alt="Farm logo"
-                        variant="light"
-                      />
+              <Group gap="xs">
+                <IconUser size={20} />
+                <Title order={3}>User Details</Title>
+              </Group>
+              <Divider />
+
+              {userError && (
+                <Alert
+                  icon={<IconAlertCircle size={16} />}
+                  title="Error"
+                  color="red"
+                >
+                  {userError}
+                </Alert>
+              )}
+
+              {userSuccess && (
+                <Alert
+                  icon={<IconAlertCircle size={16} />}
+                  title="Success"
+                  color="green"
+                >
+                  Profile updated successfully!
+                </Alert>
+              )}
+
+              <Stack gap="md">
+                {/* Profile Picture */}
+                <Stack gap="xs">
+                  <Text size="sm" fw={500}>
+                    Profile Picture
+                  </Text>
+                  <Group gap="md">
+                    {userProfilePicturePreview ? (
                       <div
-                        data-overlay
                         style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          backgroundColor: "rgba(0, 0, 0, 0.5)",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          opacity: 0,
-                          transition: "opacity 0.2s ease",
-                          pointerEvents: "none",
+                          position: "relative",
+                          display: "inline-block",
+                          cursor: "pointer",
                         }}
+                        onMouseEnter={(e) => {
+                          const overlay = e.currentTarget.querySelector(
+                            '[data-overlay]'
+                          ) as HTMLElement;
+                          if (overlay) overlay.style.opacity = "1";
+                        }}
+                        onMouseLeave={(e) => {
+                          const overlay = e.currentTarget.querySelector(
+                            '[data-overlay]'
+                          ) as HTMLElement;
+                          if (overlay) overlay.style.opacity = "0";
+                        }}
+                        onClick={() => setUserPreviewModalOpen(true)}
                       >
-                        <ActionIcon
-                          variant="subtle"
-                          size="lg"
+                        <Avatar
+                          src={userProfilePicturePreview}
+                          size={80}
                           radius="md"
+                          alt="Profile picture"
+                        />
+                        <div
+                          data-overlay
                           style={{
-                            color: "white",
-                            backgroundColor: "transparent",
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: "rgba(0, 0, 0, 0.5)",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            opacity: 0,
+                            transition: "opacity 0.2s ease",
+                            pointerEvents: "none",
                           }}
                         >
-                          <IconEye size={20} color="white" />
-                        </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            size="lg"
+                            radius="md"
+                            style={{
+                              color: "white",
+                              backgroundColor: "transparent",
+                            }}
+                          >
+                            <IconEye size={20} color="white" />
+                          </ActionIcon>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <Avatar size={80} radius="md" variant="light" color="gray">
-                      <IconBuilding size={40} />
-                    </Avatar>
-                  )}
-                  <Stack gap="xs">
-                    <FileButton
-                      onChange={handleFarmLogoChange}
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                    >
-                      {(props) => (
-                        <Button
-                          {...props}
-                          leftSection={<IconUpload size={16} />}
-                          variant="light"
-                          size="sm"
-                        >
-                          Upload Logo
-                        </Button>
-                      )}
-                    </FileButton>
-                    {farmLogoPreview && (
-                      <Group
-                        onClick={() => setFarmDeleteModalOpen(true)}
-                        gap="xs"
-                        style={{ cursor: "pointer", paddingLeft: 10 }}
-                        align="center"
+                    ) : (
+                      <Avatar size={80} radius="md" alt="Profile picture" />
+                    )}
+                    <Stack gap="xs">
+                      <FileButton
+                        onChange={handleUserProfilePictureChange}
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
                       >
-                        <IconTrash size={16} color="red" />
-                        <Text size="sm" fw={500} color="red">
-                          Remove
-                        </Text>
-                      </Group>
-                    )}
-                  </Stack>
-                </Group>
-              </Stack>
-
-              {/* Farm Name */}
-              <TextInput
-                label="Farm Name"
-                placeholder="Enter farm name"
-                value={farmName}
-                onChange={(e) => setFarmName(e.currentTarget.value)}
-                error={farmErrors.farmName}
-                required
-              />
-
-              <TextInput
-                label="City"
-                placeholder="Enter city"
-                value={farmCity}
-                onChange={(e) => setFarmCity(e.currentTarget.value)}
-              />
-
-              <TextInput
-                label="State"
-                placeholder="Enter state"
-                value={farmState}
-                onChange={(e) => setFarmState(e.currentTarget.value)}
-              />
-
-              <TextInput
-                label="Country"
-                placeholder="Enter country"
-                value={farmCountry}
-                onChange={(e) => setFarmCountry(e.currentTarget.value)}
-              />
-
-              <Textarea
-                label="Address"
-                placeholder="Street, area, zip"
-                minRows={3}
-                value={farmAddress}
-                onChange={(e) => setFarmAddress(e.currentTarget.value)}
-              />
-
-              <BaseButton
-                onClick={handleFarmUpdate}
-                loading={farmSubmitting}
-                disabled={!isFarmFormValid}
-              >
-                Update Farm Details
-              </BaseButton>
-            </Stack>
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Subscription Section - Only for Owners */}
-      {isOwner && (
-        <Paper withBorder p="lg" radius="md">
-          <Stack gap="md">
-            <Group gap="xs">
-              <IconCreditCard size={20} />
-              <Title order={3}>Subscription</Title>
-            </Group>
-            <Divider />
-
-            {subscriptionLoading ? (
-              <Text size="sm" c="dimmed">
-                Loading subscription details...
-              </Text>
-            ) : currentSubscription && currentSubscription.status === "ACTIVE" ? (
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-start">
-                  <Stack gap="xs">
-                    <Group gap="sm">
-                      <Text fw={500} size="sm">
-                        Status:
-                      </Text>
-                      {currentSubscription.cancelAtPeriodEnd ? (
-                        <Badge color="orange" variant="light">
-                          Canceling at Period End
-                        </Badge>
-                      ) : (
-                        <Badge color="brandGreen" variant="light">
-                          Active
-                        </Badge>
+                        {(props) => (
+                          <Button
+                            {...props}
+                            leftSection={<IconUpload size={16} />}
+                            variant="light"
+                            size="sm"
+                          >
+                            Upload Photo
+                          </Button>
+                        )}
+                      </FileButton>
+                      {userProfilePicturePreview && (
+                        <Group
+                          onClick={() => setUserDeleteModalOpen(true)}
+                          gap="xs"
+                          style={{ cursor: "pointer", paddingLeft: 10 }}
+                          align="center"
+                        >
+                          <IconTrash size={16} color="red" />
+                          <Text size="sm" fw={500} color="red">
+                            Remove
+                          </Text>
+                        </Group>
                       )}
-                    </Group>
-                    {currentSubscription.currentPeriodEnd && (
-                      <Text size="xs" c="dimmed">
-                        Current period ends: {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </Text>
-                    )}
-                  </Stack>
-                </Group>
+                    </Stack>
+                  </Group>
+                </Stack>
 
-                <Group gap="sm">
-                  <BaseButton
-                    variant="outline"
-                    color="brandGreen"
-                    onClick={() => router.push("/subscription/change-plan")}
-                    rightSection={<IconArrowRight size={16} />}
-                  >
-                    Change Plan
-                  </BaseButton>
-                  <BaseButton
-                    variant="outline"
-                    color="red"
-                    onClick={() => router.push("/subscription/cancel")}
-                    rightSection={<IconX size={16} />}
-                  >
-                    Cancel Subscription
-                  </BaseButton>
-                </Group>
-              </Stack>
-            ) : (
-              <Stack gap="md">
-                <Text size="sm" c="dimmed">
-                  No active subscription. Subscribe to access premium features.
-                </Text>
+                {/* Name */}
+                <TextInput
+                  label="Name"
+                  placeholder="Enter your name"
+                  value={userNameValue}
+                  onChange={(e) => setUserNameValue(e.currentTarget.value)}
+                  error={userErrors.name}
+                  required
+                />
+
+                {/* Email */}
+                <TextInput
+                  label="Email"
+                  placeholder="Enter your email"
+                  type="email"
+                  value={userEmailValue}
+                  onChange={(e) => setUserEmailValue(e.currentTarget.value)}
+                  error={userErrors.email}
+                  required
+                />
+
                 <BaseButton
-                  variant="filled"
-                  color="brandGreen"
-                  onClick={() => router.push("/subscription")}
-                  rightSection={<IconArrowRight size={16} />}
+                  onClick={handleUserUpdate}
+                  loading={userSubmitting}
+                  disabled={!isUserFormValid}
                 >
-                  View Plans
+                  Update Profile
                 </BaseButton>
               </Stack>
-            )}
-          </Stack>
-        </Paper>
-      )}
+            </Stack>
+          </Paper>
+        </Tabs.Panel>
+
+        {isOwner && (
+          <>
+            <Tabs.Panel value="farm">
+              {/* Farm Details Section (owners only) */}
+              <Paper withBorder p="lg" radius="md">
+                <Stack gap="md">
+                  <Group gap="xs">
+                    <IconBuilding size={20} />
+                    <Title order={3}>Farm Details</Title>
+                  </Group>
+                  <Divider />
+
+                  {farmError && (
+                    <Alert
+                      icon={<IconAlertCircle size={16} />}
+                      title="Error"
+                      color="red"
+                    >
+                      {farmError}
+                    </Alert>
+                  )}
+
+                  {farmSuccess && (
+                    <Alert
+                      icon={<IconAlertCircle size={16} />}
+                      title="Success"
+                      color="green"
+                    >
+                      Farm details updated successfully!
+                    </Alert>
+                  )}
+
+                  <Stack gap="md">
+                    {/* Farm Logo */}
+                    <Stack gap="xs">
+                      <Text size="sm" fw={500}>
+                        Farm Logo
+                      </Text>
+                      <Group gap="md">
+                        {farmLogoPreview ? (
+                          <div
+                            style={{
+                              position: "relative",
+                              display: "inline-block",
+                              cursor: "pointer",
+                            }}
+                            onMouseEnter={(e) => {
+                              const overlay = e.currentTarget.querySelector(
+                                '[data-overlay]'
+                              ) as HTMLElement;
+                              if (overlay) overlay.style.opacity = "1";
+                            }}
+                            onMouseLeave={(e) => {
+                              const overlay = e.currentTarget.querySelector(
+                                '[data-overlay]'
+                              ) as HTMLElement;
+                              if (overlay) overlay.style.opacity = "0";
+                            }}
+                            onClick={() => setFarmPreviewModalOpen(true)}
+                          >
+                            <Avatar
+                              src={farmLogoPreview}
+                              size={80}
+                              radius="md"
+                              alt="Farm logo"
+                              variant="light"
+                            />
+                            <div
+                              data-overlay
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: 0,
+                                transition: "opacity 0.2s ease",
+                                pointerEvents: "none",
+                              }}
+                            >
+                              <ActionIcon
+                                variant="subtle"
+                                size="lg"
+                                radius="md"
+                                style={{
+                                  color: "white",
+                                  backgroundColor: "transparent",
+                                }}
+                              >
+                                <IconEye size={20} color="white" />
+                              </ActionIcon>
+                            </div>
+                          </div>
+                        ) : (
+                          <Avatar size={80} radius="md" variant="light" color="gray">
+                            <IconBuilding size={40} />
+                          </Avatar>
+                        )}
+                        <Stack gap="xs">
+                          <FileButton
+                            onChange={handleFarmLogoChange}
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                          >
+                            {(props) => (
+                              <Button
+                                {...props}
+                                leftSection={<IconUpload size={16} />}
+                                variant="light"
+                                size="sm"
+                              >
+                                Upload Logo
+                              </Button>
+                            )}
+                          </FileButton>
+                          {farmLogoPreview && (
+                            <Group
+                              onClick={() => setFarmDeleteModalOpen(true)}
+                              gap="xs"
+                              style={{ cursor: "pointer", paddingLeft: 10 }}
+                              align="center"
+                            >
+                              <IconTrash size={16} color="red" />
+                              <Text size="sm" fw={500} color="red">
+                                Remove
+                              </Text>
+                            </Group>
+                          )}
+                        </Stack>
+                      </Group>
+                    </Stack>
+
+                    {/* Farm Name */}
+                    <TextInput
+                      label="Farm Name"
+                      placeholder="Enter farm name"
+                      value={farmName}
+                      onChange={(e) => setFarmName(e.currentTarget.value)}
+                      error={farmErrors.farmName}
+                      required
+                    />
+
+                    <TextInput
+                      label="City"
+                      placeholder="Enter city"
+                      value={farmCity}
+                      onChange={(e) => setFarmCity(e.currentTarget.value)}
+                    />
+
+                    <TextInput
+                      label="State"
+                      placeholder="Enter state"
+                      value={farmState}
+                      onChange={(e) => setFarmState(e.currentTarget.value)}
+                    />
+
+                    <TextInput
+                      label="Country"
+                      placeholder="Enter country"
+                      value={farmCountry}
+                      onChange={(e) => setFarmCountry(e.currentTarget.value)}
+                    />
+
+                    <Textarea
+                      label="Address"
+                      placeholder="Street, area, zip"
+                      minRows={3}
+                      value={farmAddress}
+                      onChange={(e) => setFarmAddress(e.currentTarget.value)}
+                    />
+
+                    <BaseButton
+                      onClick={handleFarmUpdate}
+                      loading={farmSubmitting}
+                      disabled={!isFarmFormValid}
+                    >
+                      Update Farm Details
+                    </BaseButton>
+                  </Stack>
+                </Stack>
+              </Paper>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="subscription">
+              {/* Subscription Section - Only for Owners */}
+              <Stack gap="lg">
+                <Group gap="xs">
+                  <IconCreditCard size={20} />
+                  <Title order={3}>Subscription Management</Title>
+                </Group>
+                
+                {subscriptionLoading ? (
+                  <Paper withBorder p="xl" radius="md" style={{ textAlign: 'center' }}>
+                    <Text size="sm" c="dimmed">
+                      Loading subscription details...
+                    </Text>
+                  </Paper>
+                ) : currentSubscription && currentSubscription.status === "ACTIVE" ? (
+                  <Card withBorder radius="lg" p={0} style={{ overflow: 'hidden' }}>
+                    {/* Compact Card Layout */}
+                    <Group wrap="nowrap" gap={0} align="stretch" grow>
+                      {/* Left Side: Plan Info with Gradient */}
+                      <Box 
+                        p="xl" 
+                        style={{ 
+                          background: `linear-gradient(135deg, ${theme.colors.brandGreen[6]} 0%, ${theme.colors.brandGreen[8]} 100%)`,
+                          color: 'white',
+                          minWidth: '280px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Stack gap="xs">
+                          {(() => {
+                            const plan = plans.find(p => p.priceId === currentSubscription.stripePriceId);
+                            const metadata = getPlanMetadata(plan?.interval || 'month', plan?.intervalCount || 1);
+                            const Icon = metadata.icon;
+                            
+                            return (
+                              <>
+                                <ThemeIcon size={48} radius="md" color="white" variant="white" style={{ color: theme.colors.brandGreen[6] }}>
+                                  <Icon size={28} />
+                                </ThemeIcon>
+                                <Title order={2} style={{ color: 'white' }}>
+                                  {plan?.name || "Current Plan"}
+                                </Title>
+                                <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                                  {metadata.description}
+                                </Text>
+                              </>
+                            );
+                          })()}
+                          
+                          <Group gap="xs" mt="md">
+                            <Badge color="white" variant="white" style={{ color: theme.colors.brandGreen[7] }}>
+                              {currentSubscription.cancelAtPeriodEnd ? "CANCeling" : "ACTIVE"}
+                            </Badge>
+                          </Group>
+                        </Stack>
+                      </Box>
+
+                      {/* Right Side: Details and Actions */}
+                      <Box p="xl" style={{ flex: 1, backgroundColor: theme.white }}>
+                        <Stack gap="md" justify="space-between" h="100%">
+                          <Stack gap="md">
+                            <Group justify="space-between">
+                              <Text fw={600} size="sm">Subscription Details</Text>
+                              <IconCheck size={18} color={theme.colors.brandGreen[6]} />
+                            </Group>
+                            
+                            <Divider />
+                            
+                            <Grid>
+                              <Grid.Col span={6}>
+                                <Text size="xs" c="dimmed">Status</Text>
+                                <Text size="sm" fw={500}>
+                                  {currentSubscription.cancelAtPeriodEnd ? "Canceling at period end" : "Active & Auto-renewing"}
+                                </Text>
+                              </Grid.Col>
+                              <Grid.Col span={6}>
+                                <Text size="xs" c="dimmed">Next Billing Date</Text>
+                                <Text size="sm" fw={500}>
+                                  {currentSubscription.currentPeriodEnd 
+                                    ? new Date(currentSubscription.currentPeriodEnd).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                      })
+                                    : "N/A"}
+                                </Text>
+                              </Grid.Col>
+                            </Grid>
+
+                            <List
+                              spacing="xs"
+                              size="sm"
+                              mt="sm"
+                              icon={
+                                <ThemeIcon color="brandGreen" size={16} radius="xl">
+                                  <IconCheck size={10} strokeWidth={4} />
+                                </ThemeIcon>
+                              }
+                            >
+                              <List.Item>Access to all premium features</List.Item>
+                              <List.Item>Priority customer support</List.Item>
+                              <List.Item>Advanced analytics & reporting</List.Item>
+                            </List>
+                          </Stack>
+
+                          <Group gap="sm" mt="xl">
+                            <BaseButton
+                              variant="outline"
+                              color="brandGreen"
+                              onClick={() => router.push("/subscription/change-plan")}
+                              rightSection={<IconArrowRight size={16} />}
+                              style={{ flex: 1 }}
+                            >
+                              Change Plan
+                            </BaseButton>
+                            <BaseButton
+                              variant="subtle"
+                              color="red"
+                              onClick={() => router.push("/subscription/cancel")}
+                              rightSection={<IconX size={16} />}
+                              disabled={currentSubscription.cancelAtPeriodEnd}
+                            >
+                              {currentSubscription.cancelAtPeriodEnd ? "Cancellation Scheduled" : "Cancel"}
+                            </BaseButton>
+                          </Group>
+                        </Stack>
+                      </Box>
+                    </Group>
+                  </Card>
+                ) : (
+                  <Card withBorder radius="lg" p="xl" style={{ textAlign: 'center', backgroundColor: theme.colors.gray[0] }}>
+                    <Stack align="center" gap="md">
+                      <ThemeIcon size={64} radius="xl" color="gray" variant="light">
+                        <IconCreditCard size={32} />
+                      </ThemeIcon>
+                      <Title order={3}>No Active Subscription</Title>
+                      <Text size="sm" c="dimmed" maw={400}>
+                        Subscribe to a plan to unlock all premium features and grow your farm more effectively.
+                      </Text>
+                      <BaseButton
+                        variant="filled"
+                        color="brandGreen"
+                        size="md"
+                        onClick={() => router.push("/subscription")}
+                        rightSection={<IconArrowRight size={16} />}
+                        mt="md"
+                      >
+                        Explore Pricing Plans
+                      </BaseButton>
+                    </Stack>
+                  </Card>
+                )}
+              </Stack>
+            </Tabs.Panel>
+          </>
+        )}
+      </Tabs>
 
       {/* User Profile Picture Delete Confirmation Modal */}
       <DeleteConfirmationModal
@@ -745,3 +878,4 @@ export default function SettingsPage() {
     </Stack>
   );
 }
+

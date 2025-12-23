@@ -25,6 +25,7 @@ import {
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useMantineTheme } from "@mantine/core";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import BaseButton from "../ui/BaseButton";
 import DeleteConfirmationModal from "../ui/DeleteConfirmationModal";
@@ -76,10 +77,11 @@ export default function CancelPlanComponent() {
             setCancelModalOpen(false);
             // Refresh subscription data
             await fetchCurrentSubscription();
-            // Optionally redirect after a delay
+            
+            // Redirect to dashboard
             setTimeout(() => {
                 router.push("/dashboard");
-            }, 3000);
+            }, 2000);
         } catch (err: any) {
             console.error("Failed to cancel subscription:", err);
         } finally {

@@ -10,6 +10,7 @@ import {
     type SubscriptionPlan,
     type CurrentSubscription,
 } from "@/lib/subscription/api";
+import { useAuth } from "@/stores/use-auth-store";
 
 export function useSubscription() {
     const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -17,6 +18,7 @@ export function useSubscription() {
     const [isLoading, setIsLoading] = useState(false);
     const [checkingOutPriceId, setCheckingOutPriceId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { setIsSubscribed } = useAuth();
 
     /**
      * Fetch available subscription plans
@@ -52,6 +54,13 @@ export function useSubscription() {
             const response = await getCurrentSubscription();
             const subscriptionData = response?.data;
             setCurrentSubscription(subscriptionData);
+            
+            // Sync with auth store
+            if (subscriptionData?.status === "ACTIVE") {
+                setIsSubscribed(true);
+            } else {
+                setIsSubscribed(false);
+            }
         } catch (err: any) {
             const errorMessage =
                 err?.response?.data?.message ||
@@ -102,6 +111,10 @@ export function useSubscription() {
 
         try {
             await cancelSubscription(cancelAtPeriodEnd);
+            // Update auth store if canceled immediately
+            if (!cancelAtPeriodEnd) {
+                setIsSubscribed(false);
+            }
             // Refresh subscription data after cancellation
             await fetchCurrentSubscription();
         } catch (err: any) {

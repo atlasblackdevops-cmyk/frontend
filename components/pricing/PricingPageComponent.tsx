@@ -14,6 +14,8 @@ import {
     Box,
     Loader,
     Alert,
+    LoadingOverlay,
+    Modal,
 } from "@mantine/core";
 import {
     IconCheck,
@@ -23,8 +25,11 @@ import {
     IconLeaf,
     IconAlertCircle,
     IconArrowRight,
+    IconArrowLeft,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/stores/use-auth-store";
 import { useMantineTheme } from "@mantine/core";
 import { useEffect, useState } from "react";
 import BaseButton from "../ui/BaseButton";
@@ -123,15 +128,34 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
     } = useSubscription();
     const [changingPlanId, setChangingPlanId] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [successModalOpen, setSuccessModalOpen] = useState(false);
     const isChangePlanMode = mode === "change-plan";
+    const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+    const { status } = useSession();
+    const { token } = useAuth();
+
+    const isLoggedIn = status === "authenticated" || !!token;
+
+    const handleBack = async () => {
+        if (isLoggedIn && currentSubscription?.status === "ACTIVE") {
+            router.push("/dashboard");
+        } else if (isLoggedIn) {
+            // If logged in but not active, sign out to allow returning to login
+            await signOut({ callbackUrl: "/login" });
+        } else {
+            router.push("/login");
+        }
+    };
 
     useEffect(() => {
-        fetchPlans();
-        if (isChangePlanMode) {
-            fetchCurrentSubscription();
-        }
+        const loadData = async () => {
+            await fetchPlans();
+            await fetchCurrentSubscription();
+            setHasAttemptedFetch(true);
+        };
+        loadData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isChangePlanMode]);
+    }, []);
 
     const getBillingPeriodLabel = (interval: string, intervalCount: number = 1) => {
         if (intervalCount === 1) {
@@ -181,6 +205,11 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
     };
 
     const handleCheckout = async (priceId: string) => {
+        // If user already has a subscription, redirect to change-plan instead
+        if (currentSubscription && currentSubscription.status === "ACTIVE") {
+            router.push("/subscription/change-plan");
+            return;
+        }
         await checkout(priceId);
     };
 
@@ -197,18 +226,19 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
 
         try {
             await changeSubscriptionPlan(priceId);
-            setSuccess("Plan changed successfully! Your subscription will be updated at the end of the current billing period.");
-            // Refresh subscription data
+            setSuccessModalOpen(true);
+            // Refresh subscription data in background
             await fetchCurrentSubscription();
-            // Redirect after a delay
-            setTimeout(() => {
-                router.push("/dashboard");
-            }, 2000);
         } catch (err: any) {
             console.error("Failed to change plan:", err);
         } finally {
             setChangingPlanId(null);
         }
+    };
+
+    const handleSuccessModalClose = () => {
+        setSuccessModalOpen(false);
+        router.push("/dashboard");
     };
 
     return (
@@ -225,7 +255,25 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                     }
                 }
             `}</style>
-            <Container size="xl" py={{ base: "xl", md: "3rem" }}>
+            <Container size="xl" py={{ base: "xl", md: "3rem" }} style={{ position: 'relative', minHeight: '400px' }}>
+                <LoadingOverlay 
+                    visible={isLoading && plans.length === 0} 
+                    zIndex={1000} 
+                    overlayProps={{ radius: "sm", blur: 2 }} 
+                />
+                
+                {/* Back Button */}
+                <Box style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
+                    <BaseButton
+                        variant="subtle"
+                        color="gray"
+                        leftSection={<IconArrowLeft size={16} />}
+                        onClick={handleBack}
+                    >
+                        Back
+                    </BaseButton>
+                </Box>
+
                 <Stack gap="xl" align="center">
                 {/* Header Section */}
                 <Stack gap="md" align="center" maw={800} ta="center">
@@ -334,18 +382,32 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                     </Alert>
                 )}
 
-                {/* Loading State */}
-                {isLoading && (
-                    <Box style={{ textAlign: "center", padding: "3rem" }}>
-                        <Loader size="lg" color="brandGreen" />
-                        <Text size="sm" c="dimmed" mt="md">
-                            Loading pricing plans...
+                {/* Success Modal */}
+                <Modal
+                    opened={successModalOpen}
+                    onClose={handleSuccessModalClose}
+                    title="Plan Change Successful"
+                    centered
+                    radius="md"
+                    withCloseButton={false}
+                >
+                    <Stack align="center" py="md">
+                        <ThemeIcon size={60} radius="xl" color="green" variant="light">
+                            <IconCheck size={35} />
+                        </ThemeIcon>
+                        <Title order={3}>Request Submitted!</Title>
+                        <Text ta="center" size="sm" c="dimmed">
+                            Your request to change your plan has been successfully received. 
+                            Your subscription will be updated at the end of the current billing period.
                         </Text>
-                    </Box>
-                )}
+                        <BaseButton fullWidth mt="md" onClick={handleSuccessModalClose}>
+                            Go to Dashboard
+                        </BaseButton>
+                    </Stack>
+                </Modal>
 
                 {/* Pricing Cards */}
-                {!isLoading && plans.length > 0 && (
+                {plans.length > 0 && (
                     <>
                         {isChangePlanMode && (
                             <Title order={2} size="h3" ta="center" fw={600} w="100%">
@@ -357,7 +419,7 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                 const metadata = getPlanMetadata(plan.interval, plan.intervalCount);
                                 const Icon = metadata.icon;
                                 const isPopular = metadata.popular;
-                                const isCurrentPlan = isChangePlanMode && currentSubscription?.stripePriceId === plan.priceId;
+                                const isCurrentPlan = currentSubscription?.stripePriceId === plan.priceId && currentSubscription.status === "ACTIVE";
                                 const period = getBillingPeriodLabel(plan.interval, plan.intervalCount);
                             const monthlyEquivalent = calculateMonthlyEquivalent(
                                 plan.amount / 100,
@@ -390,21 +452,21 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                                 position: "relative",
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                borderWidth: isCurrentPlan || isPopular ? 2 : 1,
+                                                borderWidth: isCurrentPlan || (isPopular && !isChangePlanMode) ? 2 : 1,
                                                 borderColor:
                                                     isCurrentPlan
                                                         ? theme.colors.brandGreen[6]
-                                                        : isPopular
+                                                        : isPopular && !isChangePlanMode
                                                           ? theme.colors.brandGreen[5]
                                                           : theme.colors.gray[3],
                                                 backgroundColor:
                                                     isCurrentPlan
                                                         ? theme.colors.brandGreen[1]
-                                                        : isPopular
+                                                        : isPopular && !isChangePlanMode
                                                           ? theme.colors.brandGreen[0]
                                                           : theme.white,
                                                 boxShadow:
-                                                    isCurrentPlan || isPopular
+                                                    isCurrentPlan || (isPopular && !isChangePlanMode)
                                                         ? `0 6px 22px ${theme.colors.brandGreen[2]}`
                                                         : "0 2px 8px rgba(0, 0, 0, 0.05)",
                                                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -412,8 +474,9 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                             }}
                                             onMouseEnter={(e) => {
                                                 if (!isCurrentPlan) {
+                                                    const useHighlightShadow = isPopular && !isChangePlanMode;
                                                     e.currentTarget.style.boxShadow =
-                                                        isPopular
+                                                        useHighlightShadow
                                                             ? `0 12px 32px ${theme.colors.brandGreen[3]}`
                                                             : "0 8px 24px rgba(0, 0, 0, 0.12)";
                                                     e.currentTarget.style.transform = "translateY(-4px)";
@@ -421,15 +484,16 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                             }}
                                             onMouseLeave={(e) => {
                                                 if (!isCurrentPlan) {
+                                                    const useHighlightShadow = isPopular && !isChangePlanMode;
                                                     e.currentTarget.style.boxShadow =
-                                                        isCurrentPlan || isPopular
+                                                        isCurrentPlan || useHighlightShadow
                                                             ? `0 6px 22px ${theme.colors.brandGreen[2]}`
                                                             : "0 2px 8px rgba(0, 0, 0, 0.05)";
                                                     e.currentTarget.style.transform = "translateY(0)";
                                                 }
                                             }}
                                         >
-                                            {isPopular && metadata.badge && !isCurrentPlan && (
+                                            {isPopular && metadata.badge && !isCurrentPlan && !isChangePlanMode && (
                                                 <Box
                                                     style={{
                                                         position: "absolute",
@@ -510,7 +574,7 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                                             size="48px"
                                                             fw={700}
                                                             c={
-                                                                isCurrentPlan || isPopular
+                                                                isCurrentPlan || (isPopular && !isChangePlanMode)
                                                                     ? theme.colors.brandGreen[6]
                                                                     : theme.colors.dark[7]
                                                             }
@@ -550,7 +614,7 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                                 </Box>
 
                                                 {/* CTA Button */}
-                                                {isChangePlanMode && isCurrentPlan ? (
+                                                {isCurrentPlan ? (
                                                     <BaseButton
                                                         fullWidth
                                                         variant="outline"
@@ -563,7 +627,7 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                                                 ) : isChangePlanMode ? (
                                                     <BaseButton
                                                         fullWidth
-                                                        variant={isPopular ? "filled" : "outline"}
+                                                        variant={isPopular && !isChangePlanMode ? "filled" : "outline"}
                                                         color="brandGreen"
                                                         radius="xl"
                                                         loading={changingPlanId === plan.priceId}
@@ -654,8 +718,8 @@ export default function PricingPageComponent({ mode = "subscribe" }: PricingPage
                     </>
                 )}
 
-                {/* No Plans Available */}
-                {!isLoading && plans.length === 0 && !error && (
+                 {/* No Plans Available */}
+                {hasAttemptedFetch && plans.length === 0 && !error && (
                     <Box style={{ textAlign: "center", padding: "3rem" }}>
                         <Text size="lg" c="dimmed">
                             No pricing plans available at the moment.

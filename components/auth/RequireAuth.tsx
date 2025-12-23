@@ -11,37 +11,19 @@ interface RequireAuthProps {
 }
 
 export function RequireAuth({ children, redirectTo = '/login' }: RequireAuthProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const { status } = useSession();
   const { token, isSubscribed } = useAuth();
+  const pathname = usePathname();
 
-  // Redirect to subscription page if user is not subscribed and is authenticated
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    // Only redirect if user is authenticated (has token) and not subscribed
-    // Also check that we're not already on a subscription-related page to avoid infinite redirects
-    const isOnSubscriptionPage = pathname?.startsWith('/subscription');
-    if (token && !isSubscribed && !isOnSubscriptionPage) {
-      router.replace('/subscription');
-    }
-  }, [status, token, isSubscribed, pathname, router]);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    if (status === 'unauthenticated' && !token) {
-      router.replace(redirectTo);
-    }
-  }, [status, token, router, redirectTo]);
-
-  // Hide content while checking/redirecting
+  // Middleware handles the redirects. This component now primarily ensures 
+  // that we don't render protected content before the session is ready.
+  
   if (status === 'loading') return null;
-  if (status === 'unauthenticated' && !token) return null;
-  // Don't render children if redirecting to subscription
-  const isOnSubscriptionPage = pathname?.startsWith('/subscription');
-  if (token && !isSubscribed && !isOnSubscriptionPage) return null;
+  
+  const isLoggedIn = status === 'authenticated' || !!token;
+
+  // If not logged in, hide content (The middleware handles the redirect)
+  if (!isLoggedIn) return null;
+
   return <>{children}</>;
 }

@@ -3,7 +3,7 @@
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
-import { SessionProvider, signIn, useSession } from "next-auth/react";
+import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
 import { api } from "@/lib/api";
 import { useAuth } from "../stores/use-auth-store";
 
@@ -13,8 +13,7 @@ interface Props {
 }
 
 function AuthSessionProvider({ children, session }: Props) {
-  function SessionSync() {
-    const router = useRouter();
+    function SessionSync() {
     const {
       setToken,
       setRefreshToken,
@@ -23,273 +22,80 @@ function AuthSessionProvider({ children, session }: Props) {
       setUserData,
       setIsSubscribed,
     } = useAuth();
-    const { token } = useAuth();
     const { data: nextAuthSession, status } = useSession();
 
     useEffect(() => {
-      if (status === "authenticated") {
-        const uid = (nextAuthSession?.user as any)?.id ?? null;
-        setUserId(uid);
+      if (status === "authenticated" && nextAuthSession) {
+        const accessToken = (nextAuthSession as any).accessToken;
+        const isSubscribed = (nextAuthSession as any).isSubscribed === true;
+        const uid = (nextAuthSession.user as any)?.id;
 
-        const idToken = (nextAuthSession as any)?.googleIdToken as
-          | string
-          | undefined;
+        // CHECK IF USER MANUALLY CLEARED STORAGE
+        if (typeof window !== "undefined") {
+          const storedToken = localStorage.getItem("accessToken");
+          const isLoggingIn = sessionStorage.getItem("is_logging_in") === "true";
 
-        if (idToken && !token) {
+          if (!storedToken && !isLoggingIn) {
+            console.log("[SessionSync] LocalStorage is empty. Triggering signOut to match manual clearing.");
+            void signOut({ callbackUrl: "/login" });
+            return;
+          }
+        }
+
+        if (accessToken) {
+          setToken(accessToken);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("accessToken", accessToken);
+            // Once we have synched, clear the "is_logging_in" flag
+            sessionStorage.removeItem("is_logging_in");
+          }
+        }
+
+        setIsSubscribed(isSubscribed);
+        setUserId(uid ?? null);
+
+        // Fetch user metadata if role/farm info is missing
+        const currentAuthState = useAuth.getState();
+        if (accessToken && (currentAuthState.role === null || currentAuthState.hasFarm === null)) {
           (async () => {
             try {
-              const { data } = await api.post("/api/v1/auth/google", {
-                idToken,
+              const res = await api.get("/api/v1/auth/me");
+              const payload = res.data?.data ?? res.data;
+
+              // Normalize role name
+              const rawRole = payload?.role ?? payload?.user?.role ?? payload?.data?.role ?? null;
+              const roleName = (typeof rawRole === "string" && rawRole) || rawRole?.roleName || rawRole?.name || null;
+
+              // Derive hasFarm
+              let hasFarmVal: boolean | null = typeof payload?.hasFarm === "boolean" ? payload.hasFarm : null;
+              if (hasFarmVal == null) {
+                if (payload?.requiresFarmCreation === true) hasFarmVal = false;
+                else if (payload?.currentFarm != null) hasFarmVal = true;
+              }
+
+              setRoleAndFarm({
+                role: roleName,
+                hasFarm: hasFarmVal,
+                farmId: payload?.farmId ?? payload?.currentFarm?.id ?? null,
+                farmName: payload?.currentFarm?.farmName ?? null,
               });
-              const backendToken =
-                // flat payloads
-                data?.accessToken ??
-                data?.token ??
-                data?.jwt ??
-                data?.access_token ??
-                // nested payloads: { message, data: { accessToken, ... } }
-                data?.data?.accessToken ??
-                data?.data?.token ??
-                data?.data?.jwt ??
-                data?.data?.access_token ??
-                null;
 
-              const backendRefreshToken =
-                data?.refreshToken ??
-                data?.refresh_token ??
-                data?.data?.refreshToken ??
-                data?.data?.refresh_token ??
-                null;
+              setUserData({
+                name: payload?.name ?? null,
+                email: payload?.email ?? null,
+                profilePicture: payload?.profilePicture ?? null,
+              });
 
-              if (backendToken) {
-                setToken(backendToken);
-                if (backendRefreshToken) {
-                  setRefreshToken(backendRefreshToken);
-                }
-                try {
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("accessToken", backendToken);
-                    if (backendRefreshToken) {
-                      localStorage.setItem("refreshToken", backendRefreshToken);
-                    }
-                  }
-                } catch {
-                  // ignore storage errors
-                }
+              if (payload.permissions) {
+                useAuth.getState().setPermissions(payload.permissions);
               }
-              // Hydrate role/hasFarm after setting token
-              try {
-                const me = await api.get("/api/v1/auth/me");
-                const meData = me?.data ?? {};
-                const payload = meData?.data ?? meData;
-
-                // Normalize role name from various shapes
-                const rawRole =
-                  payload?.role ??
-                  payload?.user?.role ??
-                  payload?.data?.role ??
-                  null;
-                const roleName =
-                  (typeof rawRole === "string" && rawRole) ||
-                  rawRole?.roleName ||
-                  rawRole?.name ||
-                  payload?.user?.roleName ||
-                  null;
-
-                // Derive hasFarm with fallbacks
-                let hasFarmVal: boolean | null =
-                  typeof payload?.hasFarm === "boolean"
-                    ? payload.hasFarm
-                    : null;
-                if (hasFarmVal == null) {
-                  if (payload?.requiresFarmCreation === true)
-                    hasFarmVal = false;
-                  else if (payload?.currentFarm != null) hasFarmVal = true;
-                }
-
-                const farmId =
-                  payload?.farmId ??
-                  payload?.defaultFarmId ??
-                  payload?.currentFarm?.id ??
-                  payload?.user?.farmId ??
-                  payload?.data?.farmId ??
-                  null;
-
-                const farmName =
-                  payload?.currentFarm?.farmName ??
-                  payload?.currentFarm?.name ??
-                  null;
-                if(payload){
-                    setIsSubscribed(payload?.isSubscribed);
-                }
-                setRoleAndFarm({
-                  role: roleName ?? null,
-                  hasFarm: typeof hasFarmVal === "boolean" ? hasFarmVal : null,
-                  farmId,
-                  farmName,
-                });
-
-                // Store user data (name, email, profilePicture)
-                setUserData({
-                  name: payload?.name ?? null,
-                  email: payload?.email ?? null,
-                  profilePicture: payload?.profilePicture ?? null,
-                });
-
-                // Store permissions if available
-                const permissions = Array.isArray(payload?.permissions)
-                  ? payload.permissions
-                  : Array.isArray(payload?.user?.permissions)
-                    ? payload.user.permissions
-                    : [];
-                const { setPermissions } = useAuth.getState();
-                setPermissions(permissions);
-                // Navigate to dashboard; FarmGate will show modal if owner without farm
-                router.push("/dashboard");
-              } catch {
-                // Fallback: navigate to dashboard even if /me fails
-                router.push("/dashboard");
-              }
-            } catch (err: any) {
-              const message =
-                err?.response?.data?.message ??
-                err?.message ??
-                "Google sign-in failed";
-
-              // If backend indicates the Google ID token is expired or invalid, prompt re-auth
-              if (
-                typeof message === "string" &&
-                /expired|id[_-]?token/i.test(message)
-              ) {
-                // Minimal prompt to the user, then trigger a fresh Google sign-in
-                if (typeof window !== "undefined") {
-                  // Avoid blocking if alerts are undesirable; replace with your toast system if available
-                  // eslint-disable-next-line no-alert
-                  window.alert(
-                    "Your Google session expired. Please sign in again."
-                  );
-                }
-                void signIn("google", {
-                  callbackUrl: "/dashboard",
-                  prompt: "consent",
-                  max_age: 300,
-                });
-                return;
-              }
-
-              // Non-expiry errors: log for debugging; UI can decide how to handle missing backend token
-              // eslint-disable-next-line no-console
-              console.error("Google auth exchange failed:", message);
+            } catch (err) {
+              console.error("Failed to fetch extended user data:", err);
             }
           })();
         }
-      } else if (status === "unauthenticated") {
-        // Only clear NextAuth-derived identifiers; keep custom tokens (email/password) intact
-        setUserId(null);
       }
-      // Note: do not include nextAuthSession in deps to avoid effect re-running on every render
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [status, token]);
-
-    // Hydrate token from storage on mount if missing (email/password sessions)
-    // Also fetch user's role and farm status when token is available
-    useEffect(() => {
-      if (!token && typeof window !== "undefined") {
-        const stored =
-          localStorage.getItem("accessToken") ||
-          sessionStorage.getItem("accessToken");
-        if (stored) {
-          setToken(stored);
-        }
-        // Also hydrate refresh token if available
-        const storedRefreshToken =
-          localStorage.getItem("refreshToken") ||
-          sessionStorage.getItem("refreshToken");
-        if (storedRefreshToken) {
-          setRefreshToken(storedRefreshToken);
-        }
-      }
-    }, [token, setToken, setRefreshToken]);
-
-    // Fetch user's auth state (role, hasFarm) when token is available but state is missing
-    useEffect(() => {
-      const { role, hasFarm } = useAuth.getState();
-      if (token && (role === null || hasFarm === null)) {
-        (async () => {
-          try {
-            const me = await api.get("/api/v1/auth/me");
-            const meData = me?.data ?? {};
-            const payload = meData?.data ?? meData;
-
-            // Normalize role name from various shapes
-            const rawRole =
-              payload?.role ??
-              payload?.user?.role ??
-              payload?.data?.role ??
-              null;
-            const roleName =
-              (typeof rawRole === "string" && rawRole) ||
-              rawRole?.roleName ||
-              rawRole?.name ||
-              payload?.user?.roleName ||
-              null;
-
-            // Derive hasFarm with fallbacks
-            let hasFarmVal: boolean | null =
-              typeof payload?.hasFarm === "boolean" ? payload.hasFarm : null;
-
-            if (hasFarmVal == null) {
-              if (payload?.requiresFarmCreation === true) hasFarmVal = false;
-              else if (payload?.currentFarm != null) hasFarmVal = true;
-            }
-
-            const farmId =
-              payload?.farmId ??
-              payload?.defaultFarmId ??
-              payload?.currentFarm?.id ??
-              payload?.user?.farmId ??
-              payload?.data?.farmId ??
-              null;
-
-            const farmName =
-              payload?.currentFarm?.farmName ??
-              payload?.currentFarm?.name ??
-              null;
-
-            setRoleAndFarm({
-              role: roleName ?? null,
-              hasFarm: typeof hasFarmVal === "boolean" ? hasFarmVal : null,
-              farmId,
-              farmName,
-            });
-            if(payload){
-                setIsSubscribed(payload?.isSubscribed);
-            }
-            // Store user data (name, email, profilePicture)
-            setUserData({
-              name: payload?.name ?? null,
-              email: payload?.email ?? null,
-              profilePicture: payload?.profilePicture ?? null,
-            });
-
-            // Store permissions if available
-            const permissions = Array.isArray(payload?.permissions)
-              ? payload.permissions
-              : Array.isArray(payload?.user?.permissions)
-                ? payload.user.permissions
-                : [];
-            const { setPermissions } = useAuth.getState();
-            setPermissions(permissions);
-          } catch (err) {
-            // If /me fails, user might not be authenticated - clear token
-            // eslint-disable-next-line no-console
-            console.error("Failed to fetch user auth state:", err);
-            // Optionally clear token if it's invalid
-            // setToken(null);
-          }
-        })();
-      }
-    }, [token, setRoleAndFarm, setUserData]);
+    }, [status, nextAuthSession, setToken, setIsSubscribed, setUserId, setRoleAndFarm, setUserData]);
 
     return null;
   }

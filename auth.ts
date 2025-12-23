@@ -1,9 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { env } from "./env";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-    trustHost: true, // Trust the host header (required for NextAuth v5)
+    trustHost: true,
     providers: [
         Google({
             clientId: env.GOOGLE_CLIENT_ID,
@@ -16,62 +17,94 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 },
             },
         }),
+        Credentials({
+            name: "Credentials",
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" },
+                // Allow passing the backend response directly if we already have it from a registration
+                backendResponse: { label: "Backend Response", type: "text" },
+            },
+            async authorize(credentials) {
+                if (credentials?.backendResponse) {
+                    try {
+                        return JSON.parse(credentials.backendResponse as string);
+                    } catch (e) {
+                        return null;
+                    }
+                }
+
+                if (!credentials?.email || !credentials?.password) return null;
+
+                try {
+                    const res = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/login`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            email: credentials.email,
+                            password: credentials.password,
+                        }),
+                        headers: { "Content-Type": "application/json" }
+                    });
+
+                    const response = await res.json();
+                    if (res.ok && response.success) {
+                        return response.data;
+                    }
+                    return null;
+                } catch (e) {
+                    return null;
+                }
+            }
+        })
     ],
     secret: env.NEXTAUTH_SECRET,
     session: { strategy: "jwt" },
     callbacks: {
-        jwt: async ({ token, account, profile }) => {
-            const now = Date.now();
-            const GOOGLE_ID_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-            if (account?.provider === "google") {
-                if (profile?.sub) token.sub = profile.sub;
-                if (typeof profile?.picture === "string")
-                    token.picture = profile.picture;
-                // Surface Google tokens only if you need them later
-                (token as any).googleAccessToken = (
-                    account as any
-                )?.access_token;
-                (token as any).googleIdToken = (account as any)?.id_token;
-                // Track when the Google ID token was issued so we can expire it quickly
-                (token as any).googleIdTokenAt = now;
-            } else {
-                // Expire googleIdToken after a short TTL to avoid caching for long
-                const issuedAt = (token as any).googleIdTokenAt as
-                    | number
-                    | undefined;
-                if (issuedAt && now - issuedAt > GOOGLE_ID_TOKEN_TTL_MS) {
-                    delete (token as any).googleIdToken;
-                    delete (token as any).googleIdTokenAt;
+        jwt: async ({ token, user, account }) => {
+            // Initial sign-in
+            if (user && account) {
+                console.log(`[NextAuth JWT] Initial sign-in for provider: ${account.provider}`);
+                if (account.provider === "google") {
+                    try {
+                        const idToken = (account as any).id_token;
+                        const res = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/google`, {
+                            method: 'POST',
+                            body: JSON.stringify({ idToken }),
+                            headers: { "Content-Type": "application/json" }
+                        });
+                        const response = await res.json();
+                        if (res.ok && response.success) {
+                            const backendData = response.data;
+                            token.accessToken = backendData.accessToken;
+                            token.refreshToken = backendData.refreshToken;
+                            token.isSubscribed = backendData.isSubscribed;
+                            token.userId = backendData.user?.id;
+                            console.log(`[NextAuth JWT] Google sync success. isSubscribed: ${token.isSubscribed}`);
+                        } else {
+                            console.error(`[NextAuth JWT] Google sync failed:`, response);
+                        }
+                    } catch (e) {
+                        console.error("[NextAuth JWT] Backend Google sync error:", e);
+                    }
+                } else if (account.provider === "credentials") {
+                    const backendData = user as any;
+                    token.accessToken = backendData.accessToken;
+                    token.refreshToken = backendData.refreshToken;
+                    token.isSubscribed = backendData.isSubscribed;
+                    token.userId = backendData.user?.id;
+                    console.log(`[NextAuth JWT] Credentials login success. isSubscribed: ${token.isSubscribed}`);
                 }
             }
+            
             return token;
         },
         session: async ({ session, token }) => {
-            const now = Date.now();
-            const GOOGLE_ID_TOKEN_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-            (session.user as any).id = token.sub;
-            if (token.picture) session.user.image = token.picture as string;
-            // Optional: expose Google tokens to client if needed
-            (session as any).googleAccessToken = (
-                token as any
-            ).googleAccessToken;
-
-            // Only expose a fresh Google ID token; do not let it linger in the session
-            const idToken = (token as any).googleIdToken as string | undefined;
-            const issuedAt = (token as any).googleIdTokenAt as
-                | number
-                | undefined;
-            if (
-                idToken &&
-                issuedAt &&
-                now - issuedAt <= GOOGLE_ID_TOKEN_TTL_MS
-            ) {
-                (session as any).googleIdToken = idToken;
-            } else {
-                (session as any).googleIdToken = undefined;
+            if (token) {
+                (session.user as any).id = token.userId || token.sub;
+                (session as any).accessToken = token.accessToken;
+                (session as any).isSubscribed = token.isSubscribed;
             }
+            console.log(`[NextAuth Session] Session updated. isLoggedIn: ${!!(session as any).accessToken}, isSubscribed: ${(session as any).isSubscribed}`);
             return session;
         },
     },

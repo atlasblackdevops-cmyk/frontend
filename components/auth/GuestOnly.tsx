@@ -11,13 +11,8 @@ interface GuestOnlyProps {
 }
 
 export function GuestOnly({ children, to = "/dashboard" }: GuestOnlyProps) {
-  const router = useRouter();
   const { status } = useSession();
-  const { token, role, hasFarm,isSubscribed } = useAuth();
-  const roleKnown = role != null || hasFarm != null;
-  const needsFarm: boolean | null = roleKnown
-    ? String(role ?? "").toUpperCase() === "OWNER" && hasFarm === false
-    : null;
+  const { token } = useAuth();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -26,18 +21,11 @@ export function GuestOnly({ children, to = "/dashboard" }: GuestOnlyProps) {
 
   const isLoggedIn = status === "authenticated" || !!token;
 
-  useEffect(() => {
-    if (!hydrated) return;
-   console.log(isSubscribed ,'isSubscribed ')
-    if (isLoggedIn) {
-        // Always redirect to dashboard; FarmGate will handle modal if needed
-        router.replace(to);
-      }
-    
-  }, [hydrated, isLoggedIn, router, to]);
+  // Middleware handles the redirects. This component primarily ensures
+  // that we don't flash guest content if the user is already logged in.
 
-  // Hide content until we know whether to redirect
   if (!hydrated) return null;
   if (isLoggedIn) return null;
+
   return <>{children}</>;
 }
