@@ -22,6 +22,9 @@ export function GoogleButton({
             onClick={(e) => {
                 onClick?.(e);
                 if (!e.isDefaultPrevented()) {
+                    if (typeof window !== "undefined") {
+                        sessionStorage.setItem("is_logging_in", "true");
+                    }
                     void signIn("google", {
                         callbackUrl: "/login",
                         prompt: "consent",

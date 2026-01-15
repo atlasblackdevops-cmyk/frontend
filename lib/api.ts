@@ -2,6 +2,7 @@
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { env } from "@/env";
+import { signOut } from "next-auth/react";
 
 export const api = axios.create({
     baseURL: env.NEXT_PUBLIC_API_BASE_URL,
@@ -113,8 +114,8 @@ const refreshToken = async (): Promise<string | null> => {
                 window.location.pathname !== "/login" &&
                 window.location.pathname !== "/"
             ) {
-                // Use replace to avoid adding to history
-                window.location.replace("/login");
+                // Use signOut to clear session cookie AND redirect to login
+                void signOut({ callbackUrl: "/login", redirect: true });
             }
         }
 
@@ -241,7 +242,7 @@ api.interceptors.response.use(
                 }
 
                 // Redirect to login
-                window.location.replace("/login");
+                void signOut({ callbackUrl: "/login", redirect: true });
             }
         }
 

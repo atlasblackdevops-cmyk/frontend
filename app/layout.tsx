@@ -17,9 +17,7 @@ import AuthSessionProvider from "@/providers/session-provider";
 import { theme } from "@/theme";
 
 export const metadata = {
-    title: {
-        default: "Agri-Pulse | Farm Management System",
-    },
+    title:  "Agri-Pulse | Farm Management System",
     description: "Comprehensive farm management system for modern agriculture. Manage livestock, crops, finances, and more with AI-powered insights.",
     keywords: [
         "farm management",

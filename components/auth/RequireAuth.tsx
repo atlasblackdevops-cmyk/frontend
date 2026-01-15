@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useAuth } from '@/stores/use-auth-store';
 
@@ -11,19 +11,19 @@ interface RequireAuthProps {
 }
 
 export function RequireAuth({ children, redirectTo = '/login' }: RequireAuthProps) {
-  const router = useRouter();
   const { status } = useSession();
-  const { token } = useAuth();
+  const { token, isSubscribed } = useAuth();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'unauthenticated' && !token) {
-      router.replace(redirectTo);
-    }
-  }, [status, token, router, redirectTo]);
-
-  // Hide content while checking/redirecting
+  // Middleware handles the redirects. This component now primarily ensures 
+  // that we don't render protected content before the session is ready.
+  
   if (status === 'loading') return null;
-  if (status === 'unauthenticated' && !token) return null;
+  
+  const isLoggedIn = status === 'authenticated' || !!token;
+
+  // If not logged in, hide content (The middleware handles the redirect)
+  if (!isLoggedIn) return null;
+
   return <>{children}</>;
 }

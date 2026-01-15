@@ -20,7 +20,7 @@ export function OwnerOnly({
 }: OwnerOnlyProps) {
     const router = useRouter();
     const { status } = useSession();
-    const { token, role } = useAuth();
+    const { token, role,  } = useAuth();
     const [hydrated, setHydrated] = useState(false);
 
     useEffect(() => {
@@ -35,6 +35,7 @@ export function OwnerOnly({
         
         // If not logged in at all, redirect to login
         if (status === "loading") return;
+        
         if (!isLoggedIn) {
             router.replace("/login");
             return;
