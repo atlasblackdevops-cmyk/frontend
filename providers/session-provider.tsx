@@ -78,6 +78,7 @@ function AuthSessionProvider({ children, session }: Props) {
 
             if (status === "authenticated" && nextAuthSession) {
                 const accessToken = (nextAuthSession as any).accessToken;
+                const refreshToken = (nextAuthSession as any).refreshToken;
                 const isSubscribed =
                     (nextAuthSession as any).isSubscribed === true;
                 const uid = (nextAuthSession.user as any)?.id;
@@ -104,6 +105,13 @@ function AuthSessionProvider({ children, session }: Props) {
                         localStorage.setItem("accessToken", accessToken);
                         // Once we have synched, clear the "is_logging_in" flag
                         sessionStorage.removeItem("is_logging_in");
+                    }
+                }
+
+                if (refreshToken) {
+                    setRefreshToken(refreshToken);
+                    if (typeof window !== "undefined") {
+                        localStorage.setItem("refreshToken", refreshToken);
                     }
                 }
 
@@ -239,6 +247,7 @@ function AuthSessionProvider({ children, session }: Props) {
             status,
             nextAuthSession,
             setToken,
+            setRefreshToken,
             setIsSubscribed,
             setUserId,
             setRoleAndFarm,
