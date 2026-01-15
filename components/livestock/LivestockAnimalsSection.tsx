@@ -13,10 +13,11 @@ import {
     Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconPlus, IconX } from "@tabler/icons-react";
+import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useAuth } from "@/stores/use-auth-store";
 import { hasPermission } from "@/lib/permissions";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
+import { BaseInput } from "@/components/ui";
 import type { AnimalRecord, FilterValues } from "./types";
 import { useAnimals } from "./hooks";
 import { AddAnimalModal, UpdateAnimalModal } from "./modals";
@@ -24,6 +25,7 @@ import {
     HealthRecordsDrawer,
     WeightRecordsDrawer,
     FeedRecordsDrawer,
+    AnimalFiltersDrawer,
 } from "./drawers";
 import {
     AnimalTable,
@@ -68,6 +70,7 @@ export default function LivestockAnimalsSection() {
     const [healthRecordDrawerOpen, setHealthRecordDrawerOpen] = useState(false);
     const [weightRecordDrawerOpen, setWeightRecordDrawerOpen] = useState(false);
     const [feedRecordDrawerOpen, setFeedRecordDrawerOpen] = useState(false);
+    const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
     const [selectedAnimal, setSelectedAnimal] = useState<AnimalRecord | null>(
         null
     );
@@ -137,24 +140,54 @@ export default function LivestockAnimalsSection() {
         }
     }, [animalsError]);
 
-    const handleSearch = () => {
+    // Calculate active filters count (excluding search)
+    const getActiveFiltersCount = () => {
+        let count = 0;
+        if (filterForm.values.gender !== "all") count++;
+        if (filterForm.values.birthdateFrom) count++;
+        if (filterForm.values.birthdateTo) count++;
+        return count;
+    };
+
+    // Handle search change
+    const handleSearchChange = (searchValue: string) => {
+        filterForm.setFieldValue("search", searchValue);
         setPagination((prev) => ({ ...prev, page: 1 }));
         fetchAnimals(1, {
-            search: filterForm.values.search,
-            gender: filterForm.values.gender,
-            birthdateFrom: filterForm.values.birthdateFrom,
-            birthdateTo: filterForm.values.birthdateTo,
+            search: searchValue || undefined,
+            gender: filterForm.values.gender !== "all" ? filterForm.values.gender : undefined,
+            birthdateFrom: filterForm.values.birthdateFrom || undefined,
+            birthdateTo: filterForm.values.birthdateTo || undefined,
         });
     };
 
-    const handleClearFilters = () => {
-        filterForm.reset();
+    // Handle filter changes from drawer
+    const handleApplyFilters = (newFilters: FilterValues) => {
+        filterForm.setValues(newFilters);
         setPagination((prev) => ({ ...prev, page: 1 }));
         fetchAnimals(1, {
-            search: "",
+            search: newFilters.search || undefined,
+            gender: newFilters.gender !== "all" ? newFilters.gender : undefined,
+            birthdateFrom: newFilters.birthdateFrom || undefined,
+            birthdateTo: newFilters.birthdateTo || undefined,
+        });
+    };
+
+    // Handle clear filters
+    const handleClearFilters = () => {
+        const clearedFilters: FilterValues = {
+            search: filterForm.values.search, // Keep search
             gender: "all",
             birthdateFrom: "",
             birthdateTo: "",
+        };
+        filterForm.setValues(clearedFilters);
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        fetchAnimals(1, {
+            search: clearedFilters.search || undefined,
+            gender: undefined,
+            birthdateFrom: undefined,
+            birthdateTo: undefined,
         });
     };
 
@@ -327,13 +360,35 @@ export default function LivestockAnimalsSection() {
                     </Group>
 
                     {canList && (
-                        <AnimalFilters
-                            form={filterForm}
-                            onSearch={handleSearch}
-                            onClear={handleClearFilters}
-                            isLoading={isLoading}
-                            onOpenFilters={() => {}}
-                        />
+                        <Group gap="md" align="stretch" justify="space-between" wrap="nowrap">
+                            <BaseInput
+                                placeholder="Search by animal name"
+                                leftSection={<IconSearch size={16} />}
+                                style={{ 
+                                    width: "100%",
+                                    maxWidth: 500,
+                                    flex: "1 1 0",
+                                    minWidth: 0
+                                }}
+                                styles={{
+                                    input: {
+                                        height: "42px",
+                                        minHeight: "42px",
+                                    },
+                                }}
+                                value={filterForm.values.search}
+                                onChange={(e) => handleSearchChange(e.currentTarget.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        handleSearchChange(filterForm.values.search);
+                                    }
+                                }}
+                            />
+                            <AnimalFilters
+                                onOpenFilters={() => setFiltersDrawerOpen(true)}
+                                activeFiltersCount={getActiveFiltersCount()}
+                            />
+                        </Group>
                     )}
 
                     {canList ? (
@@ -364,12 +419,10 @@ export default function LivestockAnimalsSection() {
                                         page,
                                     }));
                                     fetchAnimals(page, {
-                                        search: filterForm.values.search,
-                                        gender: filterForm.values.gender,
-                                        birthdateFrom:
-                                            filterForm.values.birthdateFrom,
-                                        birthdateTo:
-                                            filterForm.values.birthdateTo,
+                                        search: filterForm.values.search || undefined,
+                                        gender: filterForm.values.gender !== "all" ? filterForm.values.gender : undefined,
+                                        birthdateFrom: filterForm.values.birthdateFrom || undefined,
+                                        birthdateTo: filterForm.values.birthdateTo || undefined,
                                     });
                                 }}
                             />
@@ -397,12 +450,10 @@ export default function LivestockAnimalsSection() {
                                         page,
                                     }));
                                     fetchAnimals(page, {
-                                        search: filterForm.values.search,
-                                        gender: filterForm.values.gender,
-                                        birthdateFrom:
-                                            filterForm.values.birthdateFrom,
-                                        birthdateTo:
-                                            filterForm.values.birthdateTo,
+                                        search: filterForm.values.search || undefined,
+                                        gender: filterForm.values.gender !== "all" ? filterForm.values.gender : undefined,
+                                        birthdateFrom: filterForm.values.birthdateFrom || undefined,
+                                        birthdateTo: filterForm.values.birthdateTo || undefined,
                                     });
                                 }}
                                 total={pagination.totalPages}
@@ -476,6 +527,14 @@ export default function LivestockAnimalsSection() {
                     setAnimalForRecord(null);
                 }}
                 animal={animalForRecord}
+            />
+
+            <AnimalFiltersDrawer
+                opened={filtersDrawerOpen}
+                onClose={() => setFiltersDrawerOpen(false)}
+                filters={filterForm.values}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
             />
         </Stack>
     );
