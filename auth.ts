@@ -102,6 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (token) {
                 (session.user as any).id = token.userId || token.sub;
                 (session as any).accessToken = token.accessToken;
+                (session as any).refreshToken = token.refreshToken;
                 (session as any).isSubscribed = token.isSubscribed;
             }
             console.log(`[NextAuth Session] Session updated. isLoggedIn: ${!!(session as any).accessToken}, isSubscribed: ${(session as any).isSubscribed}`);
