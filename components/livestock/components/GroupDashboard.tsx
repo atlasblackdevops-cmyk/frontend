@@ -97,8 +97,13 @@ export default function GroupDashboard({
         return `${weight.toFixed(1)} kg`;
     };
 
-    const formatAge = (age: number | null) => {
+    const formatAge = (age: string | number | null) => {
         if (age === null) return "N/A";
+        // If it's already a formatted string from the API, return it as-is
+        if (typeof age === "string") {
+            return age;
+        }
+        // If it's a number (in months), format it
         const years = Math.floor(age / 12);
         const months = Math.floor(age % 12);
         if (years > 0 && months > 0) {

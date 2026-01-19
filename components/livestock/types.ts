@@ -159,7 +159,7 @@ export type AnimalGroup = {
     isActive: boolean;
     animalCount: number;
     averageWeight: number | null;
-    averageAge: number | null;
+    averageAge: string | number | null;
     createdAt: string;
     updatedAt: string;
     createdBy?: {
@@ -187,7 +187,7 @@ export type GroupMetrics = {
     animalsInGroups: number;
     averageGroupSize: number;
     averageWeight: number | null;
-    averageAge: number | null;
+    averageAge: string | number | null;
     groupDistribution: number;
 };
 

@@ -88,6 +88,20 @@ const refreshToken = async (): Promise<string | null> => {
             } catch {
                 // ignore if store not available
             }
+            
+            // Dispatch event to update NextAuth session with new tokens
+            // SessionSync component will listen to this and update the session
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                    new CustomEvent("token-refreshed", {
+                        detail: {
+                            accessToken: newAccessToken,
+                            refreshToken: newRefreshToken,
+                        },
+                    })
+                );
+            }
+            
             return newAccessToken;
         }
 
@@ -125,10 +139,47 @@ const refreshToken = async (): Promise<string | null> => {
 };
 
 // Request interceptor - add access token to requests
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
     try {
         if (typeof window !== "undefined") {
-            const token = localStorage.getItem("accessToken");
+            // ALWAYS prioritize localStorage - it has the latest refreshed tokens
+            // localStorage is the source of truth after token refresh
+            let token = localStorage.getItem("accessToken");
+            
+            // If not in localStorage, try to get from auth store (might be syncing)
+            if (!token) {
+                try {
+                    const { useAuth } = await import("@/stores/use-auth-store");
+                    const authState = useAuth.getState();
+                    token = authState.token;
+                    // If we got token from store, sync it to localStorage for consistency
+                    if (token) {
+                        localStorage.setItem("accessToken", token);
+                    }
+                } catch {
+                    // ignore if store not available
+                }
+            }
+            
+            // Only fall back to NextAuth session if localStorage and store are both empty
+            // This should only happen on first load before SessionSync runs
+            if (!token) {
+                try {
+                    const { getSession } = await import("next-auth/react");
+                    const session = await getSession();
+                    if (session) {
+                        token = (session as any).accessToken;
+                        // If we got token from session, sync it to localStorage
+                        // This ensures localStorage becomes the source of truth
+                        if (token) {
+                            localStorage.setItem("accessToken", token);
+                        }
+                    }
+                } catch {
+                    // ignore if NextAuth not available
+                }
+            }
+            
             if (token) {
                 config.headers = config.headers ?? {};
                 (config.headers as any).Authorization = `Bearer ${token}`;

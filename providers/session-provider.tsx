@@ -23,13 +23,42 @@ function AuthSessionProvider({ children, session }: Props) {
             setUserData,
             setIsSubscribed,
         } = useAuth();
-        const { data: nextAuthSession, status } = useSession();
+        const { data: nextAuthSession, status, update: updateSession } = useSession();
         const pathname = usePathname();
 
         // Refs to prevent multiple simultaneous calls and loops
         const isFetchingMeRef = useRef(false);
         const isLoggingOutRef = useRef(false);
         const hasHandledAuthRef = useRef(false);
+
+        // Listen for token refresh events and update NextAuth session
+        useEffect(() => {
+            const handleTokenRefresh = async (event: Event) => {
+                const customEvent = event as CustomEvent<{
+                    accessToken: string;
+                    refreshToken?: string;
+                }>;
+                const { accessToken, refreshToken: newRefreshToken } = customEvent.detail;
+                
+                if (accessToken && status === "authenticated") {
+                    // Update NextAuth session with new tokens
+                    // This ensures the session cookie has the latest tokens
+                    try {
+                        await updateSession({
+                            accessToken,
+                            refreshToken: newRefreshToken,
+                        });
+                    } catch (error) {
+                        // Silently fail - localStorage is the source of truth anyway
+                    }
+                }
+            };
+
+            window.addEventListener("token-refreshed", handleTokenRefresh);
+            return () => {
+                window.removeEventListener("token-refreshed", handleTokenRefresh);
+            };
+        }, [status, updateSession]);
 
         useEffect(() => {
             // Don't run on public routes (login, register) or if already logging out
@@ -52,9 +81,6 @@ function AuthSessionProvider({ children, session }: Props) {
                     // Only clear if we have a token but NextAuth says we're not authenticated
                     // This indicates a session mismatch
                     if (storedToken && !pathname.includes("/login")) {
-                        console.log(
-                            "[SessionSync] NextAuth unauthenticated but token exists. Clearing state."
-                        );
                         localStorage.removeItem("accessToken");
                         localStorage.removeItem("refreshToken");
                         setToken(null);
@@ -83,35 +109,40 @@ function AuthSessionProvider({ children, session }: Props) {
                     (nextAuthSession as any).isSubscribed === true;
                 const uid = (nextAuthSession.user as any)?.id;
 
-                // CHECK IF USER MANUALLY CLEARED STORAGE
                 if (typeof window !== "undefined") {
-                    const storedToken = localStorage.getItem("accessToken");
-                    const isLoggingIn =
-                        sessionStorage.getItem("is_logging_in") === "true";
+                    // ALWAYS prioritize localStorage tokens over NextAuth session tokens
+                    // This is because localStorage has the latest refreshed tokens
+                    // NextAuth session might have stale tokens from before refresh
+                    const storedAccessToken = localStorage.getItem("accessToken");
+                    const storedRefreshToken = localStorage.getItem("refreshToken");
 
-                    if (!storedToken && !isLoggingIn) {
-                        console.log(
-                            "[SessionSync] LocalStorage is empty. Triggering signOut to match manual clearing."
-                        );
-                        isLoggingOutRef.current = true;
-                        void signOut({ callbackUrl: "/login" });
-                        return;
-                    }
-                }
-
-                if (accessToken) {
-                    setToken(accessToken);
-                    if (typeof window !== "undefined") {
+                    // Use localStorage token if it exists (it's the source of truth after refresh)
+                    if (storedAccessToken) {
+                        setToken(storedAccessToken);
+                        // Clear the "is_logging_in" flag once we've synced
+                        sessionStorage.removeItem("is_logging_in");
+                    } else if (accessToken) {
+                        // Only sync from NextAuth session if localStorage is empty
+                        // This happens on first load or if localStorage was cleared
+                        setToken(accessToken);
                         localStorage.setItem("accessToken", accessToken);
-                        // Once we have synched, clear the "is_logging_in" flag
                         sessionStorage.removeItem("is_logging_in");
                     }
-                }
 
-                if (refreshToken) {
-                    setRefreshToken(refreshToken);
-                    if (typeof window !== "undefined") {
+                    // Same logic for refresh token
+                    if (storedRefreshToken) {
+                        setRefreshToken(storedRefreshToken);
+                    } else if (refreshToken) {
+                        setRefreshToken(refreshToken);
                         localStorage.setItem("refreshToken", refreshToken);
+                    }
+                } else {
+                    // Server-side: just sync from session
+                    if (accessToken) {
+                        setToken(accessToken);
+                    }
+                    if (refreshToken) {
+                        setRefreshToken(refreshToken);
                     }
                 }
 
@@ -121,8 +152,12 @@ function AuthSessionProvider({ children, session }: Props) {
 
                 // Fetch user metadata if role/farm info is missing
                 const currentAuthState = useAuth.getState();
+                // Check if we have a token (API interceptor will use the latest from localStorage)
+                const hasToken = 
+                    (typeof window !== "undefined" && localStorage.getItem("accessToken")) ||
+                    accessToken;
                 const needsMeCall =
-                    accessToken &&
+                    hasToken &&
                     (currentAuthState.role === null ||
                         currentAuthState.hasFarm === null) &&
                     !isFetchingMeRef.current &&
@@ -195,9 +230,6 @@ function AuthSessionProvider({ children, session }: Props) {
 
                             // Handle 401 - token expired/invalid
                             if (axiosError.response?.status === 401) {
-                                console.log(
-                                    "[SessionSync] /me returned 401. Token expired/invalid. Clearing state and signing out."
-                                );
                                 isLoggingOutRef.current = true;
 
                                 // Clear all auth state
@@ -232,11 +264,7 @@ function AuthSessionProvider({ children, session }: Props) {
                                 return; // Exit early to prevent further execution
                             }
 
-                            // For other errors, just log (network errors, etc.)
-                            console.error(
-                                "[SessionSync] Failed to fetch extended user data:",
-                                err
-                            );
+                            // For other errors, silently fail (network errors, etc.)
                         } finally {
                             isFetchingMeRef.current = false;
                         }
@@ -259,7 +287,10 @@ function AuthSessionProvider({ children, session }: Props) {
     }
 
     return (
-        <SessionProvider session={session} refetchOnWindowFocus={false}>
+        <SessionProvider 
+            session={session} 
+            refetchOnWindowFocus={false}
+        >
             <SessionSync />
             {children}
         </SessionProvider>
