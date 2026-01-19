@@ -104,7 +104,10 @@ export default function PaymentMethodsChart({
                                     <Legend
                                         verticalAlign="bottom"
                                         height={36}
-                                        formatter={(value, entry) => `${value}: ${formatCurrency(entry.payload.value)}`}
+                                        formatter={(value, entry) => {
+                                            const amount = entry.payload?.value ?? 0;
+                                            return `${value}: ${formatCurrency(amount)}`;
+                                        }}
                                         iconSize={10}
                                         wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
                                     />
@@ -158,7 +161,10 @@ export default function PaymentMethodsChart({
                                     <Legend
                                         verticalAlign="bottom"
                                         height={36}
-                                        formatter={(value, entry) => `${value}: ${formatCurrency(entry.payload.value)}`}
+                                        formatter={(value, entry) => {
+                                            const amount = entry.payload?.value ?? 0;
+                                            return `${value}: ${formatCurrency(amount)}`;
+                                        }}
                                         iconSize={10}
                                         wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
                                     />
