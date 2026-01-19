@@ -24,6 +24,8 @@ import {
     IconSelector,
     IconSettings,
     IconShoppingCart,
+    IconTrendingDown,
+    IconTrendingUp,
     IconUsersGroup,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -88,11 +90,16 @@ const data: NavItem[] = [
         icon: IconCurrencyDollar,
         children: [
             {
+                link: "/finance/dashboard",
+                label: "Dashboard",
+                icon: IconChartBar,
+            },
+            {
                 link: "/finance/expense",
                 label: "Expense",
-                icon: IconCurrencyDollar,
+                icon: IconTrendingDown,
             },
-            { link: "/finance/revenue", label: "Revenue", icon: IconChartBar },
+            { link: "/finance/revenue", label: "Revenue", icon: IconTrendingUp },
         ],
     },
     { link: "/marketplace", label: "Marketplace", icon: IconShoppingCart },
