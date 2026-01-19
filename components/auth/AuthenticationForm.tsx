@@ -428,6 +428,35 @@ export function AuthenticationForm({
                         }
                     } catch (err: any) {
                         const data = err?.response?.data;
+                        
+                        // Check if this is a general authentication error
+                        const generalAuthErrors = [
+                            "Invalid credentials",
+                            "Unauthorized",
+                        ];
+                        
+                        const errorMessage = 
+                            data?.message ||
+                            data?.error ||
+                            err?.message ||
+                            (type === "register"
+                                ? "Registration failed"
+                                : "Login failed");
+                        
+                        const isGeneralAuthError = generalAuthErrors.some(
+                            (msg) => errorMessage.toLowerCase().includes(msg.toLowerCase())
+                        );
+
+                        // If it's a general auth error, don't map to fields
+                        if (isGeneralAuthError) {
+                            // Clear any existing field errors to avoid highlighting
+                            form.clearErrors();
+                            setStatus(errorMessage);
+                            setIsSubmitting(false);
+                            return;
+                        }
+
+                        // Otherwise, try to map field-specific errors
                         const fieldErrors = mapApiErrorsToFormErrors(data);
 
                         if (Object.keys(fieldErrors).length > 0) {
@@ -460,15 +489,8 @@ export function AuthenticationForm({
                             return;
                         }
 
-                        const message =
-                            data?.message ||
-                            err?.message ||
-                            (type === "register"
-                                ? "Registration failed"
-                                : "Login failed");
-
-                        form.setFieldError("email", message);
-                        setStatus(message);
+                        // Fallback: show general error without field highlighting
+                        setStatus(errorMessage);
                         // Reset flags
                         if (typeof window !== "undefined") {
                             sessionStorage.setItem("is_logging_in", "true");

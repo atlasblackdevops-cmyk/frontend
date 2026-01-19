@@ -13,6 +13,7 @@ interface GuestOnlyProps {
 export function GuestOnly({ children, to = "/dashboard" }: GuestOnlyProps) {
   const { status } = useSession();
   const { token } = useAuth();
+  const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -20,6 +21,13 @@ export function GuestOnly({ children, to = "/dashboard" }: GuestOnlyProps) {
   }, []);
 
   const isLoggedIn = status === "authenticated" || !!token;
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (hydrated && isLoggedIn) {
+      router.replace(to);
+    }
+  }, [hydrated, isLoggedIn, router, to]);
 
   // Middleware handles the redirects. This component primarily ensures
   // that we don't flash guest content if the user is already logged in.

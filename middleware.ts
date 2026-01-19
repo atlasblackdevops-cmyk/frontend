@@ -13,7 +13,16 @@ export default auth((req) => {
     const isAuthRoute = nextUrl.pathname === "/login" || nextUrl.pathname === "/register";
     const isProtectedRoute = nextUrl.pathname.startsWith("/dashboard") || nextUrl.pathname.startsWith("/settings") || nextUrl.pathname.startsWith("/subscription");
 
-    // 1. Redirect logged-in users away from auth routes (login/register)
+    // 1. Redirect logged-in users away from root path to dashboard
+    if (nextUrl.pathname === "/") {
+        if (isLoggedIn) {
+            console.log(`[Middleware] Redirecting logged-in user from ${nextUrl.pathname} to /dashboard`);
+            return NextResponse.redirect(new URL("/dashboard", nextUrl));
+        }
+        return NextResponse.next();
+    }
+
+    // 2. Redirect logged-in users away from auth routes (login/register)
     if (isAuthRoute) {
         if (isLoggedIn) {
             console.log(`[Middleware] Redirecting logged-in user from ${nextUrl.pathname} to /dashboard`);

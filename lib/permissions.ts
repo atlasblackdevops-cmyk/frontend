@@ -48,8 +48,8 @@ export function hasRoutePermission(
         return true;
     }
 
-    // Settings should always be accessible so every user can manage their profile
-    if (route === "/settings") {
+    // Dashboard and Settings should always be accessible to all authenticated users
+    if (route === "/dashboard" || route === "/settings") {
         return true;
     }
 

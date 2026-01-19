@@ -43,6 +43,15 @@ export default function PermissionGate({ children }: PermissionGateProps) {
         // Only check permissions if user is authenticated
         if (!token) return;
 
+        // Wait for auth data to be loaded before checking permissions
+        // If we have a token but no role and no permissions, we're still loading
+        // Once role is set OR permissions are loaded (even if empty), we can proceed
+        const isAuthDataLoaded = role !== null || permissions.length > 0;
+        if (!isAuthDataLoaded) {
+            // Still loading auth data - don't redirect yet
+            return;
+        }
+
         // Reset redirect flag when pathname changes
         hasRedirectedRef.current = false;
 
