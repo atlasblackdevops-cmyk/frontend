@@ -29,7 +29,6 @@ import {
     IconTrendingUp,
     IconUsersGroup,
 } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -109,13 +108,6 @@ const data: NavItem[] = [
     { link: "/users", label: "Users", icon: IconUsersGroup },
 ];
 
-interface Farm {
-    id: string;
-    farmId?: string;
-    farmName?: string;
-    name?: string;
-}
-
 export function NavbarSimple() {
     const router = useRouter();
     const pathname = usePathname();
@@ -143,18 +135,6 @@ export function NavbarSimple() {
         }
         return false;
     });
-
-    // Fetch farms list (for switch farm modal)
-    const { data: farmsData } = useQuery({
-        queryKey: ["owner-farms"],
-        queryFn: async () => {
-            const res = await api.get("/api/v1/farms");
-            return (res?.data?.data ?? res?.data ?? []) as Farm[];
-        },
-        enabled: !!farmId,
-    });
-
-    const farms = Array.isArray(farmsData) ? farmsData : [];
 
     async function handleLogout() {
         if (logoutLoading) return;

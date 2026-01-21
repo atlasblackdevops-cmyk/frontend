@@ -139,6 +139,7 @@ export const CROP_OPTIONS = [
 ] as const;
 
 export const AREA_UNIT_OPTIONS = [
+    { value: "", label: "None" },
     { value: "acres", label: "Acres" },
     { value: "hectares", label: "Hectares" },
     { value: "square_meters", label: "Square Meters" },
@@ -146,6 +147,7 @@ export const AREA_UNIT_OPTIONS = [
 ] as const;
 
 export const QUANTITY_UNIT_OPTIONS = [
+    { value: "", label: "None" },
     { value: "kg", label: "Kilograms (kg)" },
     { value: "lbs", label: "Pounds (lbs)" },
     { value: "grams", label: "Grams" },

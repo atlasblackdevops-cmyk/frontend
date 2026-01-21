@@ -34,10 +34,10 @@ const BASE_VALUES: AddPlantingValues = {
   plantingDate: "",
   expectedHarvestDate: "",
   quantityPlanted: "",
-  quantityUnit: "kg",
+  quantityUnit: "",
   seedCost: "",
   area: "",
-  areaUnit: "acres",
+  areaUnit: "",
   notes: "",
 };
 
@@ -48,29 +48,33 @@ const mapPlantingToValues = (planting: PlantingRecord): AddPlantingValues => ({
   plantingDate: planting.plantingDate,
   expectedHarvestDate: planting.expectedHarvestDate || "",
   quantityPlanted: planting.quantityPlanted ?? "",
-  quantityUnit: planting.quantityUnit ?? "kg",
+  quantityUnit: planting.quantityUnit ?? "",
   seedCost: planting.seedCost ?? "",
   area: planting.area ?? "",
-  areaUnit: planting.areaUnit ?? "acres",
+  areaUnit: planting.areaUnit ?? "",
   notes: planting.notes ?? "",
 });
 
 const normalizeSubmitValues = (
   values: AddPlantingValues
-): AddPlantingValues => ({
-  fieldId: values.fieldId,
-  crop: values.crop,
-  seedType: values.seedType.trim(),
-  plantingDate: values.plantingDate,
-  expectedHarvestDate: values.expectedHarvestDate || undefined,
-  quantityPlanted:
-    values.quantityPlanted === "" ? undefined : values.quantityPlanted,
-  quantityUnit: values.quantityUnit || undefined,
-  seedCost: values.seedCost === "" ? undefined : values.seedCost,
-  area: values.area === "" ? undefined : values.area,
-  areaUnit: values.areaUnit || undefined,
-  notes: values.notes?.trim() || undefined,
-});
+): AddPlantingValues => {
+  const hasQuantity = values.quantityPlanted !== "" && values.quantityPlanted !== undefined && values.quantityPlanted !== null;
+  const hasArea = values.area !== "" && values.area !== undefined && values.area !== null;
+  
+  return {
+    fieldId: values.fieldId,
+    crop: values.crop,
+    seedType: values.seedType.trim(),
+    plantingDate: values.plantingDate,
+    expectedHarvestDate: values.expectedHarvestDate || undefined,
+    quantityPlanted: hasQuantity ? values.quantityPlanted : undefined,
+    quantityUnit: hasQuantity ? (values.quantityUnit || undefined) : undefined,
+    seedCost: values.seedCost === "" ? undefined : values.seedCost,
+    area: hasArea ? values.area : undefined,
+    areaUnit: hasArea ? (values.areaUnit || undefined) : undefined,
+    notes: values.notes?.trim() || undefined,
+  };
+};
 
 export default function PlantingModal({
   mode,
@@ -168,8 +172,6 @@ export default function PlantingModal({
       seedType: (value) =>
         value.trim().length === 0 ? "Seed type is required" : null,
       plantingDate: (value) => (!value ? "Planting date is required" : null),
-      quantityUnit: (value) => (!value ? "Quantity Unit is required" : null),
-      areaUnit: (value) => (!value ? "Area Unit is required" : null),
     },
   });
 
@@ -365,11 +367,13 @@ export default function PlantingModal({
                 {...form.getInputProps("quantityPlanted")}
               />
               <Select
-                label="Quantity Unit"
+                label="Quantity Unit (Optional)"
+                placeholder="Select unit"
                 data={QUANTITY_UNIT_OPTIONS}
                 searchable
                 limit={Infinity}
                 maxDropdownHeight={300}
+                clearable
                 key={form.key("quantityUnit")}
                 {...form.getInputProps("quantityUnit")}
               />
@@ -395,11 +399,13 @@ export default function PlantingModal({
                 {...form.getInputProps("area")}
               />
               <Select
-                label="Area Unit"
+                label="Area Unit (Optional)"
+                placeholder="Select unit"
                 data={AREA_UNIT_OPTIONS}
                 searchable
                 limit={Infinity}
                 maxDropdownHeight={300}
+                clearable
                 key={form.key("areaUnit")}
                 {...form.getInputProps("areaUnit")}
               />
