@@ -24,6 +24,7 @@ import {
     IconSelector,
     IconSettings,
     IconShoppingCart,
+    IconTools,
     IconTrendingDown,
     IconTrendingUp,
     IconUsersGroup,
@@ -46,6 +47,7 @@ interface NavItem {
 const data: NavItem[] = [
     { link: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
     { link: "/fields", label: "Fields", icon: IconMapPin },
+    { link: "/equipment", label: "Equipment", icon: IconTools },
     {
         link: "/livestock",
         label: "Livestock",
