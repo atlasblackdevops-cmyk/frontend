@@ -26,6 +26,8 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
     "/crops/health-notes": "CROPS",
     "/finance": "FINANCE",
     "/marketplace": "MARKETPLACE",
+    "/marketplace/my-listings": "MARKETPLACE",
+    "/marketplace/browse": "MARKETPLACE",
     "/ai": "AI",
     "/settings": "SETTINGS",
     "/users": "USERS",

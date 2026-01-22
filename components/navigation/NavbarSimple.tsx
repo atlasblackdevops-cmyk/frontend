@@ -20,6 +20,7 @@ import {
     IconLayoutDashboard,
     IconMapPin,
     IconPlant2,
+    IconSearch,
     IconSeeding,
     IconSelector,
     IconSettings,
@@ -103,7 +104,23 @@ const data: NavItem[] = [
             { link: "/finance/revenue", label: "Revenue", icon: IconTrendingUp },
         ],
     },
-    { link: "/marketplace", label: "Marketplace", icon: IconShoppingCart },
+    {
+        link: "/marketplace",
+        label: "Marketplace",
+        icon: IconShoppingCart,
+        children: [
+            {
+                link: "/marketplace/my-listings",
+                label: "My Listings",
+                icon: IconShoppingCart,
+            },
+            {
+                link: "/marketplace/browse",
+                label: "Browse",
+                icon: IconSearch,
+            },
+        ],
+    },
     { link: "/ai", label: "AI", icon: IconCpu },
     { link: "/users", label: "Users", icon: IconUsersGroup },
 ];
