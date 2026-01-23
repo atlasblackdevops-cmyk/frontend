@@ -147,25 +147,40 @@ export default function ListingDetailModal({
             </Badge>
           </Group>
 
-          {/* Price */}
-          <Text size="xxl" fw={700} c="blue">
-            {formatCurrency(listing.price)}
-          </Text>
-
           {/* Description */}
           {listing.description && (
             <div>
               <Text fw={600} mb="xs">
                 Description
               </Text>
-              <Text c="dimmed">{listing.description}</Text>
+              <Text 
+                c="dimmed" 
+                style={{ 
+                  wordWrap: "break-word",
+                  wordBreak: "break-word",
+                  overflowWrap: "break-word",
+                  whiteSpace: "pre-wrap"
+                }}
+              >
+                {listing.description}
+              </Text>
+            </div>
+          )}
+
+          {/* Farm Info */}
+          {listing.farm && (
+            <div>
+              <Text fw={600} size="sm" c="dimmed" mb={4}>
+                Farm
+              </Text>
+              <Text>{listing.farm.farmName}</Text>
             </div>
           )}
 
           <Divider />
 
-          {/* Details */}
-          <SimpleGrid cols={2}>
+          {/* Quantity, Status, and Shipping in one row */}
+          <SimpleGrid cols={3} spacing="md">
             <div>
               <Text fw={600} size="sm" c="dimmed" mb={4}>
                 Quantity Available
@@ -182,35 +197,31 @@ export default function ListingDetailModal({
                 {getStatusLabel(listing.status)}
               </Badge>
             </div>
+            <div>
+              <Text fw={600} size="sm" c="dimmed" mb={4}>
+                Shipping
+              </Text>
+              {listing.shippingAvailable ? (
+                <Group gap="xs" c="green">
+                  <IconTruck size={16} />
+                  <Text size="sm">Available</Text>
+                </Group>
+              ) : (
+                <Text size="sm" c="dimmed">Not Available</Text>
+              )}
+            </div>
           </SimpleGrid>
 
           {/* Location */}
           <div>
+            <Text fw={600} size="sm" c="dimmed" mb={4}>
+              Location
+            </Text>
             <Group gap="xs" c="dimmed">
               <IconMapPin size={16} />
               <Text>{location}</Text>
             </Group>
           </div>
-
-          {/* Shipping */}
-          {listing.shippingAvailable && (
-            <Group gap="xs" c="green">
-              <IconTruck size={16} />
-              <Text>Shipping Available</Text>
-            </Group>
-          )}
-
-          <Divider />
-
-          {/* Farm Info */}
-          {listing.farm && (
-            <div>
-              <Text fw={600} size="sm" c="dimmed" mb={4}>
-                Farm
-              </Text>
-              <Text>{listing.farm.farmName}</Text>
-            </div>
-          )}
         </Stack>
       ) : null}
     </Modal>

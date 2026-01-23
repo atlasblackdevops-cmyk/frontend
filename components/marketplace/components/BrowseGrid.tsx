@@ -15,7 +15,7 @@ import {
   Loader,
   Paper,
 } from "@mantine/core";
-import { IconShoppingCart, IconMapPin, IconTruck } from "@tabler/icons-react";
+import { IconShoppingCart, IconMapPin, IconTruck, IconMail } from "@tabler/icons-react";
 import type { BrowseListingRecord, BrowseGridProps } from "../types";
 
 function formatCurrency(amount: string | null | undefined): string {
@@ -56,6 +56,9 @@ function ListingCard({ listing, onViewDetails }: { listing: BrowseListingRecord;
     listing.country,
   ].filter(Boolean);
   const location = locationParts.length > 0 ? locationParts.join(", ") : "Location not specified";
+  
+  // Get seller email from farm.ownerEmail
+  const sellerEmail = listing.farm?.ownerEmail;
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
@@ -116,16 +119,30 @@ function ListingCard({ listing, onViewDetails }: { listing: BrowseListingRecord;
           </Text>
         </Group>
 
-        <Button
-          variant="light"
-          color="blue"
-          fullWidth
-          mt="md"
-          radius="md"
-          onClick={() => onViewDetails(listing)}
-        >
-          View Details
-        </Button>
+        <Group gap="sm" mt="md">
+          <Button
+            variant="light"
+            color="blue"
+            style={{ flex: 1 }}
+            radius="md"
+            onClick={() => onViewDetails(listing)}
+          >
+            View Details
+          </Button>
+          {sellerEmail && (
+            <Button
+              variant="filled"
+              color="green"
+              leftSection={<IconMail size={16} />}
+              style={{ flex: 1 }}
+              radius="md"
+              component="a"
+              href={`mailto:${sellerEmail}?subject=${encodeURIComponent(`Inquiry about ${listing.title}`)}&body=${encodeURIComponent(`Hello,\n\nI am interested in your listing: ${listing.title}\n\nPlease contact me regarding this item.\n\nThank you!`)}`}
+            >
+              Contact
+            </Button>
+          )}
+        </Group>
       </Stack>
     </Card>
   );

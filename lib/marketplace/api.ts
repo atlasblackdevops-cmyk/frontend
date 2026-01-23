@@ -26,6 +26,7 @@ export interface Listing {
     farm?: {
         id: string;
         farmName: string;
+        ownerEmail?: string;
     };
     images?: ListingImage[];
 }
@@ -43,6 +44,7 @@ export interface BrowseListing {
     farm: {
         id: string;
         farmName: string;
+        ownerEmail: string;
     };
 }
 
