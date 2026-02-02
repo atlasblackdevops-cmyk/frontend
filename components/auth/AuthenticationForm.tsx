@@ -183,6 +183,27 @@ export function AuthenticationForm({
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [status, setStatus] = React.useState<string | undefined>(undefined);
 
+    // Get referral code from URL params
+    const [referralCodeFromUrl, setReferralCodeFromUrl] = React.useState<string | null>(null);
+    
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get("ref");
+            if (refCode) {
+                setReferralCodeFromUrl(refCode);
+                // Store in localStorage for Google sign-in
+                localStorage.setItem("referralCode", refCode);
+            } else {
+                // Check if referral code exists in localStorage (from previous page)
+                const storedCode = localStorage.getItem("referralCode");
+                if (storedCode) {
+                    setReferralCodeFromUrl(storedCode);
+                }
+            }
+        }
+    }, []);
+
     const form = useForm({
         initialValues: {
             email: "",
