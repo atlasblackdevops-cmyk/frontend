@@ -27,6 +27,12 @@ export interface AuthStore {
     userEmail: string | null;
     userProfilePicture: string | null;
     permissions: Permission[];
+    referralCode: string | null;
+    totalReferralPoints: number;
+    availableReferralPoints: number;
+    totalReferrals: number;
+    successfulReferrals: number;
+    pendingReferrals: number;
     setToken: (token: string | null) => void;
     setRefreshToken: (refreshToken: string | null) => void;
     setAuth: (auth: OAuthProfile) => void;
@@ -41,6 +47,14 @@ export interface AuthStore {
         name?: string | null;
         email?: string | null;
         profilePicture?: string | null;
+    }) => void;
+    setReferralData: (payload: {
+        referralCode?: string | null;
+        totalReferralPoints?: number;
+        availableReferralPoints?: number;
+        totalReferrals?: number;
+        successfulReferrals?: number;
+        pendingReferrals?: number;
     }) => void;
     setIsSubscribed: (isSubscribed: boolean) => void;
     isSubscribed: boolean;
@@ -60,6 +74,12 @@ export const useAuth = create<AuthStore>((set) => ({
     userEmail: null,
     userProfilePicture: null,
     permissions: [],
+    referralCode: null,
+    totalReferralPoints: 0,
+    availableReferralPoints: 0,
+    totalReferrals: 0,
+    successfulReferrals: 0,
+    pendingReferrals: 0,
     isSubscribed:false,
     setIsSubscribed: (isSubscribed: boolean) => set({ isSubscribed }),
     setToken: (token: string | null) => set({ token }),
@@ -91,6 +111,15 @@ export const useAuth = create<AuthStore>((set) => ({
                 profilePicture !== undefined
                     ? profilePicture
                     : prev.userProfilePicture,
+        })),
+    setReferralData: ({ referralCode, totalReferralPoints, availableReferralPoints, totalReferrals, successfulReferrals, pendingReferrals }) =>
+        set((prev) => ({
+            referralCode: referralCode !== undefined ? referralCode : prev.referralCode,
+            totalReferralPoints: totalReferralPoints !== undefined ? totalReferralPoints : prev.totalReferralPoints,
+            availableReferralPoints: availableReferralPoints !== undefined ? availableReferralPoints : prev.availableReferralPoints,
+            totalReferrals: totalReferrals !== undefined ? totalReferrals : prev.totalReferrals,
+            successfulReferrals: successfulReferrals !== undefined ? successfulReferrals : prev.successfulReferrals,
+            pendingReferrals: pendingReferrals !== undefined ? pendingReferrals : prev.pendingReferrals,
         })),
     setPermissions: (permissions: Permission[]) => set({ permissions }),
 }));

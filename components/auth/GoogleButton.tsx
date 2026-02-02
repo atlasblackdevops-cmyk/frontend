@@ -24,6 +24,13 @@ export function GoogleButton({
                 if (!e.isDefaultPrevented()) {
                     if (typeof window !== "undefined") {
                         sessionStorage.setItem("is_logging_in", "true");
+                        
+                        // Store referral code from URL or localStorage before Google OAuth redirect
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const refCode = urlParams.get("ref") || localStorage.getItem("referralCode");
+                        if (refCode) {
+                            localStorage.setItem("referralCode", refCode);
+                        }
                     }
                     void signIn("google", {
                         callbackUrl: "/login",

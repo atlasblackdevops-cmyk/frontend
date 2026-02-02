@@ -220,6 +220,18 @@ function AuthSessionProvider({ children, session }: Props) {
                                 profilePicture: payload?.profilePicture ?? null,
                             });
 
+                            // Store referral data
+                            if (payload?.referralCode || payload?.totalReferrals !== undefined) {
+                                useAuth.getState().setReferralData({
+                                    referralCode: payload?.referralCode || null,
+                                    totalReferralPoints: payload?.totalReferralPoints || 0,
+                                    availableReferralPoints: payload?.availableReferralPoints || 0,
+                                    totalReferrals: payload?.totalReferrals || 0,
+                                    successfulReferrals: payload?.successfulReferrals || 0,
+                                    pendingReferrals: payload?.pendingReferrals || 0,
+                                });
+                            }
+
                             if (payload.permissions) {
                                 useAuth
                                     .getState()

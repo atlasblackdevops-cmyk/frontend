@@ -66,9 +66,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (account.provider === "google") {
                     try {
                         const idToken = (account as any).id_token;
+                        // Get referral code from localStorage (stored before OAuth redirect)
+                        let referralCode: string | undefined;
+                        if (typeof window !== "undefined") {
+                            referralCode = localStorage.getItem("referralCode") || undefined;
+                        }
+                        
                         const res = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/google`, {
                             method: 'POST',
-                            body: JSON.stringify({ idToken }),
+                            body: JSON.stringify({ 
+                                idToken,
+                                referralCode: referralCode || undefined
+                            }),
                             headers: { "Content-Type": "application/json" }
                         });
                         const response = await res.json();
@@ -78,6 +87,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             token.refreshToken = backendData.refreshToken;
                             token.isSubscribed = backendData.isSubscribed;
                             token.userId = backendData.user?.id;
+                            
+                            // Clear referral code from localStorage after successful sign-in
+                            if (typeof window !== "undefined" && referralCode) {
+                                localStorage.removeItem("referralCode");
+                            }
                         } else {
                             console.error(`[NextAuth JWT] Google sync failed:`, response);
                         }

@@ -189,6 +189,7 @@ export function AuthenticationForm({
             name: "",
             password: "",
             terms: true,
+            referralCode: referralCodeFromUrl || "",
         },
         validateInputOnBlur: true,
         validate: (values) => {
@@ -215,11 +216,13 @@ export function AuthenticationForm({
     React.useEffect(() => {
         const currentEmail = form.values.email;
         const currentPassword = form.values.password;
+        const currentReferralCode = form.values.referralCode || referralCodeFromUrl || "";
         form.setValues({
             email: currentEmail,
             name: "",
             password: currentPassword,
             terms: true,
+            referralCode: currentReferralCode,
         });
         form.clearErrors();
     }, [type]);
@@ -272,6 +275,7 @@ export function AuthenticationForm({
                             email: values.email.trim().toLowerCase(),
                             password: values.password,
                             name: values.name.trim(),
+                            referralCode: values.referralCode?.trim() || referralCodeFromUrl || undefined,
                         };
 
                         const { data } = type === "register"
@@ -279,6 +283,7 @@ export function AuthenticationForm({
                                 email: payload.email,
                                 password: payload.password,
                                 name: payload.name,
+                                referralCode: payload.referralCode,
                             })
                             : await api.post("/api/v1/auth/login", {
                                 email: payload.email,
@@ -410,6 +415,23 @@ export function AuthenticationForm({
                                 }
                             } catch {}
                             
+                            // Store referral data from /me response
+                            if (payload?.referralCode || payload?.totalReferrals !== undefined) {
+                                useAuth.getState().setReferralData({
+                                    referralCode: payload?.referralCode || null,
+                                    totalReferralPoints: payload?.totalReferralPoints || 0,
+                                    availableReferralPoints: payload?.availableReferralPoints || 0,
+                                    totalReferrals: payload?.totalReferrals || 0,
+                                    successfulReferrals: payload?.successfulReferrals || 0,
+                                    pendingReferrals: payload?.pendingReferrals || 0,
+                                });
+                            }
+                            
+                            // Clear referral code from localStorage after successful registration/login
+                            if (values.referralCode || referralCodeFromUrl) {
+                                localStorage.removeItem("referralCode");
+                            }
+                            
                             // Check if user is OWNER and just registered
                             const isOwner = roleName && String(roleName).trim().toUpperCase() === "OWNER";
                             
@@ -531,6 +553,7 @@ export function AuthenticationForm({
                     }}
                 >
                     {type === "register" && (
+                        <>
                         <BaseInput
                             label="Name"
                             placeholder="Enter your full name"
@@ -557,6 +580,58 @@ export function AuthenticationForm({
                             }}
                             {...form.getInputProps("name")}
                         />
+                        
+                        {referralCodeFromUrl && (
+                            <Alert
+                                color="green"
+                                variant="light"
+                                radius={6}
+                                styles={{
+                                    message: {
+                                        fontSize: "13px",
+                                        color: "rgba(255, 255, 255, 0.9)",
+                                    },
+                                }}
+                            >
+                                Referral code applied: <strong>{referralCodeFromUrl}</strong>
+                            </Alert>
+                        )}
+                        
+                        <BaseInput
+                            label="Referral Code (Optional)"
+                            placeholder="Enter referral code"
+                            error={form.errors.referralCode}
+                            value={form.values.referralCode}
+                            onChange={(e) => {
+                                const value = e.currentTarget.value;
+                                form.setFieldValue("referralCode", value);
+                                if (value) {
+                                    localStorage.setItem("referralCode", value);
+                                } else {
+                                    localStorage.removeItem("referralCode");
+                                }
+                            }}
+                            styles={{
+                                label: {
+                                    color: "rgba(255, 255, 255, 0.9)",
+                                },
+                                input: {
+                                    color: "rgba(255, 255, 255, 0.95)",
+                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                    border: form.errors.referralCode 
+                                        ? "1px solid #fa5252" 
+                                        : "1px solid rgba(255, 255, 255, 0.2)",
+                                    "&::placeholder": {
+                                        color: "rgba(255, 255, 255, 0.6)",
+                                    },
+                                    "&:focus": {
+                                        backgroundColor: "rgba(255, 255, 255, 0.15)",
+                                        borderColor: form.errors.referralCode ? "#fa5252" : "#22c55e",
+                                    },
+                                },
+                            }}
+                        />
+                        </>
                     )}
 
                     <BaseInput

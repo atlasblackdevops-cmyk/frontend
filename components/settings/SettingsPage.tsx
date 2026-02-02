@@ -41,6 +41,10 @@ import {
   IconCheck,
   IconLeaf,
   IconTrendingUp,
+  IconShare,
+  IconCopy,
+  IconUsers,
+  IconCoin,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -50,8 +54,15 @@ import { useSubscription } from "../pricing/hooks/useSubscription";
 export default function SettingsPage() {
   const router = useRouter();
   const theme = useMantineTheme();
-  const { role, userName, userEmail, userProfilePicture, setUserData, farmId } =
-    useAuth();
+  const { 
+    role, 
+    userName, 
+    userEmail, 
+    userProfilePicture, 
+    setUserData, 
+    farmId,
+    setReferralData,
+  } = useAuth();
   const isOwner = (role ?? "").toUpperCase() === "OWNER";
   const { 
     currentSubscription, 
@@ -114,6 +125,38 @@ export default function SettingsPage() {
     enabled: !!farmId && isOwner,
   });
 
+  // Fetch referral data from API (only on mount and manual refresh)
+  const { 
+    data: referralData, 
+    refetch: refetchReferrals,
+    isLoading: isLoadingReferrals 
+  } = useQuery({
+    queryKey: ["user-referral-data"],
+    queryFn: async () => {
+      const res = await api.get("/api/v1/auth/me");
+      const payload = res?.data?.data ?? res?.data ?? {};
+      return {
+        referralCode: payload?.referralCode || null,
+        totalReferralPoints: payload?.totalReferralPoints || 0,
+        availableReferralPoints: payload?.availableReferralPoints || 0,
+        totalReferrals: payload?.totalReferrals || 0,
+        successfulReferrals: payload?.successfulReferrals || 0,
+        pendingReferrals: payload?.pendingReferrals || 0,
+      };
+    },
+    enabled: true, // Fetch when component mounts
+    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
+    staleTime: Infinity, // Data never goes stale (only refresh manually)
+  });
+
+  // Use API data if available, fallback to auth store
+  const referralCode = referralData?.referralCode || null;
+  const totalReferralPoints = referralData?.totalReferralPoints ?? 0;
+  const availableReferralPoints = referralData?.availableReferralPoints ?? 0;
+  const totalReferrals = referralData?.totalReferrals ?? 0;
+  const successfulReferrals = referralData?.successfulReferrals ?? 0;
+  const pendingReferrals = referralData?.pendingReferrals ?? 0;
+
   // Update farm state when data is fetched
   useEffect(() => {
     if (farmData) {
@@ -139,6 +182,13 @@ export default function SettingsPage() {
     setUserEmailValue(userEmail || "");
     setUserProfilePicturePreview(userProfilePicture || null);
   }, [userName, userEmail, userProfilePicture]);
+
+  // Sync referral data to auth store when fetched
+  useEffect(() => {
+    if (referralData) {
+      setReferralData(referralData);
+    }
+  }, [referralData, setReferralData]);
 
   // Fetch subscription data for owners
   useEffect(() => {
@@ -301,6 +351,7 @@ export default function SettingsPage() {
   };
 
   const [activeTab, setActiveTab] = useState<string | null>("user");
+  const [referralCodeCopied, setReferralCodeCopied] = useState(false);
 
   return (
     <Stack gap="xl" p="md">
@@ -308,8 +359,11 @@ export default function SettingsPage() {
 
       <Tabs value={activeTab} onChange={setActiveTab} variant="outline" radius="md">
         <Tabs.List mb="lg">
-          <Tabs.Tab value="user" leftSection={<IconUser size={16} />}>
+              <Tabs.Tab value="user" leftSection={<IconUser size={16} />}>
             User Profile
+          </Tabs.Tab>
+          <Tabs.Tab value="referrals" leftSection={<IconShare size={16} />}>
+            Referrals
           </Tabs.Tab>
           {isOwner && (
             <>
@@ -483,6 +537,198 @@ export default function SettingsPage() {
                   Update Profile
                 </BaseButton>
               </Stack>
+            </Stack>
+          </Paper>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="referrals">
+          {/* Referral Section */}
+          <Paper withBorder p="lg" radius="md">
+            <Stack gap="md">
+              <Group gap="xs" justify="space-between">
+                <Group gap="xs">
+                  <IconShare size={20} />
+                  <Title order={3}>Referral Program</Title>
+                </Group>
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  onClick={() => refetchReferrals()}
+                  loading={isLoadingReferrals}
+                >
+                  Refresh
+                </Button>
+              </Group>
+              <Divider />
+
+              {isLoadingReferrals ? (
+                <Stack align="center" py="xl">
+                  <Text size="sm" c="dimmed">Loading referral data...</Text>
+                </Stack>
+              ) : (
+              <Stack gap="lg">
+                {/* Referral Code */}
+                <Stack gap="xs">
+                  <Text size="sm" fw={500}>
+                    Your Referral Code
+                  </Text>
+                  <Group gap="sm">
+                    <TextInput
+                      value={referralCode || ""}
+                      readOnly
+                      styles={{
+                        input: {
+                          fontFamily: "monospace",
+                          fontSize: "16px",
+                          fontWeight: 600,
+                          letterSpacing: "2px",
+                        },
+                      }}
+                      rightSection={
+                        <ActionIcon
+                          variant="subtle"
+                          onClick={() => {
+                            if (referralCode) {
+                              navigator.clipboard.writeText(referralCode);
+                              setReferralCodeCopied(true);
+                              setTimeout(() => setReferralCodeCopied(false), 2000);
+                            }
+                          }}
+                        >
+                          {referralCodeCopied ? (
+                            <IconCheck size={18} color="green" />
+                          ) : (
+                            <IconCopy size={18} />
+                          )}
+                        </ActionIcon>
+                      }
+                    />
+                    <BaseButton
+                      variant="light"
+                      leftSection={<IconShare size={16} />}
+                      onClick={() => {
+                        if (referralCode && typeof window !== "undefined") {
+                          const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
+                          navigator.clipboard.writeText(referralLink);
+                          setReferralCodeCopied(true);
+                          setTimeout(() => setReferralCodeCopied(false), 2000);
+                        }
+                      }}
+                    >
+                      Copy Link
+                    </BaseButton>
+                  </Group>
+                  {referralCodeCopied && (
+                    <Text size="xs" c="green">
+                      Copied to clipboard!
+                    </Text>
+                  )}
+                  <Text size="xs" c="dimmed">
+                    Share your referral code with friends and earn points when they sign up!
+                  </Text>
+                </Stack>
+
+                {/* Referral Statistics */}
+                <Grid>
+                  <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                    <Card withBorder p="md" radius="md">
+                      <Stack gap="xs" align="center">
+                        <ThemeIcon size={48} radius="xl" color="blue" variant="light">
+                          <IconUsers size={24} />
+                        </ThemeIcon>
+                        <Text size="xs" c="dimmed" ta="center">
+                          Total Referrals
+                        </Text>
+                        <Text size="xl" fw={700}>
+                          {totalReferrals}
+                        </Text>
+                      </Stack>
+                    </Card>
+                  </Grid.Col>
+
+                  <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                    <Card withBorder p="md" radius="md">
+                      <Stack gap="xs" align="center">
+                        <ThemeIcon size={48} radius="xl" color="green" variant="light">
+                          <IconCheck size={24} />
+                        </ThemeIcon>
+                        <Text size="xs" c="dimmed" ta="center">
+                          Successful
+                        </Text>
+                        <Text size="xl" fw={700} c="green">
+                          {successfulReferrals}
+                        </Text>
+                      </Stack>
+                    </Card>
+                  </Grid.Col>
+
+                  <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
+                    <Card withBorder p="md" radius="md">
+                      <Stack gap="xs" align="center">
+                        <ThemeIcon size={48} radius="xl" color="yellow" variant="light">
+                          <IconAlertCircle size={24} />
+                        </ThemeIcon>
+                        <Text size="xs" c="dimmed" ta="center">
+                          Pending
+                        </Text>
+                        <Text size="xl" fw={700} c="yellow">
+                          {pendingReferrals}
+                        </Text>
+                      </Stack>
+                    </Card>
+                  </Grid.Col>
+                </Grid>
+
+                {/* Points Section */}
+                <Divider label="Points" labelPosition="center" />
+                <Grid>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Card withBorder p="md" radius="md" style={{ backgroundColor: theme.colors.green[0] }}>
+                      <Stack gap="xs">
+                        <Group gap="xs">
+                          <ThemeIcon size={32} radius="xl" color="green" variant="light">
+                            <IconCoin size={18} />
+                          </ThemeIcon>
+                          <Text size="sm" fw={600}>
+                            Total Points Earned
+                          </Text>
+                        </Group>
+                        <Text size="xl" fw={700} c="green">
+                          {totalReferralPoints}
+                        </Text>
+                      </Stack>
+                    </Card>
+                  </Grid.Col>
+
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Card withBorder p="md" radius="md" style={{ backgroundColor: theme.colors.blue[0] }}>
+                      <Stack gap="xs">
+                        <Group gap="xs">
+                          <ThemeIcon size={32} radius="xl" color="blue" variant="light">
+                            <IconCoin size={18} />
+                          </ThemeIcon>
+                          <Text size="sm" fw={600}>
+                            Available Points
+                          </Text>
+                        </Group>
+                        <Text size="xl" fw={700} c="blue">
+                          {availableReferralPoints}
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                          Ready to redeem
+                        </Text>
+                      </Stack>
+                    </Card>
+                  </Grid.Col>
+                </Grid>
+
+                <Alert color="blue" variant="light" radius="md">
+                  <Text size="sm">
+                    <strong>How it works:</strong> Share your referral code with friends. When they sign up using your code, you'll earn referral points. Points can be redeemed for discounts and credits (coming soon).
+                  </Text>
+                </Alert>
+              </Stack>
+              )}
             </Stack>
           </Paper>
         </Tabs.Panel>
